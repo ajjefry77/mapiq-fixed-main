@@ -100,13 +100,11 @@
           </div>
 
           <div class="form-row">
-            <label>نقش‌ها</label>
-            <div class="check-grid">
-              <label v-for="role in roles" :key="role.id" class="check-item">
-                <input type="checkbox" :value="role.name" v-model="userForm.roles" />
-                <span>{{ role.description || role.name }}</span>
-              </label>
-            </div>
+            <label>نقش</label>
+            <select v-model="userForm.role" class="input">
+              <option value="">-- انتخاب نقش --</option>
+              <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.description || role.name }}</option>
+            </select>
           </div>
 
           <div class="modal-actions">
@@ -133,7 +131,7 @@ const loading = ref(true);
 const showModal = ref(false);
 const selectedUser = ref(null);
 const saving = ref(false);
-const userForm = reactive({ name: '', phone: '', username: '', code: '', password: '', roles: [] });
+const userForm = reactive({ name: '', phone: '', username: '', code: '', password: '', role: '' });
 
 const page = ref(1);
 const perPage = 15;
@@ -161,15 +159,16 @@ const visiblePages = computed(() => {
 watch(users, () => { page.value = 1; });
 
 function getUserRoles(u) {
-  if (u.roles?.length) return u.roles.map(r => {
-    const found = roles.value.find(role => role.name === r);
-    return found?.description || r;
-  });
-  return u.Roles?.map(r => r.description || r.name) || [];
+  const roleId = u.roles?.[0] || u.Roles?.[0]?.id;
+  if (roleId) {
+    const found = roles.value.find(role => role.id === roleId || role.name === roleId);
+    return [found?.description || found?.name || roleId];
+  }
+  return [];
 }
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('fa-IR') : '—'; }
 
-function resetForm() { Object.assign(userForm, { name: '', phone: '', username: '', code: '', password: '', roles: [] }); }
+function resetForm() { Object.assign(userForm, { name: '', phone: '', username: '', code: '', password: '', role: '' }); }
 
 function openCreate() { selectedUser.value = null; resetForm(); showModal.value = true; }
 
@@ -181,7 +180,7 @@ function editUser(u) {
     username: u.phone || u.username,
     code: u.code || '',
     password: '',
-    roles: u.roles || u.Roles?.map(r => r.name) || [],
+    role: u.Roles?.[0]?.id || u.roles?.[0] || '',
   });
   showModal.value = true;
 }
@@ -198,6 +197,8 @@ async function loadUsers() {
       username: u.phone || u.username,
       createdAt: u.created_at || u.createdAt,
       code: u.code || '',
+      roles: u.roles || u.Roles?.map(r => r.id) || [],
+      Roles: u.Roles || [],
     })) : [];
   } catch (e) { console.error(e); }
 }
@@ -217,7 +218,7 @@ async function saveUser() {
         full_name: userForm.name,
         phone: userForm.phone,
         password: userForm.password || undefined,
-        roles: userForm.roles.length ? userForm.roles : undefined,
+        role_id: userForm.role || undefined,
       });
     } else {
       await axios.post(SERVER + '/api/adduser', {
@@ -226,7 +227,7 @@ async function saveUser() {
         username: userForm.username,
         code: userForm.code,
         password: userForm.password,
-        roles: userForm.roles,
+        role_id: userForm.role,
       });
     }
     await loadUsers(); closeModal();

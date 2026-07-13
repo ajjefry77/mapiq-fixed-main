@@ -54,16 +54,40 @@
       <div class="modal card">
         <h2 class="modal-title">افزودن عضو به «{{ memberGroup?.name }}»</h2>
         <div class="modal-form">
-          <div class="form-row">
-            <label>شماره تماس کاربر</label>
-            <input v-model="memberPhone" class="input" placeholder="09123456789" dir="ltr" @keyup.enter="addMemberByPhone" />
+          <!-- Admin: User list dropdown -->
+          <div v-if="isAdmin" class="form-row">
+            <label>انتخاب کاربر از لیست</label>
+            <div v-if="loadingUsers" class="loading">در حال بارگذاری کاربران...</div>
+            <select v-else v-model="selectedUserId" class="input" @change="addMemberByUserId">
+              <option value="">-- انتخاب کاربر --</option>
+              <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }} ({{ u.phone }})</option>
+            </select>
           </div>
+
+          <!-- Group Manager: Phone input only -->
+          <div v-else-if="isGroupManager" class="form-row">
+            <label>شماره تماس کاربر</label>
+            <input 
+              v-model="memberPhone" 
+              class="input" 
+              placeholder="09123456789" 
+              dir="ltr" 
+              @keyup.enter="addMemberByPhone"
+              @input="formatPhoneInput"
+              maxlength="11"
+              inputmode="numeric"
+              pattern="09\d{9}"
+              title="شماره موبایل ۱۱ رقمی با پیشوند ۰۹"
+            />
+          </div>
+          
           <p v-if="memberError" class="field-error">{{ memberError }}</p>
           <p v-if="memberSuccess" style="font-size:12px;color:var(--success)">{{ memberSuccess }}</p>
         </div>
         <div class="modal-actions" style="margin-top:12px">
           <button class="btn btn-ghost" @click="closeMemberModal">بستن</button>
-          <button class="btn btn-primary" @click="addMemberByPhone" :disabled="savingMembers || !memberPhone.trim()">{{ savingMembers ? 'در حال افزودن...' : 'افزودن' }}</button>
+          <button v-if="isAdmin" class="btn btn-primary" @click="addMemberByUserId" :disabled="savingMembers || !selectedUserId">{{ savingMembers ? 'در حال افزودن...' : 'افزودن' }}</button>
+          <button v-else-if="isGroupManager" class="btn btn-primary" @click="addMemberByPhone" :disabled="savingMembers || !memberPhone.trim()">{{ savingMembers ? 'در حال افزودن...' : 'افزودن' }}</button>
         </div>
       </div>
     </div>
@@ -71,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import axios from 'axios'
 
@@ -112,14 +136,48 @@ const memberPhone = ref('')
 const memberError = ref('')
 const memberSuccess = ref('')
 const savingMembers = ref(false)
+const users = ref([])
+const selectedUserId = ref('')
+const loadingUsers = ref(false)
+
+const isAdmin = computed(() => authStore.isAdmin)
+const isGroupManager = computed(() => authStore.isGroupManager)
+
+async function loadUsers() {
+  if (users.value.length) return
+  loadingUsers.value = true
+  try {
+    const r = await axios.get(SERVER + '/api/users')
+    users.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : []
+  } catch (e) { console.error(e) }
+  finally { loadingUsers.value = false }
+}
 
 function openMemberModal(group) {
-  memberGroup.value = group; memberPhone.value = ''; memberError.value = ''; memberSuccess.value = ''
+  memberGroup.value = group
+  memberPhone.value = ''
+  memberError.value = ''
+  memberSuccess.value = ''
+  selectedUserId.value = ''
+  if (isAdmin.value) loadUsers()
   showMemberModal.value = true
 }
 function closeMemberModal() { showMemberModal.value = false; memberGroup.value = null }
+
+function formatPhoneInput(e) {
+  let value = e.target.value.replace(/\D/g, '')
+  if (value.length > 11) value = value.slice(0, 11)
+  e.target.value = value
+  memberPhone.value = value
+}
+
 async function addMemberByPhone() {
-  if (!memberPhone.value.trim()) return
+  const phone = memberPhone.value.trim()
+  if (!phone) return
+  if (!/^09\d{9}$/.test(phone)) {
+    memberError.value = 'شماره موبایل باید ۱۱ رقم و با پیشوند ۰۹ باشد'
+    return
+  }
   savingMembers.value = true; memberError.value = ''; memberSuccess.value = ''
   try {
     await axios.post(`${SERVER}/api/groups/${memberGroup.value.id}/users/phone`, { phone: memberPhone.value.trim() })
@@ -129,6 +187,19 @@ async function addMemberByPhone() {
   } catch (e) { memberError.value = e.response?.data?.error || 'خطا در افزودن کاربر' }
   finally { savingMembers.value = false }
 }
+
+async function addMemberByUserId() {
+  if (!selectedUserId.value) return
+  savingMembers.value = true; memberError.value = ''; memberSuccess.value = ''
+  try {
+    await axios.post(`${SERVER}/api/groups/${memberGroup.value.id}/users`, { user_id: selectedUserId.value })
+    memberSuccess.value = 'کاربر با موفقیت اضافه شد'
+    selectedUserId.value = ''
+    await loadGroups()
+  } catch (e) { memberError.value = e.response?.data?.error || 'خطا در افزودن کاربر' }
+  finally { savingMembers.value = false }
+}
+
 async function removeUser(groupId, userId) {
   if (!confirm('حذف عضو؟')) return
   try { await axios.delete(`${SERVER}/api/groups/${groupId}/users/${userId}`); await loadGroups() } catch (e) { console.error(e) }

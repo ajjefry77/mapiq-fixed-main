@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+     viewBox="0 0 32 32" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- آیکن لایه -->
+    <path d="M12 10L4 15l8 5 8-5-8-5z" />
+    <path d="M4 20l8 5 8-5" />
+    <path d="M4 15l8 5 8-5" />
+
+    <!-- علامت + در بالا-راست -->
+    <line x1="24" y1="6" x2="24" y2="12" />
+    <line x1="21" y1="9" x2="27" y2="9" />
+</svg>

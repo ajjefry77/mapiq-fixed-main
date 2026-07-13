@@ -1,0 +1,9 @@
+[
+  {"name" : "IMG",
+    "layers" : ["Ax1340" , "Ax1397"]
+  },
+  {
+    "name": "IMG1",
+    "layers": ["Ax1340", "Ax1397" ]
+  }
+]

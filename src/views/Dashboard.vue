@@ -213,11 +213,15 @@ onMounted(() => { loadProfile(); loadMyData() })
 
 @media (max-width: 768px) {
   .db-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .info-row { flex-direction: column; }
-  .shortcuts { grid-template-columns: repeat(2, 1fr); }
-  .profile-grid { grid-template-columns: 1fr; }
+  .info-row { flex-direction: column; gap: 8px; }
+  .shortcuts { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .shortcut { padding: 16px 12px; font-size: 12px; }
+  .shortcut i { font-size: 18px; }
+  .profile-grid { grid-template-columns: 1fr; gap: 12px; }
+  .profile-card, .mini-card { padding: 16px; }
 }
 @media (max-width: 400px) {
   .shortcuts { grid-template-columns: 1fr; }
+  .db-title { font-size: 17px; }
 }
 </style>

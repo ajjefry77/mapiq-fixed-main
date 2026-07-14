@@ -112,8 +112,13 @@ async function save() {
 .msg-ok { color: var(--success); }
 .msg-err { color: var(--danger); }
 @media (max-width: 768px) {
-  .settings-grid { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; gap: 10px; }
+  .setting-card { padding: 14px; }
+  .setting-label { font-size: 13px; }
   .coord-row { flex-direction: column; gap: 8px; }
+}
+@media (max-width: 480px) {
+  .setting-top { flex-direction: column; gap: 8px; }
 }
 </style>
 

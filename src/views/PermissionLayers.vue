@@ -411,4 +411,14 @@ ul {
   list-style: none;
   padding: 0;
 }
+@media (max-width: 768px) {
+  .grid-cols-3 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .p-6 { padding: 14px !important; }
+}
+@media (max-width: 480px) {
+  .p-6 { padding: 10px !important; }
+}
 </style>

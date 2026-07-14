@@ -119,5 +119,11 @@ onMounted(async () => { await Promise.all([loadRoles(), loadPermissions()]); loa
 @media (max-width: 768px) {
   .items-grid { grid-template-columns: 1fr; }
   .item-header { gap: 8px; }
+  .perm-tags { gap: 3px; }
+  .tag { font-size: 10px; padding: 2px 6px; }
+}
+@media (max-width: 480px) {
+  .item-card { padding: 12px; }
+  .perm-checklist { max-height: 120px; }
 }
 </style>

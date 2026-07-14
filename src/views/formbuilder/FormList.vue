@@ -49,7 +49,7 @@
             <label>گروه</label>
             <select v-model="assignGroupId" class="input">
               <option :value="null">بدون گروه (همه)</option>
-              <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+              <option v-for="g in displayGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
             </select>
           </div>
         </div>
@@ -74,6 +74,12 @@ const authStore = useAuthStore()
 const canManageForms = computed(() => authStore.isAdmin || authStore.isGroupManager)
 
 const groups = ref([])
+
+const displayGroups = computed(() => {
+  if (authStore.isAdmin) return groups.value
+  if (authStore.isGroupManager) return groups.value.filter(g => g.manager_id === authStore.user?.id)
+  return []
+})
 
 // Assign modal
 const showAssignModal = ref(false)
@@ -157,7 +163,15 @@ onMounted(async () => {
 .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 @media (max-width: 768px) {
-  .forms-grid { grid-template-columns: 1fr; }
+  .forms-grid { grid-template-columns: 1fr; gap: 10px; }
   .form-card:hover { transform: none; }
+  .form-card { padding: 14px; }
+  .form-title { font-size: 15px; }
+  .form-actions { gap: 4px; }
+  .form-actions .btn { font-size: 11px; padding: 5px 8px; }
+}
+@media (max-width: 480px) {
+  .form-meta { gap: 4px; }
+  .form-card-header { margin-bottom: 8px; }
 }
 </style>

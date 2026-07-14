@@ -25,7 +25,7 @@ const routes = [
   { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
   { path: '/users', name: 'Users', component: Users, meta: { requiresAuth: true, permission: 'view_users' } },
   { path: '/roles', name: 'Roles', component: Roles, meta: { requiresAuth: true, permission: 'view_roles' } },
-  { path: '/groups', name: 'Groups', component: Groups, meta: { requiresAuth: true, permission: 'view_roles' } },
+  { path: '/groups', name: 'Groups', component: Groups, meta: { requiresAuth: true } },
   { path: '/map/:token?', name: 'MapCesium', component: MapCesium },
   { path: '/setting', name: 'Setting', component: Setting, meta: { requiresAuth: true, permission: 'setting' } },
   { path: '/workflow', name: 'workflow', component: Workflow, meta: { requiresAuth: true, permission: 'workflow' } },

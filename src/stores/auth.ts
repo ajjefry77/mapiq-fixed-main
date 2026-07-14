@@ -33,14 +33,8 @@ export const useAuthStore = defineStore('auth', () => {
   const userPermissions = ref<string[]>([])
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const isAdmin = computed(() => 
-    user.value?.Roles?.[0]?.name === 'admin' || 
-    user.value?.roles?.includes('admin')
-  )
-  const isGroupManager = computed(() => 
-    user.value?.Roles?.[0]?.name?.includes('group_manager') ||
-    user.value?.roles?.some(r => r.includes('group_manager'))
-  )
+  const isAdmin = computed(() => user.value?.Roles?.[0]?.name === 'admin')
+  const isGroupManager = computed(() => user.value?.Roles?.[0]?.name?.includes('group_manager'))
   const fbRoles = ref<string[]>([])
   const displayName = computed(() =>user.value?.name || user.value?.username || '')
 

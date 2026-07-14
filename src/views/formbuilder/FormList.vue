@@ -66,11 +66,13 @@
 import { onMounted, computed, ref } from "vue"
 import { useForms } from "../../composables/fb/useForms.js"
 import { useAuthStore } from "../../stores/auth"
+import { useNotify } from "../../composables/useNotify"
 import axios from "axios"
 
 const SERVER = import.meta.env.VITE_SERVER
 const { forms, loading, error, fetchForms, deleteForm, updateForm } = useForms()
 const authStore = useAuthStore()
+const { success, handleError } = useNotify()
 const canManageForms = computed(() => authStore.isAdmin || authStore.isGroupManager)
 
 const groups = ref([])
@@ -108,8 +110,9 @@ async function saveAssignment() {
   assignSaving.value = true
   try {
     await updateForm(assignForm.value.id, { group_id: assignGroupId.value })
+    success('انتساب فرم بروزرسانی شد')
     closeAssignModal()
-  } catch (e) { console.error(e) }
+  } catch (e) { handleError(e) }
   finally { assignSaving.value = false }
 }
 
@@ -117,16 +120,11 @@ function formatDate(str) {
   return new Date(str).toLocaleDateString("fa-IR", { year: "numeric", month: "short", day: "numeric" })
 }
 
-async function confirmDelete(form) {
-  if (!confirm(`فرم «${form.title}» حذف شود؟`)) return
-  await deleteForm(form.id)
-}
-
 async function copyLink(form) {
   const url = `${window.location.origin}/f/${form.id}`
   try {
     await navigator.clipboard.writeText(url)
-    alert("لینک عمومی فرم کپی شد:\n" + url)
+    success("لینک عمومی فرم کپی شد")
   } catch {
     prompt("لینک عمومی فرم:", url)
   }
@@ -137,7 +135,7 @@ onMounted(async () => {
   try {
     const res = await axios.get(SERVER + "/api/groups")
     groups.value = Array.isArray(res.data.data || res.data) ? (res.data.data || res.data) : []
-  } catch (e) { console.error(e) }
+  } catch (e) { handleError(e) }
 })
 </script>
 

@@ -66,7 +66,6 @@
       <button @click="save" class="btn btn-primary" :disabled="saving">
         {{ saving ? 'در حال ذخیره...' : 'ذخیره تنظیمات' }}
       </button>
-      <p v-if="message" class="setting-msg" :class="message.includes('موفق') ? 'msg-ok' : 'msg-err'">{{ message }}</p>
     </div>
   </div>
 </template>
@@ -75,9 +74,10 @@
 import { ref, onMounted, computed } from "vue"
 import ToggleSwitch from "../components/ToggleSwitch.vue"
 import { loadSettings, saveSettings } from '../utils/settings';
+import { useNotify } from '../composables/useNotify'
 
+const { success, handleError } = useNotify()
 const settings = ref({});
-const message = ref('');
 const saving = ref(false);
 const isUTM = ref(true)
 const coordinateSystem = computed(() => isUTM.value ? "UTM" : "CGS")
@@ -90,11 +90,9 @@ async function save() {
   saving.value = true;
   try {
     await saveSettings(settings.value);
-    message.value = 'تنظیمات با موفقیت ذخیره شد';
-    setTimeout(() => (message.value = ''), 2000);
+    success('تنظیمات با موفقیت ذخیره شد');
   } catch (e) {
-    console.error(e);
-    message.value = 'خطا در ذخیره تنظیمات';
+    handleError(e);
   } finally { saving.value = false; }
 }
 </script>

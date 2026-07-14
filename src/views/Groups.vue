@@ -75,8 +75,6 @@
             />
             <span class="field-hint">کاربر تا زمان اولین ورود غیرفعال نمایش داده می‌شود</span>
           </div>
-          <p v-if="memberError" class="field-error">{{ memberError }}</p>
-          <p v-if="memberSuccess" class="field-success">{{ memberSuccess }}</p>
         </div>
         <div class="modal-actions" style="margin-top:12px">
           <button class="btn btn-ghost" @click="closeMemberModal">بستن</button>
@@ -90,10 +88,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useNotify } from '../composables/useNotify'
 import axios from 'axios'
 
 const SERVER = import.meta.env.VITE_SERVER
 const authStore = useAuthStore()
+const { success, error: toastError, handleError } = useNotify()
 
 const groups = ref([])
 const loading = ref(true)
@@ -106,7 +106,7 @@ async function loadGroups() {
   try {
     const r = await axios.get(SERVER + '/api/groups')
     groups.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : []
-  } catch (e) { console.error(e) }
+  } catch (e) { handleError(e) }
 }
 
 function openGroupModal(group = null) {
@@ -122,29 +122,26 @@ async function saveGroup() {
   try {
     if (editingGroup.value) await axios.put(`${SERVER}/api/groups/${editingGroup.value.id}`, groupForm.value)
     else await axios.post(SERVER + '/api/groups', groupForm.value)
+    success(editingGroup.value ? 'گروه بروزرسانی شد' : 'گروه جدید ایجاد شد')
     await loadGroups(); closeGroupModal()
-  } catch (e) { console.error(e) }
+  } catch (e) { handleError(e) }
   finally { savingGroup.value = false }
 }
 
 async function deleteGroup(id) {
   if (!confirm('گروه حذف شود؟')) return
-  try { await axios.delete(`${SERVER}/api/groups/${id}`); await loadGroups() } catch (e) { console.error(e) }
+  try { await axios.delete(`${SERVER}/api/groups/${id}`); success('گروه حذف شد'); await loadGroups() } catch (e) { handleError(e) }
 }
 
 // ---- Members ----
 const showMemberModal = ref(false)
 const memberGroup = ref(null)
 const memberPhone = ref('')
-const memberError = ref('')
-const memberSuccess = ref('')
 const savingMembers = ref(false)
 
 function openMemberModal(group) {
   memberGroup.value = group
   memberPhone.value = ''
-  memberError.value = ''
-  memberSuccess.value = ''
   showMemberModal.value = true
 }
 
@@ -161,22 +158,23 @@ async function addMemberByPhone() {
   const phone = memberPhone.value.trim()
   if (!phone) return
   if (!/^09\d{9}$/.test(phone)) {
-    memberError.value = 'شماره موبایل باید ۱۱ رقم و با پیشوند ۰۹ باشد'
+    toastError('شماره موبایل باید ۱۱ رقم و با پیشوند ۰۹ باشد')
     return
   }
-  savingMembers.value = true; memberError.value = ''; memberSuccess.value = ''
+  savingMembers.value = true
   try {
-    await axios.post(`${SERVER}/api/groups/${memberGroup.value.id}/users/phone`, { phone: memberPhone.value.trim() })
-    memberSuccess.value = 'کاربر با موفقیت اضافه شد'
+    //await axios.post(`${SERVER}/api/groups/${memberGroup.value.id}/users/phone`, { phone: memberPhone.value.trim() })
+    await axios.post(`${SERVER}/api/groups/join-group`, { phone: memberPhone.value.trim(),groupId: memberGroup.value.id })
+    success('کاربر با موفقیت اضافه شد')
     memberPhone.value = ''
     await loadGroups()
-  } catch (e) { memberError.value = e.response?.data?.error || 'خطا در افزودن کاربر' }
+  } catch (e) { handleError(e) }
   finally { savingMembers.value = false }
 }
 
 async function removeUser(groupId, userId) {
   if (!confirm('حذف عضو؟')) return
-  try { await axios.delete(`${SERVER}/api/groups/${groupId}/users/${userId}`); await loadGroups() } catch (e) { console.error(e) }
+  try { await axios.delete(`${SERVER}/api/groups/${groupId}/users/${userId}`); success('عضو حذف شد'); await loadGroups() } catch (e) { handleError(e) }
 }
 
 onMounted(async () => { await loadGroups(); loading.value = false })

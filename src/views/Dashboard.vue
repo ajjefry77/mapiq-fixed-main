@@ -123,7 +123,6 @@
             <button class="btn btn-primary" @click="updateProfile" :disabled="saving">
               {{ saving ? 'در حال ذخیره...' : 'ذخیره' }}
             </button>
-            <p v-if="profileMsg" class="msg" :class="profileMsgType === 'success' ? 'msg-ok' : 'msg-err'">{{ profileMsg }}</p>
           </div>
         </div>
 
@@ -154,10 +153,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useNotify } from '../composables/useNotify';
 import axios from 'axios';
 
 const authStore = useAuthStore();
 const SERVER = import.meta.env.VITE_SERVER;
+const { success, handleError } = useNotify();
 
 const isAdmin = computed(() => authStore.isAdmin)
 const isGroupManager = computed(() => authStore.isGroupManager)
@@ -171,8 +172,6 @@ const roleLabel = computed(() => {
 const forms = ref([])
 const groups = ref([])
 const saving = ref(false)
-const profileMsg = ref('')
-const profileMsgType = ref('success')
 const profileForm = reactive({ name: '', phone: '', code: '', password: '' })
 
 async function loadProfile() {
@@ -205,11 +204,11 @@ async function loadMyData() {
         groups.value = allGroups.filter(g => me.group_ids.includes(g.id))
       }
     }
-  } catch (e) { console.error(e) }
+  } catch (e) { handleError(e) }
 }
 
 async function updateProfile() {
-  saving.value = true; profileMsg.value = ''
+  saving.value = true
   try {
     const body = { full_name: profileForm.name, phone: profileForm.phone, code: profileForm.code || undefined }
     if (profileForm.password) body.password = profileForm.password
@@ -219,10 +218,9 @@ async function updateProfile() {
       authStore.user.phone = profileForm.phone
       authStore.user.code = profileForm.code
     }
-    profileMsg.value = 'ذخیره شد'; profileMsgType.value = 'success'
-  } catch (e) {
-    profileMsg.value = e.response?.data?.error || 'خطا'; profileMsgType.value = 'error'
-  } finally { saving.value = false }
+    success('ذخیره شد')
+  } catch (e) { handleError(e) }
+  finally { saving.value = false }
 }
 
 onMounted(() => { loadProfile(); loadMyData() })

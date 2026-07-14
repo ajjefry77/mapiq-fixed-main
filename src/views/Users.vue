@@ -159,12 +159,12 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useNotify } from '../composables/useNotify';
 import axios from 'axios';
-import { useToast } from "vue-toast-notification";
 
 const SERVER = import.meta.env.VITE_SERVER;
 const authStore = useAuthStore();
-const $toast = useToast();
+const { showMessage, handleError } = useNotify();
 
 const users = ref([]);
 const roles = ref([]);
@@ -333,28 +333,9 @@ async function deleteUser(u) {
     await axios.delete(SERVER + `/api/users/${u.id}`);
     showMessage("کاربر حذف شد", "success");
     await loadUsers();
-  } catch (error) {
-    handleApiError(error);
+  } catch (e) {
+    handleError(e);
   }
-}
-
-function showMessage(msg, type) {
-  $toast.open({
-    message: msg,
-    type: type,
-    duration: 4000
-  })
-}
-
-function handleError(error) {
-  console.error(error);
-
-  const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      "خطایی رخ داد";
-
-  showMessage(message, "error");
 }
 
 onMounted(async () => { await Promise.all([loadUsers(), loadRoles()]); loading.value = false; });

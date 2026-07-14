@@ -101,11 +101,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useForms } from '../../composables/fb/useForms.js'
 import { useFormBuilder } from '../../composables/fb/useFormBuilder.js'
 import { useGroups } from '../../composables/fb/useGroups.js'
+import { useNotify } from '../../composables/useNotify'
 
 const route = useRoute()
 const router = useRouter()
 const { fetchForm, createForm, updateForm } = useForms()
 const { groups, fetchGroups } = useGroups()
+const { success, handleError, error: toastError } = useNotify()
 const isEdit = computed(() => !!route.params.id)
 
 const formTitle = ref('فرم بدون عنوان')
@@ -137,15 +139,16 @@ function onDrop(toIdx) {
 }
 
 async function save() {
-  if (!formTitle.value.trim()) return alert('عنوان فرم الزامی است')
+  if (!formTitle.value.trim()) { toastError('عنوان فرم الزامی است'); return }
   saving.value = true
   try {
     const payload = { title: formTitle.value, description: formDescription.value, group_id: formGroupId.value, fields: fields.value, is_active: isActive.value }
     if (isEdit.value) await updateForm(route.params.id, payload)
     else await createForm(payload)
+    success(isEdit.value ? 'فرم بروزرسانی شد' : 'فرم جدید ایجاد شد')
     router.push('/forms')
   } catch (e) {
-    alert('خطا: ' + e.message)
+    handleError(e)
   } finally {
     saving.value = false
   }

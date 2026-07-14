@@ -56,10 +56,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useNotify } from '../composables/useNotify'
 import axios from 'axios'
 
 const SERVER = import.meta.env.VITE_SERVER
 const authStore = useAuthStore()
+const { success, handleError } = useNotify()
 
 const roles = ref([])
 const permissions = ref([])
@@ -69,10 +71,10 @@ const editing = ref(null)
 const form = ref({ name: '', description: '', permissions: [] })
 
 async function loadRoles() {
-  try { const r = await axios.get(SERVER + '/api/roles'); roles.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : [] } catch (e) { console.error(e) }
+  try { const r = await axios.get(SERVER + '/api/roles'); roles.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : [] } catch (e) { handleError(e) }
 }
 async function loadPermissions() {
-  try { const r = await axios.get(SERVER + '/api/permissions'); permissions.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : [] } catch (e) { console.error(e) }
+  try { const r = await axios.get(SERVER + '/api/permissions'); permissions.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : [] } catch (e) { handleError(e) }
 }
 function openModal(role = null) {
   editing.value = role
@@ -84,12 +86,13 @@ async function save() {
   try {
     if (editing.value) await axios.put(`${SERVER}/api/role/${editing.value.id}`, form.value)
     else await axios.post(SERVER + '/api/role', form.value)
+    success(editing.value ? 'نقش بروزرسانی شد' : 'نقش جدید ایجاد شد')
     await loadRoles(); closeModal()
-  } catch (e) { console.error(e) }
+  } catch (e) { handleError(e) }
 }
 async function deleteRole(role) {
   if (!confirm(`نقش «${role.description}» حذف شود؟`)) return
-  try { await axios.delete(`${SERVER}/api/role/${role.id}`); await loadRoles() } catch (e) { console.error(e) }
+  try { await axios.delete(`${SERVER}/api/role/${role.id}`); success('نقش حذف شد'); await loadRoles() } catch (e) { handleError(e) }
 }
 
 onMounted(async () => { await Promise.all([loadRoles(), loadPermissions()]); loading.value = false })

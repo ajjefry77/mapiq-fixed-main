@@ -96,6 +96,7 @@ const authStore = useAuthStore()
 const { success, error: toastError, handleError } = useNotify()
 
 const groups = ref([])
+const groupUsers = ref([])
 const loading = ref(true)
 const showGroupModal = ref(false)
 const editingGroup = ref(null)
@@ -104,9 +105,32 @@ const savingGroup = ref(false)
 
 async function loadGroups() {
   try {
-    const r = await axios.get(SERVER + '/api/groups')
-    groups.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : []
-  } catch (e) { handleError(e) }
+    const r = await axios.get(`${SERVER}/api/groups`)
+    const data = Array.isArray(r.data.data || r.data)
+        ? (r.data.data || r.data)
+        : []
+
+    // دریافت کاربران هر گروه بر اساس id
+    const groupsWithUsers = await Promise.all(
+        data.map(async (group) => {
+          const users = await loadGroupUsers(group.id)
+          return {
+            ...group,
+            Users: users
+          }
+        })
+    )
+
+    groups.value = groupsWithUsers
+  } catch (e) {
+    handleError(e)
+  }
+}
+
+async function loadGroupUsers(groupId) {
+  const r = await axios.get(`${SERVER}/api/groups/${groupId}/users/`)
+  console.log(groupId, r.data)
+  return r.data.data || r.data
 }
 
 function openGroupModal(group = null) {

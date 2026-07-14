@@ -1,15 +1,16 @@
 <!-- this a test -->
 <template>
   <div class="page">
-    <div v-if="isAdmin">
-      <div class="db-header">
-        <div>
-          <h1 class="db-title">داشبورد</h1>
-          <p class="db-sub">خوش آمدید، {{ authStore.user?.name }}</p>
-        </div>
-        <span class="badge badge-active">{{ roleLabel }}</span>
+    <div class="db-header">
+      <div>
+        <h1 class="db-title">{{ isAdmin ? 'داشبورد' : isGroupManager ? 'پنل مدیر گروه' : 'پنل کاربری' }}</h1>
+        <p class="db-sub">خوش آمدید، {{ authStore.user?.name }}</p>
       </div>
+      <span class="badge badge-active">{{ roleLabel }}</span>
+    </div>
 
+    <!-- ADMIN -->
+    <div v-if="isAdmin">
       <div class="info-row">
         <div class="info-item">
           <span class="info-label">نام</span>
@@ -26,13 +27,17 @@
       </div>
 
       <div class="shortcuts">
-        <div v-if="authStore.hasPermission('view_users')" class="shortcut" @click="$router.push('/users')">
+        <div class="shortcut" @click="$router.push('/users')">
           <i class="fas fa-users"></i>
           <span>کاربران</span>
         </div>
-        <div v-if="authStore.hasPermission('view_roles')" class="shortcut" @click="$router.push('/roles')">
+        <div class="shortcut" @click="$router.push('/roles')">
           <i class="fas fa-user-tag"></i>
           <span>نقش‌ها</span>
+        </div>
+        <div class="shortcut" @click="$router.push('/groups')">
+          <i class="fas fa-layer-group"></i>
+          <span>گروه‌ها</span>
         </div>
         <div class="shortcut" @click="$router.push('/forms')">
           <i class="fas fa-file-alt"></i>
@@ -45,15 +50,56 @@
       </div>
     </div>
 
-    <div v-else>
-      <div class="db-header">
-        <div>
-          <h1 class="db-title">پنل کاربری</h1>
-          <p class="db-sub">خوش آمدید، {{ authStore.user?.name }}</p>
+    <!-- GROUP MANAGER -->
+    <div v-else-if="isGroupManager">
+      <div class="info-row">
+        <div class="info-item">
+          <span class="info-label">نام</span>
+          <span class="info-value">{{ authStore.user?.name }}</span>
         </div>
-        <span class="badge badge-active">{{ roleLabel }}</span>
+        <div class="info-item">
+          <span class="info-label">تلفن</span>
+          <span class="info-value" dir="ltr">{{ authStore.user?.phone }}</span>
+        </div>
       </div>
 
+      <div class="shortcuts">
+        <div class="shortcut" @click="$router.push('/groups')">
+          <i class="fas fa-layer-group"></i>
+          <span>گروه‌های من</span>
+        </div>
+        <div class="shortcut" @click="$router.push('/forms')">
+          <i class="fas fa-file-alt"></i>
+          <span>فرم‌های من</span>
+        </div>
+      </div>
+
+      <div class="gm-sections">
+        <div class="card mini-card">
+          <h3 class="card-title"><i class="fas fa-layer-group"></i> گروه‌های من</h3>
+          <div v-if="groups.length === 0" class="empty-sm">هنوز گروهی نساخته‌اید</div>
+          <div v-else class="mini-list">
+            <div v-for="g in groups" :key="g.id" class="mini-item" @click="$router.push('/groups')">
+              <span><i class="fas fa-users" style="margin-left:6px;font-size:11px;color:var(--accent)"></i>{{ g.name }}</span>
+              <span class="mini-count">{{ g.Users?.length || 0 }} عضو</span>
+            </div>
+          </div>
+        </div>
+        <div class="card mini-card">
+          <h3 class="card-title"><i class="fas fa-file-alt"></i> فرم‌های من</h3>
+          <div v-if="forms.length === 0" class="empty-sm">هنوز فرمی نساخته‌اید</div>
+          <div v-else class="mini-list">
+            <div v-for="f in forms" :key="f.id" class="mini-item" @click="$router.push(`/forms/${f.id}/preview`)">
+              <span>{{ f.title || 'بدون عنوان' }}</span>
+              <i class="fas fa-chevron-left" style="font-size:10px;color:var(--text-muted)"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGULAR USER -->
+    <div v-else>
       <div class="profile-grid">
         <div class="card profile-card">
           <h3 class="card-title"><i class="fas fa-user-edit"></i> ویرایش اطلاعات</h3>
@@ -113,14 +159,12 @@ import axios from 'axios';
 const authStore = useAuthStore();
 const SERVER = import.meta.env.VITE_SERVER;
 
-const isAdmin = computed(() =>
-  authStore.user?.roles?.includes('admin') ||
-  authStore.user?.Roles?.[0]?.name === 'admin'
-)
+const isAdmin = computed(() => authStore.isAdmin)
+const isGroupManager = computed(() => authStore.isGroupManager)
 
 const roleLabel = computed(() => {
-  if (authStore.user?.roles?.includes('admin') || authStore.user?.Roles?.[0]?.name === 'admin') return 'مدیر سیستم'
-  if (authStore.user?.roles?.includes('group_manager')) return 'مدیر گروه'
+  if (isAdmin.value) return 'مدیر سیستم'
+  if (isGroupManager.value) return 'مدیر گروه'
   return 'کاربر'
 })
 
@@ -139,18 +183,27 @@ async function loadProfile() {
 }
 
 async function loadMyData() {
-  if (isAdmin.value) return
   try {
-    const [formsRes, groupsRes] = await Promise.all([
-      axios.get(SERVER + '/api/forms'),
-      axios.get(SERVER + '/api/auth/me')
-    ])
-    forms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
-    const me = groupsRes.data?.data || groupsRes.data
-    if (me?.group_ids?.length) {
-      const gRes = await axios.get(SERVER + '/api/groups')
-      const allGroups = Array.isArray(gRes.data) ? gRes.data : gRes.data?.data || []
-      groups.value = allGroups.filter(g => me.group_ids.includes(g.id))
+    if (isGroupManager.value) {
+      const [formsRes, groupsRes] = await Promise.all([
+        axios.get(SERVER + '/api/forms'),
+        axios.get(SERVER + '/api/groups')
+      ])
+      forms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
+      const allGroups = Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data?.data || []
+      groups.value = allGroups.filter(g => g.manager_id === authStore.user?.id)
+    } else if (!isAdmin.value) {
+      const [formsRes, groupsRes] = await Promise.all([
+        axios.get(SERVER + '/api/forms'),
+        axios.get(SERVER + '/api/auth/me')
+      ])
+      forms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
+      const me = groupsRes.data?.data || groupsRes.data
+      if (me?.group_ids?.length) {
+        const gRes = await axios.get(SERVER + '/api/groups')
+        const allGroups = Array.isArray(gRes.data) ? gRes.data : gRes.data?.data || []
+        groups.value = allGroups.filter(g => me.group_ids.includes(g.id))
+      }
     }
   } catch (e) { console.error(e) }
 }
@@ -202,12 +255,14 @@ onMounted(() => { loadProfile(); loadMyData() })
 .msg-err { color: var(--danger); }
 
 .side-stack { display: flex; flex-direction: column; gap: 16px; }
+.gm-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
 .mini-card { padding: 16px; }
 .empty-sm { font-size: 12px; color: var(--text-muted); text-align: center; padding: 16px 0; }
 .mini-list { display: flex; flex-direction: column; gap: 2px; max-height: 200px; overflow-y: auto; }
 .mini-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: background .12s; }
 .mini-item:hover { background: var(--surface2); }
 .mini-item i { font-size: 10px; color: var(--text-muted); }
+.mini-count { font-size: 11px; color: var(--text-muted); }
 .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { background: var(--accent-glow); color: var(--accent); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
 
@@ -218,6 +273,7 @@ onMounted(() => { loadProfile(); loadMyData() })
   .shortcut { padding: 16px 12px; font-size: 12px; }
   .shortcut i { font-size: 18px; }
   .profile-grid { grid-template-columns: 1fr; gap: 12px; }
+  .gm-sections { grid-template-columns: 1fr; gap: 12px; }
   .profile-card, .mini-card { padding: 16px; }
 }
 @media (max-width: 400px) {

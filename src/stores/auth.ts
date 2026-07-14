@@ -33,8 +33,19 @@ export const useAuthStore = defineStore('auth', () => {
   const userPermissions = ref<string[]>([])
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const isAdmin = computed(() => user.value?.Roles?.[0]?.name === 'admin')
-  const isGroupManager = computed(() => user.value?.Roles?.[0]?.name?.includes('group_manager'))
+  const isAdmin = computed(() => {
+    if (user.value?.Roles?.some(r => r.name === 'admin')) return true
+    if (user.value?.roles?.some(r => r === 'admin')) return true
+    return false
+  })
+
+  const isGroupManager = computed(() => {
+    if (user.value?.Roles?.some(r => r.name === 'group_manager')) return true
+    if (user.value?.roles?.some(r => r === 'group_manager')) return true
+    return false
+  })
+
+  const isUser = computed(() => !isAdmin.value && !isGroupManager.value)
   const fbRoles = ref<string[]>([])
   const displayName = computed(() =>user.value?.name || user.value?.username || '')
 
@@ -105,24 +116,35 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const loadUserPermissions = async () => {
+    const perms: string[] = []
+
     if (user.value?.Roles?.length) {
-      const role = user.value.Roles[0]
-      if (role?.Permissions?.length) {
-        userPermissions.value = role.Permissions.map(p => p.name)
+      for (const role of user.value.Roles) {
+        if (role?.Permissions?.length) {
+          perms.push(...role.Permissions.map(p => p.name))
+        }
       }
     }
     if (user.value?.roles?.includes('admin')) {
-      userPermissions.value = ['*']
+      perms.push('*')
     }
+    if (user.value?.roles?.includes('group_manager')) {
+      perms.push('view_groups', 'manage_groups', 'view_forms', 'manage_forms')
+    }
+
+    userPermissions.value = [...new Set(perms)]
   }
 
   const hasPermission = (permission: string) => {
-      return (
-          userPermissions.value.includes('*') ||
-          userPermissions.value.includes(permission) ||
-          user.value?.Roles?.[0]?.name === 'admin' ||
-          user.value?.roles?.includes('admin')
-      )
+      if (userPermissions.value.includes('*')) return true
+      if (userPermissions.value.includes(permission)) return true
+      if (user.value?.Roles?.some(r => r.name === 'admin')) return true
+      if (user.value?.roles?.includes('admin')) return true
+      if (isGroupManager.value) {
+        const gmPerms = ['view_groups', 'manage_groups', 'view_forms', 'manage_forms']
+        if (gmPerms.includes(permission)) return true
+      }
+      return false
   }
 
   const syncFb = async () => {
@@ -151,6 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
     userPermissions,
     isAdmin,
     isGroupManager,
+    isUser,
     fbRoles,
     displayName,
     login,

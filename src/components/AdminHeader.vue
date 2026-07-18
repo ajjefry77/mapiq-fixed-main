@@ -1,160 +1,109 @@
 <template>
   <nav class="admin-topbar" v-if="!isPublicRoute">
-    <router-link
-      :to="authStore.isAuthenticated ? '/dashboard' : '/map'"
-      class="topbar-logo"
-    >
+    <router-link :to="authStore.isAuthenticated ? '/dashboard' : '/map'" class="topbar-logo">
       <span class="logo-dot"></span>
-      <template
-        v-if="
-          route.path === '/map' ||
-          route.path === '/login' ||
-          route.path === '/register'
-        "
-        >Map IQ</template
-      >
+      <template v-if="route.path === '/map' || route.path === '/login' || route.path === '/register'">Map IQ</template>
       <template v-else-if="authStore.isAdmin">پنل مدیریت</template>
       <template v-else>پنل کاربری</template>
     </router-link>
 
-    <button
-      v-if="authStore.isAuthenticated"
-      class="hamburger"
-      @click="mobileOpen = !mobileOpen"
-      :class="{ open: mobileOpen }"
-    >
+    <button v-if="authStore.isAuthenticated" class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }">
       <span></span><span></span><span></span>
     </button>
 
+    <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false"></div>
+
     <div class="topbar-right" :class="{ 'nav-open': mobileOpen }">
       <div v-if="authStore.isAuthenticated" class="topbar-nav">
-        <router-link
-          to="/map"
-          class="nav-link"
-          active-class="nav-link--active"
-          @click="mobileOpen = false"
-          >نقشه</router-link
-        >
-
-        <router-link
-          v-if="authStore.isAdmin"
-          to="/dashboard"
-          class="nav-link"
-          active-class="nav-link--active"
-          @click="mobileOpen = false"
-        >
-          داشبورد
-        </router-link>
-
-        <router-link
-          v-if="authStore.isAdmin && authStore.hasPermission('view_users')"
-          to="/users"
-          class="nav-link"
-          active-class="nav-link--active"
-          @click="mobileOpen = false"
-        >
-          کاربران
-        </router-link>
-
-        <router-link
-          v-if="authStore.isAdmin && authStore.hasPermission('view_roles')"
-          to="/roles"
-          class="nav-link"
-          active-class="nav-link--active"
-          @click="mobileOpen = false"
-        >
-          نقش‌ها
-        </router-link>
-
-        <router-link
-          v-if="
-            authStore.isAdmin && (authStore.isAdmin || authStore.isGroupManager)
-          "
-          to="/groups"
-          class="nav-link"
-          active-class="nav-link--active"
-          @click="mobileOpen = false"
-        >
-          گروه‌ها
-        </router-link>
-
-        <router-link
-          v-if="authStore.isAdmin"
-          to="/forms"
-          class="nav-link"
-          active-class="nav-link--active"
-          @click="mobileOpen = false"
-        >
-          فرم‌ها
-        </router-link>
+        <router-link to="/map" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقشه</router-link>
+        <router-link v-if="authStore.isAdmin" to="/dashboard" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">داشبورد</router-link>
+        <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_users')" to="/users" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">کاربران</router-link>
+        <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_roles')" to="/roles" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقش‌ها</router-link>
+        <router-link v-if="authStore.isAdmin && (authStore.isAuthenticated && (authStore.isAdmin || authStore.isGroupManager))" to="/groups" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">گروه‌ها</router-link>
+        <router-link v-if="authStore.isAdmin" to="/forms" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">فرم‌ها</router-link>
       </div>
 
-      <div class="topbar-actions">...</div>
+      <div class="topbar-actions">
+        <template v-if="authStore.isAuthenticated">
+          <router-link v-if="authStore.isAdmin" to="/setting" class="gear-btn" title="تنظیمات">
+            <i class="fas fa-cog"></i>
+          </router-link>
+
+          <div class="user-menu" @click="menuOpen = !menuOpen" ref="userMenuRef">
+            <span class="user-avatar">{{ initials }}</span>
+            <span class="user-name">{{ authStore.displayName }}</span>
+            <div v-if="menuOpen" class="user-dropdown card">
+              <div class="user-dropdown-info">
+                <strong>{{ authStore.displayName }}</strong>
+                <span class="user-phone" dir="ltr">{{ authStore.fbUser?.phone || authStore.user?.phone }}</span>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+                  <span v-for="r in authStore.fbRoles" :key="r" class="badge"
+                        :class="r === 'admin' ? 'badge-active' : 'badge-inactive'"
+                        style="width:fit-content">{{ roleLabel(r) }}</span>
+                </div>
+              </div>
+              <button v-if="!authStore.isAdmin" class="dropdown-item" @click="goToPanel">🖥 پنل کاربری</button>
+              <button class="dropdown-item" @click="handleLogout">🚪 خروج از حساب</button>
+            </div>
+          </div>
+        </template>
+
+        <template v-else>
+          <router-link to="/login" class="btn btn-primary btn-sm">ورود / ثبت نام</router-link>
+        </template>
+      </div>
     </div>
   </nav>
-  <div v-if="mobileOpen" class="mobile-backdrop" @click="mobileOpen = false" />
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useAuthStore } from "../stores/auth";
+import { ref, computed, onMounted, onUnmounted } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { useAuthStore } from "../stores/auth"
 
-const route = useRoute();
-const router = useRouter();
-const authStore = useAuthStore();
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 
-const menuOpen = ref(false);
-const mobileOpen = ref(false);
-const userMenuRef = ref(null);
+const menuOpen = ref(false)
+const mobileOpen = ref(false)
+const userMenuRef = ref(null)
 
-const isPublicRoute = computed(() => route.meta.public);
+const isPublicRoute = computed(() => route.meta.public)
 
 const initials = computed(() => {
-  const name = authStore.displayName;
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p[0])
-      .join("")
-      .toUpperCase() || "?"
-  );
-});
+  const name = authStore.displayName
+  return name.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase() || "?"
+})
 
 function roleLabel(r) {
-  return r === "admin"
-    ? "مدیر سیستم"
-    : r === "group_manager"
-      ? "مدیر گروه"
-      : "کاربر";
+  return r === 'admin' ? 'مدیر سیستم' : r === 'group_manager' ? 'مدیر گروه' : 'کاربر'
 }
 
 function goToPanel() {
-  menuOpen.value = false;
-  router.push("/dashboard");
+  menuOpen.value = false
+  router.push("/dashboard")
 }
 
 function handleLogout() {
-  authStore.logout();
-  menuOpen.value = false;
-  router.push("/login");
+  authStore.logout()
+  menuOpen.value = false
+  router.push("/login")
 }
 
 function handleClickOutside(e) {
   if (userMenuRef.value && !userMenuRef.value.contains(e.target)) {
-    menuOpen.value = false;
+    menuOpen.value = false
   }
 }
 
 onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
+  document.addEventListener("click", handleClickOutside)
+})
 
 onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
+  document.removeEventListener("click", handleClickOutside)
+})
 </script>
 
 <style scoped>
@@ -207,7 +156,7 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 8px 7px;
   flex-shrink: 0;
-  transition: all 0.2s;
+  transition: all .2s;
 }
 .hamburger span {
   display: block;
@@ -215,17 +164,11 @@ onUnmounted(() => {
   height: 2px;
   background: var(--text-muted);
   border-radius: 2px;
-  transition: all 0.25s;
+  transition: all .25s;
 }
-.hamburger.open span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-.hamburger.open span:nth-child(2) {
-  opacity: 0;
-}
-.hamburger.open span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
 .topbar-right {
   display: flex;
@@ -366,7 +309,22 @@ onUnmounted(() => {
   color: var(--text);
 }
 
+.mobile-overlay {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+  }
+
   .admin-topbar {
     padding: 0 14px;
   }
@@ -375,38 +333,30 @@ onUnmounted(() => {
     display: flex;
   }
 
-  /* منوی کشویی */
   .topbar-right {
     position: fixed;
-    top: 60px;
+    top: 0;
     left: 0;
     bottom: 0;
     width: 280px;
-
+    max-width: 70vw;
     background: var(--surface);
-    display: flex;
     flex-direction: column;
     align-items: stretch;
-
     padding: 16px;
-    overflow-y: auto;
-    z-index: 999;
-
+    gap: 0;
+    z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
-
-    border-right: 1px solid var(--border);
-    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.35);
+    overflow-y: auto;
   }
-
   .topbar-right.nav-open {
     transform: translateX(0);
   }
 
   .topbar-nav {
-    display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
     flex: unset;
   }
 
@@ -417,7 +367,6 @@ onUnmounted(() => {
     border: 1px solid var(--border);
     background: var(--surface2);
   }
-
   .nav-link--active {
     background: var(--accent-glow);
     border-color: var(--accent);
@@ -436,20 +385,11 @@ onUnmounted(() => {
 
   .user-dropdown {
     position: fixed;
+    bottom: calc(100% - 60px);
     left: 16px;
     right: 16px;
-    bottom: 16px;
     top: auto;
     width: auto;
   }
-
-  .mobile-backdrop{
-    position: fixed;
-    inset: 0;
-    top: 60px;
-    background: rgba(0,0,0,.45);
-    z-index: 998;
-    backdrop-filter: blur(2px);
-}
 }
 </style>

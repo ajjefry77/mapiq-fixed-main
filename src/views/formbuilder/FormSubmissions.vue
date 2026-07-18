@@ -458,7 +458,10 @@ onMounted(async () => {
 });
 
 function formatDate(str) {
-  return new Date(str).toLocaleString("fa-IR");
+  if (!str) return '—'
+  const d = new Date(str)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString("fa-IR");
 }
 
 function formatValue(val) {

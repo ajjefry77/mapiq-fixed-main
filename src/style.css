@@ -232,7 +232,7 @@ label { font-size: 13px; color: var(--text-muted); display: block; margin-bottom
   box-shadow: 0 1px 0 rgba(255,255,255,.02) inset, 0 8px 24px rgba(0,0,0,.18);
 }
 
-.page { padding: 28px 24px; max-width: 1100px; margin: 0 auto; }
+.page { padding: 28px 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
 .page-header { margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .page-title { font-size: 22px; font-weight: 700; }
 
@@ -391,5 +391,20 @@ option { background: var(--surface); color: var(--text); }
   .btn { padding: 8px 12px; font-size: 12px; }
   .btn-sm { padding: 5px 8px; font-size: 11px; }
   .badge { font-size: 10px; padding: 2px 6px; }
+}
+
+@media (min-width: 1400px) {
+  .page { max-width: 1300px; }
+  .container { max-width: 1400px; }
+}
+
+@media (min-width: 1800px) {
+  .page { max-width: 1600px; }
+  .container { max-width: 1700px; }
+}
+
+@media (min-width: 2200px) {
+  .page { max-width: 1900px; }
+  .container { max-width: 2000px; }
 }
 

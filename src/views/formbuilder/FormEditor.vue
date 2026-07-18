@@ -143,6 +143,7 @@ async function save() {
   saving.value = true
   try {
     const payload = { title: formTitle.value, description: formDescription.value, group_id: formGroupId.value, fields: fields.value, is_active: isActive.value }
+    if (!isEdit.value) payload.created_at = new Date().toISOString()
     if (isEdit.value) await updateForm(route.params.id, payload)
     else await createForm(payload)
     success(isEdit.value ? 'فرم بروزرسانی شد' : 'فرم جدید ایجاد شد')

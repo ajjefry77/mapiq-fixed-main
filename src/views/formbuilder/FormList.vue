@@ -79,7 +79,13 @@ const groups = ref([])
 
 const displayGroups = computed(() => {
   if (authStore.isAdmin) return groups.value
-  if (authStore.isGroupManager) return groups.value.filter(g => g.manager_id === authStore.user?.id)
+  if (authStore.isGroupManager) {
+    const userId = authStore.user?.id
+    return groups.value.filter(g => {
+      const mid = g.manager_id ?? g.created_by ?? g.creator_id ?? g.manager?.id
+      return mid != null && mid == userId
+    })
+  }
   return []
 })
 

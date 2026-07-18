@@ -76,7 +76,12 @@
 
       <div class="gm-sections">
         <div class="card mini-card">
-          <h3 class="card-title"><i class="fas fa-layer-group"></i> گروه‌های من</h3>
+          <div class="card-title-row">
+            <h3 class="card-title"><i class="fas fa-layer-group"></i> گروه‌های من</h3>
+            <button class="btn btn-primary btn-sm" @click="$router.push('/groups')">
+              <i class="fas fa-plus" style="margin-left:4px"></i> ایجاد گروه
+            </button>
+          </div>
           <div v-if="groups.length === 0" class="empty-sm">هنوز گروهی نساخته‌اید</div>
           <div v-else class="mini-list">
             <div v-for="g in groups" :key="g.id" class="mini-item" @click="$router.push('/groups')">
@@ -86,7 +91,12 @@
           </div>
         </div>
         <div class="card mini-card">
-          <h3 class="card-title"><i class="fas fa-file-alt"></i> فرم‌های من</h3>
+          <div class="card-title-row">
+            <h3 class="card-title"><i class="fas fa-file-alt"></i> فرم‌های من</h3>
+            <button class="btn btn-primary btn-sm" @click="$router.push('/forms/new')">
+              <i class="fas fa-plus" style="margin-left:4px"></i> ایجاد فرم
+            </button>
+          </div>
           <div v-if="forms.length === 0" class="empty-sm">هنوز فرمی نساخته‌اید</div>
           <div v-else class="mini-list">
             <div v-for="f in forms" :key="f.id" class="mini-item" @click="$router.push(`/forms/${f.id}/preview`)">
@@ -190,7 +200,11 @@ async function loadMyData() {
       ])
       forms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
       const allGroups = Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data?.data || []
-      groups.value = allGroups.filter(g => g.manager_id === authStore.user?.id)
+      const userId = authStore.user?.id
+      groups.value = allGroups.filter(g => {
+        const mid = g.manager_id ?? g.created_by ?? g.creator_id ?? g.manager?.id
+        return mid != null && mid == userId
+      })
     } else if (!isAdmin.value) {
       const [formsRes, groupsRes] = await Promise.all([
         axios.get(SERVER + '/api/forms'),
@@ -243,6 +257,8 @@ onMounted(() => { loadProfile(); loadMyData() })
 
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .profile-card { padding: 20px; }
+.card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.card-title-row .card-title { margin-bottom: 0; }
 .card-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text); }
 .card-title i { color: var(--accent); font-size: 13px; }
 

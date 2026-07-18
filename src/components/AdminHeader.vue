@@ -21,7 +21,7 @@
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_roles')" to="/roles" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقش‌ها</router-link>
         <router-link v-if="authStore.isAdmin || authStore.isAuthenticated && authStore.isGroupManager" to="/groups" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">گروه‌ها</router-link>
         <router-link v-if="authStore.isAdmin || authStore.isGroupManager" to="/forms" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">فرم‌ها</router-link>
-      </div>
+     </div>
 
       <div class="topbar-actions">
         <template v-if="authStore.isAuthenticated">

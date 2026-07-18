@@ -63,7 +63,7 @@
         </div>
       </div>
 
-      <div class="shortcuts">
+      <!-- <div class="shortcuts">
         <div class="shortcut" @click="$router.push('/groups')">
           <i class="fas fa-layer-group"></i>
           <span>گروه‌های من</span>
@@ -72,7 +72,7 @@
           <i class="fas fa-file-alt"></i>
           <span>فرم‌های من</span>
         </div>
-      </div>
+      </div> -->
 
       <div class="gm-sections">
         <div class="card mini-card">

@@ -16,11 +16,11 @@
     <div class="topbar-right" :class="{ 'nav-open': mobileOpen }">
       <div v-if="authStore.isAuthenticated" class="topbar-nav">
         <router-link to="/map" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقشه</router-link>
-        <router-link v-if="authStore.isAdmin" to="/dashboard" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">داشبورد</router-link>
+        <router-link v-if="authStore.isAdmin || authStore.isGroupManager" to="/dashboard" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">داشبورد</router-link>
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_users')" to="/users" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">کاربران</router-link>
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_roles')" to="/roles" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقش‌ها</router-link>
-        <router-link v-if="authStore.isAdmin && (authStore.isAuthenticated && (authStore.isAdmin || authStore.isGroupManager))" to="/groups" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">گروه‌ها</router-link>
-        <router-link v-if="authStore.isAdmin" to="/forms" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">فرم‌ها</router-link>
+        <router-link v-if="authStore.isAdmin || authStore.isAuthenticated && authStore.isGroupManager" to="/groups" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">گروه‌ها</router-link>
+        <router-link v-if="authStore.isAdmin || authStore.isGroupManager" to="/forms" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">فرم‌ها</router-link>
       </div>
 
       <div class="topbar-actions">

@@ -200,11 +200,20 @@ async function loadMyData() {
       ])
       forms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
       const allGroups = Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data?.data || []
-      const userId = authStore.user?.id
-      groups.value = allGroups.filter(g => {
-        const mid = g.manager_id ?? g.created_by ?? g.creator_id ?? g.manager?.id
-        return mid != null && mid == userId
+      const userId = String(authStore.user?.id)
+      const hasManagerField = allGroups.some(g => getGroupManagerId(g) != null)
+      const myGroups = allGroups.filter(g => {
+        const mid = getGroupManagerId(g)
+        return mid != null ? String(mid) === userId : !hasManagerField
       })
+      groups.value = await Promise.all(myGroups.map(async (g) => {
+        if (Array.isArray(g.Users) || Array.isArray(g.users)) return g
+        try {
+          const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`)
+          const users = r.data?.data ?? r.data
+          return { ...g, Users: Array.isArray(users) ? users : [] }
+        } catch { return g }
+      }))
     } else if (!isAdmin.value) {
       const [formsRes, groupsRes] = await Promise.all([
         axios.get(SERVER + '/api/forms'),
@@ -219,6 +228,10 @@ async function loadMyData() {
       }
     }
   } catch (e) { handleError(e) }
+}
+
+function getGroupManagerId(g) {
+  return g.manager_id ?? g.created_by ?? g.creator_id ?? g.managed_by ?? g.owner_id ?? g.user_id ?? g.manager?.id ?? g.Manager?.id ?? g.creator?.id ?? g.createdBy
 }
 
 async function updateProfile() {

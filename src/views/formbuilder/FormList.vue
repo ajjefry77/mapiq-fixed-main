@@ -17,13 +17,16 @@
       <div v-for="form in forms" :key="form.id" class="form-card card">
         <div class="form-card-header">
           <span class="badge" :class="form.is_active ? 'badge-active' : 'badge-inactive'">{{ form.is_active ? 'فعال' : 'غیرفعال' }}</span>
-          <span class="form-date">{{ formatDate(form.created_at) }}</span>
+          <span class="form-date">{{ formatDate(form.created_at ?? form.createdAt) }}</span>
         </div>
         <h2 class="form-title">{{ form.title }}</h2>
         <p v-if="form.description" class="form-desc">{{ form.description }}</p>
         <div class="form-meta">
-          <span v-if="getGroupName(form.group_id)" class="group-tag">
-            <i class="fas fa-users" style="margin-left:3px;font-size:10px"></i> {{ getGroupName(form.group_id) }}
+          <span v-if="getGroupName(form)" class="group-tag">
+            <i class="fas fa-users" style="margin-left:3px;font-size:10px"></i> {{ getGroupName(form) }}
+          </span>
+          <span v-else-if="!getGroupName(form)" class="group-tag group-tag--none">
+            <i class="fas fa-users" style="margin-left:3px;font-size:10px"></i> بدون گروه
           </span>
           <button v-if="canManageForms" class="btn btn-ghost btn-xs" @click="openAssignModal(form)">
             <i class="fas fa-user-plus" style="margin-left:3px;font-size:10px"></i> {{ form.group_id ? 'تغییر گروه' : 'انتساب به گروه' }}
@@ -77,13 +80,18 @@ const canManageForms = computed(() => authStore.isAdmin || authStore.isGroupMana
 
 const groups = ref([])
 
+function getGroupManagerId(g) {
+  return g.manager_id ?? g.created_by ?? g.creator_id ?? g.managed_by ?? g.owner_id ?? g.user_id ?? g.manager?.id ?? g.Manager?.id ?? g.creator?.id ?? g.createdBy
+}
+
 const displayGroups = computed(() => {
   if (authStore.isAdmin) return groups.value
   if (authStore.isGroupManager) {
-    const userId = authStore.user?.id
+    const userId = String(authStore.user?.id)
+    const hasManagerField = groups.value.some(g => getGroupManagerId(g) != null)
     return groups.value.filter(g => {
-      const mid = g.manager_id ?? g.created_by ?? g.creator_id ?? g.manager?.id
-      return mid != null && mid == userId
+      const mid = getGroupManagerId(g)
+      return mid != null ? String(mid) === userId : !hasManagerField
     })
   }
   return []
@@ -95,9 +103,12 @@ const assignForm = ref(null)
 const assignGroupId = ref(null)
 const assignSaving = ref(false)
 
-function getGroupName(gid) {
-  if (!gid) return null
-  const g = groups.value.find(x => x.id === gid)
+function getGroupName(form) {
+  if (!form) return null
+  if (form.group && (form.group.name || form.Group?.name)) return form.group.name || form.Group?.name
+  const gid = form.group_id ?? form.groupId
+  if (gid == null) return null
+  const g = groups.value.find(x => String(x.id) === String(gid))
   return g?.name || null
 }
 
@@ -123,7 +134,10 @@ async function saveAssignment() {
 }
 
 function formatDate(str) {
-  return new Date(str).toLocaleDateString("fa-IR", { year: "numeric", month: "short", day: "numeric" })
+  if (!str) return '—'
+  const d = new Date(str)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString("fa-IR", { year: "numeric", month: "short", day: "numeric" })
 }
 
 async function copyLink(form) {

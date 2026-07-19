@@ -7,7 +7,7 @@
       <template v-else>پنل کاربری</template>
     </router-link>
 
-    <button v-if="authStore.isAuthenticated" class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }">
+    <button class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }">
       <span></span><span></span><span></span>
     </button>
 
@@ -21,7 +21,7 @@
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_roles')" to="/roles" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقش‌ها</router-link>
         <router-link v-if="authStore.isAdmin || authStore.isAuthenticated && authStore.isGroupManager" to="/groups" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">گروه‌ها</router-link>
         <router-link v-if="authStore.isAdmin || authStore.isGroupManager" to="/forms" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">فرم‌ها</router-link>
-      </div>
+     </div>
 
       <div class="topbar-actions">
         <template v-if="authStore.isAuthenticated">
@@ -29,10 +29,13 @@
             <i class="fas fa-cog"></i>
           </router-link>
 
-          <div class="user-menu" @click="menuOpen = !menuOpen" ref="userMenuRef">
+          <div class="user-menu" @click="toggleUserMenu" ref="userMenuRef">
             <span class="user-avatar">{{ initials }}</span>
             <span class="user-name">{{ authStore.displayName }}</span>
-            <div v-if="menuOpen" class="user-dropdown card">
+          </div>
+
+          <teleport to="body">
+            <div v-if="menuOpen" class="user-dropdown card" ref="dropdownRef" :style="dropdownStyle" @click.stop>
               <div class="user-dropdown-info">
                 <strong>{{ authStore.displayName }}</strong>
                 <span class="user-phone" dir="ltr">{{ authStore.fbUser?.phone || authStore.user?.phone }}</span>
@@ -45,7 +48,7 @@
               <button v-if="!authStore.isAdmin" class="dropdown-item" @click="goToPanel">🖥 پنل کاربری</button>
               <button class="dropdown-item" @click="handleLogout">🚪 خروج از حساب</button>
             </div>
-          </div>
+          </teleport>
         </template>
 
         <template v-else>
@@ -57,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue"
+import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useAuthStore } from "../stores/auth"
 
@@ -68,6 +71,8 @@ const authStore = useAuthStore()
 const menuOpen = ref(false)
 const mobileOpen = ref(false)
 const userMenuRef = ref(null)
+const dropdownRef = ref(null)
+const dropdownStyle = ref({})
 
 const isPublicRoute = computed(() => route.meta.public)
 
@@ -78,6 +83,33 @@ const initials = computed(() => {
 
 function roleLabel(r) {
   return r === 'admin' ? 'مدیر سیستم' : r === 'group_manager' ? 'مدیر گروه' : 'کاربر'
+}
+
+function positionDropdown() {
+  if (!userMenuRef.value) return
+  const rect = userMenuRef.value.getBoundingClientRect()
+  const width = 220
+  const margin = 8
+  let right = window.innerWidth - rect.right
+  right = Math.max(margin, Math.min(right, window.innerWidth - width - margin))
+
+  let bottom = window.innerHeight - rect.top + 10
+  const spaceAbove = rect.top
+  const spaceBelow = window.innerHeight - rect.bottom
+  let style = { position: "fixed", width: `${width}px`, right: `${right}px` }
+
+  if (spaceAbove < 260 && spaceBelow > spaceAbove) {
+    style.top = `${rect.bottom + 10}px`
+  } else {
+    style.bottom = `${bottom}px`
+  }
+
+  dropdownStyle.value = style
+}
+
+function toggleUserMenu() {
+  if (!menuOpen.value) positionDropdown()
+  menuOpen.value = !menuOpen.value
 }
 
 function goToPanel() {
@@ -92,24 +124,38 @@ function handleLogout() {
 }
 
 function handleClickOutside(e) {
-  if (userMenuRef.value && !userMenuRef.value.contains(e.target)) {
+  const inMenu = userMenuRef.value && userMenuRef.value.contains(e.target)
+  const inDropdown = dropdownRef.value && dropdownRef.value.contains(e.target)
+  if (!inMenu && !inDropdown) {
     menuOpen.value = false
   }
 }
 
+function handleReposition() {
+  if (menuOpen.value) positionDropdown()
+}
+
+watch(mobileOpen, (open) => {
+  document.body.style.overflow = open ? "hidden" : ""
+})
+
 onMounted(() => {
   document.addEventListener("click", handleClickOutside)
+  window.addEventListener("resize", handleReposition)
+  window.addEventListener("scroll", handleReposition, true)
 })
 
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside)
+  window.removeEventListener("resize", handleReposition)
+  window.removeEventListener("scroll", handleReposition, true)
+  document.body.style.overflow = ""
 })
 </script>
 
 <style scoped>
 .admin-topbar {
   background: rgba(26, 29, 39, 0.85);
-  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
   padding: 0 24px;
   height: 60px;
@@ -121,6 +167,15 @@ onUnmounted(() => {
   top: 0;
   z-index: 100;
   direction: rtl;
+}
+
+.admin-topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: -1;
 }
 
 .topbar-logo {
@@ -268,12 +323,9 @@ onUnmounted(() => {
 }
 
 .user-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
   width: 220px;
   padding: 14px;
-  z-index: 200;
+  z-index: 300;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
@@ -338,6 +390,7 @@ onUnmounted(() => {
     top: 0;
     left: 0;
     bottom: 0;
+    height: 100dvh;
     width: 280px;
     max-width: 70vw;
     background: var(--surface);
@@ -381,15 +434,6 @@ onUnmounted(() => {
 
   .user-name {
     display: none;
-  }
-
-  .user-dropdown {
-    position: fixed;
-    bottom: calc(100% - 60px);
-    left: 16px;
-    right: 16px;
-    top: auto;
-    width: auto;
   }
 }
 </style>

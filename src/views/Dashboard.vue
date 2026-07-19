@@ -217,10 +217,18 @@
             <div v-if="groups.length === 0" class="empty-sm">
               عضو گروهی نیستید
             </div>
-            <div v-else class="tag-list">
-              <span v-for="g in groups" :key="g.id" class="tag">{{
-                g.name
-              }}</span>
+            <div v-else class="group-list">
+              <div v-for="g in groups" :key="g.id" class="group-item">
+                <div class="group-avatar">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="group-info">
+                  <span class="group-name">{{ g.name }}</span>
+                  <span v-if="g.description" class="group-desc">{{
+                    g.description
+                  }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -294,15 +302,18 @@ async function loadMyData() {
         }),
       );
     } else if (!isAdmin.value) {
-      const [formsRes, groupsRes] = await Promise.all([
+      const [formsRes, meRes] = await Promise.all([
         axios.get(SERVER + "/api/forms"),
-        // axios.get(SERVER + "/api/auth/me"),
+        axios.get(SERVER + "/api/auth/me"),
       ]);
       forms.value = Array.isArray(formsRes.data)
         ? formsRes.data
         : formsRes.data?.data || [];
-      const me = groupsRes.data?.data || groupsRes.data;
-      if (me?.group_ids?.length) {
+      const me = meRes.data?.data || meRes.data;
+      const myGroups = me?.Groups ?? me?.groups ?? [];
+      if (Array.isArray(myGroups) && myGroups.length) {
+        groups.value = myGroups;
+      } else if (me?.group_ids?.length) {
         const gRes = await axios.get(SERVER + "/api/groups");
         const allGroups = Array.isArray(gRes.data)
           ? gRes.data
@@ -540,6 +551,57 @@ onMounted(() => {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
+}
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.group-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface2);
+  transition: background 0.12s;
+}
+.group-item:hover {
+  background: var(--accent-glow);
+}
+.group-avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 14px;
+}
+.group-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.group-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.group-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 768px) {

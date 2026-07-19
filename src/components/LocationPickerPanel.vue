@@ -313,19 +313,19 @@ const assignedForms = computed(() => {
     if (!forms.length) return []
     const active = forms.filter(f => f && (f.is_active === undefined || f.is_active === true))
 
-    // ادمین و مدیر گروه: تمام فرم‌های فعال را ببینند
-    if (authStore.isAdmin || authStore.isGroupManager) {
+    // ادمین: تمام فرم‌های فعال را ببیند
+    if (authStore.isAdmin) {
       return active
     }
-    // کاربر عادی: فرم‌های گروه‌های خودش
+    // مدیر گروه: فقط فرم‌های گروه‌هایی که خودش مدیریت می‌کند
+    // کاربر عادی: فقط فرم‌های گروه‌هایی که عضو آنهاست
     const ids = myGroupIds.value
     const filtered = active.filter(f => {
       const gid = f?.group_id ?? f?.Group?.id ?? null
       if (gid == null) return true
       return ids.includes(String(gid))
     })
-    // fallback: اگر فیلتر گروه چیزی پیدا نکرد ولی کاربر لاگین است، همه فرم‌های فعال نمایش داده شود
-    return filtered.length ? filtered : active
+    return filtered
   } catch (e) {
     console.error('assignedForms error:', e)
     return Array.isArray(allForms.value) ? allForms.value : []

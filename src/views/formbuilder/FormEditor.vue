@@ -125,7 +125,7 @@ onMounted(async () => {
     const form = await fetchForm(route.params.id)
     formTitle.value = form.title
     formDescription.value = form.description || ''
-    formGroupId.value = form.group_id ?? null
+    formGroupId.value = (form.group_id === null || form.group_id === undefined) ? null : Number(form.group_id)
     isActive.value = form.is_active
     fields.value = form.fields || []
   }
@@ -142,7 +142,9 @@ async function save() {
   if (!formTitle.value.trim()) { toastError('عنوان فرم الزامی است'); return }
   saving.value = true
   try {
-    const payload = { title: formTitle.value, description: formDescription.value, group_id: formGroupId.value, fields: fields.value, is_active: isActive.value }
+    const gid = formGroupId.value
+    const normalizedGroupId = (gid === null || gid === undefined || gid === '') ? null : Number(gid)
+    const payload = { title: formTitle.value, description: formDescription.value, group_id: normalizedGroupId, fields: fields.value, is_active: isActive.value }
     if (!isEdit.value) payload.created_at = new Date().toISOString()
     if (isEdit.value) await updateForm(route.params.id, payload)
     else await createForm(payload)

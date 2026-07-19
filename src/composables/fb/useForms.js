@@ -8,6 +8,7 @@ export function useForms() {
 
   async function fetchForms() {
     forms.value = await get('/forms')
+    return forms.value
   }
 
   async function fetchForm(id) {

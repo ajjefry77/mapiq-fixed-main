@@ -179,6 +179,7 @@
       :lat="pickedPoint.lat"
       :lng="pickedPoint.lng"
       @close="closePickerPanel"
+      @savePoint="savePickedPoint"
   />
 
 </template>
@@ -1074,6 +1075,46 @@ function closePickerPanel() {
   }
   pickedPoint.lat = null
   pickedPoint.lng = null
+}
+
+// ذخیره اطلاعات نقطه (نام/توضیحات/فایل + مختصات) به عنوان یک پین
+async function savePickedPoint(data) {
+  try {
+    const shape = {
+      type: "point",
+      lon: data.lng,
+      lat: data.lat,
+      color: '#e8843c',
+      show: true
+    }
+    const pin = {
+      id: crypto.randomUUID(),
+      name: data.name || 'نقطه',
+      descr: data.description || '',
+      shape: shape,
+      date: new Date(),
+      save: -1,
+      type: 'draw'
+    }
+    if (data.file) {
+      pin.filename = data.file.name
+      pin.file = data.file
+    }
+    Pins.push(pin)
+
+    const formData = new FormData()
+    formData.append("type", pin.type)
+    formData.append("name", pin.name)
+    formData.append("obj_id", pin.id)
+    formData.append("parent_id", -1)
+    formData.append("content", JSON.stringify(shape))
+    if (data.file) formData.append("file", data.file)
+
+    await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
+      { headers: { "Content-Type": "multipart/form-data" } })
+  } catch (err) {
+    console.error('خطا در ذخیره نقطه:', err)
+  }
 }
 
 const chunkSize = 5000;

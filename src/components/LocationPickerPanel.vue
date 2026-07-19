@@ -41,10 +41,10 @@
           </button>
           <button
             class="lpp-tab"
-            :class="{ active: activeTab === 'location' }"
-            @click="activeTab = 'location'"
+            :class="{ active: activeTab === 'info' }"
+            @click="activeTab = 'info'"
           >
-            <i class="fas fa-location-dot"></i> موقعیت
+            <i class="fas fa-location-dot"></i> اطلاعات نقطه
           </button>
         </div>
 
@@ -65,7 +65,7 @@
 
               <div v-else-if="!assignedForms.length" class="lpp-state">
                 <span class="lpp-state-icon">📋</span>
-                <p>فرمی به شما اختصاص داده نشده است</p>
+                <p>فرمی برای شما در دسترس نیست</p>
               </div>
 
               <div v-else class="lpp-forms-list">
@@ -219,26 +219,34 @@
             </div>
           </div>
 
-          <!-- ───── TAB: LOCATION ───── -->
-          <div v-show="activeTab === 'location'" class="lpp-tab-pane">
-            <div class="lpp-loc-grid">
-              <div class="lpp-loc-card">
-                <span class="lpp-loc-label">عرض جغرافیایی (Lat)</span>
-                <span class="lpp-loc-val">{{ coordLat || '—' }}</span>
+          <!-- ───── TAB: POINT INFO (was the first popup) ───── -->
+          <div v-show="activeTab === 'info'" class="lpp-tab-pane">
+            <div class="lpp-info-coords">
+              <div class="lpp-coord-card">
+                <span class="lpp-coord-label">عرض جغرافیایی (Lat)</span>
+                <span class="lpp-coord-val">{{ coordLat || '—' }}</span>
               </div>
-              <div class="lpp-loc-card">
-                <span class="lpp-loc-label">طول جغرافیایی (Lng)</span>
-                <span class="lpp-loc-val">{{ coordLng || '—' }}</span>
+              <div class="lpp-coord-card">
+                <span class="lpp-coord-label">طول جغرافیایی (Lng)</span>
+                <span class="lpp-coord-val">{{ coordLng || '—' }}</span>
               </div>
             </div>
-            <p class="lpp-loc-hint">
-              برای تغییر موقعیت، مجدداً روی نقشه کلیک کنید یا از دکمه 📍 برای دریافت موقعیت فعلی استفاده نمایید.
-            </p>
-            <button class="lpp-btn lpp-btn-icon-wide" :disabled="locating" @click="getGPSAndSet">
-              <span v-if="locating" class="lpp-spinner-sm"></span>
-              <span v-else>📍</span>
-              دریافت موقعیت فعلی (GPS)
-            </button>
+
+            <form @submit.prevent="savePointInfo" class="lpp-info-form">
+              <label class="lpp-field-label">نام</label>
+              <input v-model="pointInfo.name" type="text" class="lpp-input" placeholder="نام نقطه" required />
+
+              <label class="lpp-field-label">توضیحات</label>
+              <textarea v-model="pointInfo.description" class="lpp-textarea" rows="3" placeholder="توضیحات..."></textarea>
+
+              <label class="lpp-field-label">فایل ضمیمه</label>
+              <input type="file" @change="onPointFileChange" class="lpp-input" />
+
+              <button type="submit" class="lpp-btn lpp-btn-primary lpp-submit-btn" :disabled="savingPoint">
+                <span v-if="savingPoint" class="lpp-spinner-sm"></span>
+                {{ savingPoint ? 'در حال ذخیره...' : '💾 ذخیره اطلاعات نقطه' }}
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -247,7 +255,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useForms } from '../composables/fb/useForms.js'
 import { useGroups } from '../composables/fb/useGroups.js'
 import { useAuthStore } from '../stores/auth'
@@ -258,7 +266,7 @@ const props = defineProps({
   lat: { type: [Number, String], default: null },
   lng: { type: [Number, String], default: null },
 })
-const emit = defineEmits(['update:visible', 'close'])
+const emit = defineEmits(['update:visible', 'close', 'savePoint'])
 
 const authStore = useAuthStore()
 const { fetchForms, fetchForm, submitForm } = useForms()
@@ -267,29 +275,60 @@ const { locating, geoError, locate } = useGeolocation()
 
 // ─── Forms ──────────────────────────────────────────
 const allForms = ref([])
+const allGroups = ref([])
 const formsLoading = ref(false)
 const formsError = ref(null)
 const selectedFormId = ref(null)
 const currentForm = ref(null)
 const formLoading = ref(false)
 
+function getGroupManagerId(g) {
+  return g.manager_id ?? g.created_by ?? g.creator_id ?? g.managed_by ?? g.owner_id ??
+    g.user_id ?? g.manager?.id ?? g.Manager?.id ?? g.creator?.id ?? g.createdBy
+}
+
+// گروه‌هایی که کاربر (ادمین/مدیر گروه) مدیرشان است یا عضو است
+const myGroupIds = computed(() => {
+  const user = authStore.user || {}
+  if (authStore.isAdmin) {
+    return allGroups.value.map(g => String(g.id))
+  }
+  if (authStore.isGroupManager) {
+    const hasManagerField = allGroups.value.some(g => getGroupManagerId(g) != null)
+    return allGroups.value
+      .filter(g => {
+        const mid = getGroupManagerId(g)
+        return mid != null ? String(mid) === String(user.id) : !hasManagerField
+      })
+      .map(g => String(g.id))
+  }
+  // کاربر عادی: گروه‌هایی که عضو آنهاست
+  const raw = user.group_ids ?? user.Groups ?? []
+  return (Array.isArray(raw) ? raw : []).map(g => String((g && g.id) ?? g))
+})
+
 const assignedForms = computed(() => {
   try {
     const forms = Array.isArray(allForms.value) ? allForms.value : []
     if (!forms.length) return []
-    const user = authStore.user || {}
-    const raw = user.group_ids ?? user.Groups ?? []
-    const myGroupIds = (Array.isArray(raw) ? raw : []).map(g => String((g && g.id) ?? g))
-    return forms
-      .filter(f => f && f.is_active)
-      .filter(f => {
-        const gid = f?.group_id ?? f?.Group?.id ?? null
-        if (gid == null) return true // بدون گروه = همه
-        return myGroupIds.includes(String(gid))
-      })
+    const active = forms.filter(f => f && (f.is_active === undefined || f.is_active === true))
+
+    // ادمین و مدیر گروه: تمام فرم‌های فعال را ببینند
+    if (authStore.isAdmin || authStore.isGroupManager) {
+      return active
+    }
+    // کاربر عادی: فرم‌های گروه‌های خودش
+    const ids = myGroupIds.value
+    const filtered = active.filter(f => {
+      const gid = f?.group_id ?? f?.Group?.id ?? null
+      if (gid == null) return true
+      return ids.includes(String(gid))
+    })
+    // fallback: اگر فیلتر گروه چیزی پیدا نکرد ولی کاربر لاگین است، همه فرم‌های فعال نمایش داده شود
+    return filtered.length ? filtered : active
   } catch (e) {
     console.error('assignedForms error:', e)
-    return Array.isArray(allForms.value) ? allForms.value.filter(f => f && f.is_active) : []
+    return Array.isArray(allForms.value) ? allForms.value : []
   }
 })
 
@@ -297,10 +336,31 @@ async function loadForms() {
   formsLoading.value = true
   formsError.value = null
   try {
-    await fetchGroups().catch(() => {})
-    allForms.value = await fetchForms()
+    const [formsRes, groupsRes] = await Promise.all([
+      fetchForms().catch(() => null),
+      fetchGroups().catch(() => null),
+    ])
+    // هندل کردن اشکال مختلف پاسخ (آرایه یا {data:[]} یا {data:{data:[]}})
+    let forms = formsRes
+    if (forms && !Array.isArray(forms)) {
+      forms = forms.data ?? forms.data?.data ?? forms.forms ?? []
+    }
+    allForms.value = Array.isArray(forms) ? forms : []
+
+    let groups = groupsRes
+    if (groups && !Array.isArray(groups)) {
+      groups = groups.data ?? groups.data?.data ?? groups.groups ?? []
+    }
+    allGroups.value = Array.isArray(groups) ? groups : []
+
+    if (!allForms.value.length) {
+      formsError.value = null // فرمی یافت نشد، پیام خالی نمایش داده می‌شود
+    }
   } catch (e) {
+    console.error('loadForms error:', e)
     formsError.value = e.message || 'خطا در بارگذاری فرم‌ها'
+    allForms.value = []
+    allGroups.value = []
   } finally {
     formsLoading.value = false
   }
@@ -441,6 +501,32 @@ function resetForm() {
   selectedFormId.value = null
   currentForm.value = null
   loadForms()
+}
+
+// ─── Point info (was the first popup) ──────────────
+const pointInfo = reactive({ name: '', description: '', file: null })
+const savingPoint = ref(false)
+
+function onPointFileChange(e) {
+  pointInfo.file = e.target.files?.[0] || null
+}
+
+async function savePointInfo() {
+  savingPoint.value = true
+  try {
+    emit('savePoint', {
+      name: pointInfo.name,
+      description: pointInfo.description,
+      file: pointInfo.file,
+      lat: parseFloat(coordLat.value),
+      lng: parseFloat(coordLng.value),
+    })
+    pointInfo.name = ''
+    pointInfo.description = ''
+    pointInfo.file = null
+  } finally {
+    savingPoint.value = false
+  }
 }
 
 // ─── Tabs ───────────────────────────────────────────
@@ -678,15 +764,16 @@ watch(() => props.visible, (v) => {
 .lpp-btn:disabled { opacity: .6; cursor: not-allowed; }
 .lpp-btn-ghost { background: transparent; border-color: var(--border); color: var(--text-muted); }
 .lpp-btn-ghost:hover { color: var(--text); }
+.lpp-btn-primary { background: var(--accent); color: #fff; font-weight: 600; }
 .lpp-btn-success { background: var(--success); color: #06281b; font-weight: 600; }
-.lpp-btn-icon-wide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); border-radius: var(--radius); cursor: pointer; font-family: var(--font); font-size: 14px; margin-top: 14px; }
 
-/* Location tab */
-.lpp-loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.lpp-loc-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-.lpp-loc-label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 6px; }
-.lpp-loc-val { font-size: 16px; font-family: monospace; color: var(--accent); direction: ltr; display: block; }
-.lpp-loc-hint { font-size: 12px; color: var(--text-muted); margin: 14px 0; line-height: 1.8; }
+/* Point info tab */
+.lpp-info-coords { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.lpp-coord-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+.lpp-coord-card .lpp-coord-label { display: block; margin-bottom: 6px; }
+.lpp-coord-val { font-size: 15px; font-family: monospace; color: var(--accent); direction: ltr; display: block; }
+.lpp-info-form { display: flex; flex-direction: column; gap: 6px; }
+.lpp-info-form .lpp-field-label { margin-top: 8px; }
 
 /* Slide transition */
 .sheet-slide-enter-active, .sheet-slide-leave-active { transition: opacity .25s ease; }

@@ -31,6 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLogin = ref<boolean>(false)
   const token = ref<string | null>(localStorage.getItem('token'))
   const userPermissions = ref<string[]>([])
+  let authCheckPromise: Promise<void> | null = null
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
   const isAdmin = computed(() => {
@@ -53,6 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = authToken
     user.value = userData
     isLogin.value = true;
+    authCheckPromise = Promise.resolve()
     localStorage.setItem('token', authToken)
     if (userData.id) localStorage.setItem('user', String(userData.id))
     axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`
@@ -63,6 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     isLogin.value = false;
     userPermissions.value = []
+    authCheckPromise = null
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     delete axios.defaults.headers.common['Authorization']
@@ -103,8 +106,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const checkAuth = async () => {
-    if (token.value) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+    if (!token.value) return
+    if (authCheckPromise) return authCheckPromise
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+    authCheckPromise = (async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/users/${user.value?.id || 'me'}`)
         user.value = response.data
@@ -112,7 +117,8 @@ export const useAuthStore = defineStore('auth', () => {
       } catch (error) {
         clearAuthData()
       }
-    }
+    })()
+    return authCheckPromise
   }
 
   const loadUserPermissions = async () => {

@@ -14,6 +14,22 @@ export default defineConfig({
   define: {
     CESIUM_BASE_URL: JSON.stringify('/cesium'),
   },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('cesium')) return 'cesium'
+          if (id.includes('mapbox-gl')) return 'mapbox'
+          if (id.includes('leaflet')) return 'leaflet'
+          if (id.includes('shpjs') || id.includes('proj4') || id.includes('papaparse')) return 'geo'
+          if (id.includes('vue') || id.includes('pinia') || id.includes('@vue')) return 'vue'
+          return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

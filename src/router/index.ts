@@ -1,23 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import Login from '../views/Login.vue';
-import Register from '../views/Register.vue';
-import Dashboard from '../views/Dashboard.vue';
-import Users from '../views/Users.vue';
-import MapCesium from '../views/MapCesium.vue';
-import Workflow from '../views/Workflow.vue';
-import Setting from '../views/Setting.vue';
-import Roles from '../views/Roles.vue';
-import Groups from '../views/Groups.vue';
-import processBuilder from '../views/ProcessBuilder.vue';
-import Inbox from '../views/UserInbox.vue';
-import StartProc from '../views/StartProcess.vue';
 
-import FormList from '../views/formbuilder/FormList.vue';
-import FormEditor from '../views/formbuilder/FormEditor.vue';
-import FormPreview from '../views/formbuilder/FormPreview.vue';
-import FormFill from '../views/formbuilder/FormFill.vue';
-import FormSubmissions from '../views/formbuilder/FormSubmissions.vue';
+const Login = () => import('../views/Login.vue');
+const Register = () => import('../views/Register.vue');
+const Dashboard = () => import('../views/Dashboard.vue');
+const Users = () => import('../views/Users.vue');
+const MapCesium = () => import('../views/MapCesium.vue');
+const Workflow = () => import('../views/Workflow.vue');
+const Setting = () => import('../views/Setting.vue');
+const Roles = () => import('../views/Roles.vue');
+const Groups = () => import('../views/Groups.vue');
+const processBuilder = () => import('../views/ProcessBuilder.vue');
+const Inbox = () => import('../views/UserInbox.vue');
+const StartProc = () => import('../views/StartProcess.vue');
+
+const FormList = () => import('../views/formbuilder/FormList.vue');
+const FormEditor = () => import('../views/formbuilder/FormEditor.vue');
+const FormPreview = () => import('../views/formbuilder/FormPreview.vue');
+const FormFill = () => import('../views/formbuilder/FormFill.vue');
+const FormSubmissions = () => import('../views/formbuilder/FormSubmissions.vue');
 const routes = [
   { path: '/', redirect: '/map' },
   { path: '/login', name: 'Login', component: Login, meta: { requiresGuest: true } },

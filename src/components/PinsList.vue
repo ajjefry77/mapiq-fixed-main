@@ -1,4 +1,5 @@
 <template>
+ <div class="flex flex-col min-h-0">
   <!-- Tabs -->
   <div class="flex mb-2 ">
 <!--    <button-->
@@ -157,6 +158,7 @@
   <SendDialog  :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
   <LoadCSV :rows="csvRows" :viewer="viewer" ref="csvRef" :pins="props.pins"/>
   <Loading :active="loading" />
+ </div>
 </template>
 
 <script setup>
@@ -204,12 +206,13 @@ const unreadCount = ref(0);
 const csvRows = ref([])
 const exportDataSource = new Cesium.CustomDataSource("exportPins");
 
-const emit = defineEmits([ "update:openDia", "clearPins", "`close`"]);
+const emit = defineEmits([ "update:openDia", "clearPins", "close"]);
 const props = defineProps({
   pins: { type: Object, required: true },
   viewer: { type: Object, required: true },
   openId : { type: Object, required: true },
   openDia: Function ,
+  close: { type: Boolean, default: false },
 });
 let inbox_ds= null;
 let intervalId = null;

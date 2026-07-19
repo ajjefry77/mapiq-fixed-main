@@ -100,7 +100,8 @@ import axios from "axios";
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 const props = defineProps({
   viewer: Object,
-  pins : Object
+  pins : Object,
+  layersLoaded: Array
 });
 
 const showColorPicker = ref('bg');

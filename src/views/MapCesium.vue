@@ -14,17 +14,35 @@
 
       <!-- Workspaces and Layers -->
       <!-- class="relative float-right h-screen"-->
-      <div :class="['relative float-right h-screen', 'md:block',          // در دسکتاپ همیشه نمایش داده شود
-            isOpen ? 'block' : 'hidden']">
+      <div :class="['md:relative md:float-right md:h-screen md:block',           // در دسکتاپ همیشه نمایش داده شود
+            isOpen ? 'fixed inset-0 z-[500] md:static' : 'hidden']">
 
-        <div class="absolute top-1 right-[1px] w-[340px] h-[70vh] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col">
+        <!-- overlay فقط در موبایل -->
+        <div v-if="isOpen" class="absolute inset-0 bg-black/40 md:hidden" @click="isOpen = false"></div>
+
+        <!-- پنل اصلی (میز کار و ...) -->
+        <div class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col
+                    md:h-[70vh]
+                    max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto">
           <button @click="isOpen = false" class="absolute top-2 left-4 text-xl z-10">&times;</button>
-          <PinsList  v-if="viewer" class="flex-1" :pins="Pins" :viewer="viewer"  :openId ="openWorkId" :openDia="openMyDialog"
+          <PinsList  v-if="viewer" class="flex-1 min-h-0" :pins="Pins" :viewer="viewer"  :openId ="openWorkId" :openDia="openMyDialog"
                      @clearPins="clearPins" :close="isOpen"/>
+
+          <!-- بخش لایه های سرور فقط در موبایل داخل همین پنل -->
+          <div class="md:hidden mt-3 pt-3 border-t border-gray-200">
+            <h3 class="mb-2 text-sm">لایه های سرور : </h3>
+            <hr style="border-top: 1px solid #aaa; margin-bottom: 10px"/>
+            <span v-if="authStore?.user?.phone == '09153333989' || authStore?.user?.phone == '09156620866'" class="text-xs text-gray-800 truncate" >
+              <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
+              <i class="text-blue-500"/>
+              عکس هوایی طرقبه 1340
+            </span>
+          </div>
         </div>
 
+        <!-- پنل لایه های سرور (فقط دسکتاپ) -->
         <div id="layer-panel"
-             class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded shadow p-3 z-50">
+             class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden">
           <div class=" overflow-y-auto h-[95%]">
               <h3 class="mb-2 text-sm">لایه های سرور : </h3>
               <hr style="border-top: 1px solid #aaa; margin-bottom: 10px"/>
@@ -63,18 +81,20 @@
 
             <!-- show list of Map Tiles -->
             <div v-show="expanded"  @click.stop
-                class="absolute top-0 left-full ml-2 w-max p-2 bg-white border border-gray-300 rounded shadow-md flex gap-2 flex-wrap " >
-              <div
-                  v-for="map in maps"
-                  :key="map.name"
-                  @click="setBaseLayer(map)"
-                  class="w-20 h-20 rounded border cursor-pointer overflow-hidden shadow hover:shadow-lg relative"
-                  :title="map.name">
+                class="absolute md:top-0 md:left-full md:ml-2 bottom-full left-0 mb-2 w-[300px] max-w-[calc(100vw-24px)] md:w-max p-2 bg-white border border-gray-300 rounded shadow-md flex flex-col" >
+              <div class="overflow-x-auto overflow-y-hidden md:overflow-visible flex gap-2 flex-nowrap">
+                <div
+                    v-for="map in maps"
+                    :key="map.name"
+                    @click="setBaseLayer(map)"
+                    class="w-20 h-20 rounded border cursor-pointer overflow-hidden shadow hover:shadow-lg relative shrink-0"
+                    :title="map.name">
 
-                <img :src="map.thumbnail" class="w-full h-full object-cover" />
-                <span  class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1" >
-                  {{ map.name }}
-                </span>
+                  <img :src="map.thumbnail" class="w-full h-full object-cover" />
+                  <span  class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1" >
+                    {{ map.name }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -101,7 +121,7 @@
         <NorthArrow v-if="viewer" :viewer="viewer" />
         <FlyPosition v-if="viewer" :viewer="viewer" :latlon="latlon"/>
         <!--<DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins"  @disableFeatureInfo="featurePanel.deactivate"/>-->
-        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()"/>
+        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
 
         <DataView  v-if="openDataView" :workspace="workspaceView"  :layer="layerView"  :geoserverUrl= 'GEOSERVER + "/geoserver"' :pageSize="20">
           <template #close>
@@ -110,6 +130,7 @@
             </button>
           </template>
         </DataView>
+
         <FeatureInfoPanel ref="featurePanel" :viewer="viewer" :pins="Pins" :layersLoaded="layersLoaded"   @disableDrawing="() => drawing?.inactiveDrawing()"/>
 
       </div>
@@ -152,6 +173,14 @@
     </button>
   </div>
 
+  <!-- پنل انتخاب نقطه و پاسخ به فرم‌ها (از پایین) -->
+  <LocationPickerPanel
+      v-model:visible="showPickerPanel"
+      :lat="pickedPoint.lat"
+      :lng="pickedPoint.lng"
+      @close="closePickerPanel"
+  />
+
 </template>
 
 <script setup>
@@ -174,6 +203,7 @@ import ShowFlag from '../components/ShowFlag.vue'
 import SearchAddress from '../components/SearchAddress.vue'
 import Profile from '../components/Profile.vue'
 import ToggleSwitch from "../components/ToggleSwitch.vue"
+import LocationPickerPanel from "../components/LocationPickerPanel.vue"
 
 import shp from 'shpjs'
 import {useRouter} from 'vue-router';
@@ -273,6 +303,11 @@ const selectedFeature = ref(null);
 const featurePanel = ref(null);
 const drawing = ref(null);
 const loading = ref(false)
+
+// ── Map point picker (دکمه نقطه در DrawTools)
+const pickMarker = ref(null)
+const pickedPoint = reactive({ lat: null, lng: null })
+const showPickerPanel = ref(false)
 const drawDataSource= new Cesium.CustomDataSource("file");
 //#endregion
 
@@ -1004,6 +1039,41 @@ function replaceKeys(dataObj, mapping) {
 
 function translate(word) {
   return  dict[word] || dict[word.toLowerCase()] || word;
+}
+
+// ── Map point picker (دکمه نقطه در DrawTools) ──────────
+function onMapPointPicked({ lat, lng }) {
+  if (!viewer) return
+
+  pickedPoint.lat = lat
+  pickedPoint.lng = lng
+
+  if (pickMarker.value) viewer.entities.remove(pickMarker.value)
+  pickMarker.value = viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(lng, lat),
+    point: {
+      pixelSize: 12,
+      color: Cesium.Color.fromCssColorString('#e8843c'),
+      outlineColor: Cesium.Color.WHITE,
+      outlineWidth: 3,
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+    }
+  })
+
+  viewer.flyTo(pickMarker.value, { offset: new Cesium.HeadingPitchRange(0, -45, 800) })
+
+  // باز کردن پنل فرم‌ها از پایین
+  showPickerPanel.value = true
+}
+
+function closePickerPanel() {
+  showPickerPanel.value = false
+  if (pickMarker.value) {
+    viewer.entities.remove(pickMarker.value)
+    pickMarker.value = null
+  }
+  pickedPoint.lat = null
+  pickedPoint.lng = null
 }
 
 const chunkSize = 5000;

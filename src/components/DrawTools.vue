@@ -18,8 +18,8 @@
       </button>
 
       <!-- pin -->
-      <button @click="setDrawMode('point')" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
-              drawMode === 'point' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="نقطه">
+      <button @click="togglePointPick" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
+              pickForForm ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="نقطه (انتخاب برای فرم)">
 
         <i class="fas fa-location-pin"></i>
       </button>
@@ -132,6 +132,7 @@ const loading = ref(false);
 const expanded = ref(false);
 const drawMode = ref('');
 const color = ref('#ff0000');
+const pickForForm = ref(false);
 const drawings = ref([]);
 const selectedEntity = ref(null);
 
@@ -158,7 +159,7 @@ let radius=0;
 
 let drawDataSource= null;
 let ds= null;
-const emit = defineEmits(["disableFeatureInfo"]);
+const emit = defineEmits(["disableFeatureInfo", "pickPoint"]);
 
 onMounted ( () => {
   drawDataSource= new Cesium.CustomDataSource("pins");
@@ -168,8 +169,51 @@ onMounted ( () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', keydownHandler);
 });
+function togglePointPick() {
+  emit("disableFeatureInfo");
+  if (pickForForm.value) {
+    cancelPointPick();
+    return;
+  }
+  // لغو هر حالت ترسیم قبلی
+  if (handler) { handler.destroy(); handler = null; }
+  drawMode.value = '';
+  pickForForm.value = true;
+  startPointPick();
+}
+
+function startPointPick() {
+  if (!props.viewer) return;
+  props.viewer.scene.canvas.style.cursor = 'crosshair';
+  if (handler) handler.destroy();
+  handler = new Cesium.ScreenSpaceEventHandler(props.viewer.scene.canvas);
+
+  handler.setInputAction((click) => {
+    const position = props.viewer.camera.pickEllipsoid(click.position, props.viewer.scene.globe.ellipsoid);
+    if (!position) return;
+
+    const carto = Cesium.Cartographic.fromCartesian(position);
+    const lat = +Cesium.Math.toDegrees(carto.latitude).toFixed(6);
+    const lng = +Cesium.Math.toDegrees(carto.longitude).toFixed(6);
+
+    if (handler) { handler.destroy(); handler = null; }
+    props.viewer.scene.canvas.style.cursor = 'default';
+    pickForForm.value = false;
+    drawMode.value = '';
+
+    emit("pickPoint", { lat, lng });
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+}
+
+function cancelPointPick() {
+  if (handler) { handler.destroy(); handler = null; }
+  if (props.viewer) props.viewer.scene.canvas.style.cursor = 'default';
+  pickForForm.value = false;
+}
+
 function setDrawMode(mode) {
   emit("disableFeatureInfo");
+  pickForForm.value = false;
   if (drawMode.value!=='') {
     finishDrawing("multi_point", positions)
     showForm.value = true;
@@ -691,6 +735,7 @@ function inactiveDrawing() {
   document.body.style.cursor = "default";
   //drawMode.value='';
   stopMeasure();
+  pickForForm.value = false;
   if (handler) {
     handler.destroy();
     handler = null;

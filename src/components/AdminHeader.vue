@@ -7,9 +7,11 @@
       <template v-else>پنل کاربری</template>
     </router-link>
 
-    <button class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }">
+    <button v-if="authStore.isAuthenticated" class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }">
       <span></span><span></span><span></span>
     </button>
+
+    <router-link v-else to="/login" class="btn btn-primary btn-sm md:hidden">ورود / ثبت نام</router-link>
 
     <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false"></div>
 

@@ -24,20 +24,6 @@
           {{ unreadCount }}
       </span>
     </button>
-    <div v-if="activeTab === 'in'" class="flex gap-1 pr-2 self-center">
-      <button
-          class="px-2 py-0.5 text-xs rounded"
-          :class="sharedSubTab === 'files' ? 'bg-blue-400 text-white' : 'bg-white border'"
-          @click="sharedSubTab = 'files'" >
-        فایل‌ها (پوشه ورودی)
-      </button>
-      <button
-          class="px-2 py-0.5 text-xs rounded"
-          :class="sharedSubTab === 'groups' ? 'bg-blue-400 text-white' : 'bg-white border'"
-          @click="sharedSubTab = 'groups'" >
-        گروه‌ها
-      </button>
-    </div>
     <button
         class="px-2 py-1 text-sm rounded"
         :class="activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'"
@@ -141,6 +127,20 @@
   </div>
 
   <div v-if="activeTab === 'in'" class="text-xs flex flex-col h-full min-h-0">
+    <div class="flex gap-1 mb-2">
+      <button
+          class="px-2 py-0.5 text-xs rounded"
+          :class="sharedSubTab === 'files' ? 'bg-orange-500 text-white' : 'bg-white border'"
+          @click="sharedSubTab = 'files'" >
+        فایل‌ها (پوشه ورودی)
+      </button>
+      <button
+          class="px-2 py-0.5 text-xs rounded"
+          :class="sharedSubTab === 'groups' ? 'bg-orange-500 text-white' : 'bg-white border'"
+          @click="sharedSubTab = 'groups'" >
+        گروه‌ها
+      </button>
+    </div>
     <div v-if="sharedSubTab === 'files'">
       <div class="flex items-center justify-between mt-0 mb-2">
         <p class="text-sm text-gray-600">پوشه ورودی:</p>
@@ -180,7 +180,7 @@
               <span class="text-sm text-gray-800 truncate w-48">{{ group.name }}</span>
             </div>
             <span class="text-xs text-gray-500">
-              {{ (group.Users?.length ?? group.users?.length ?? group.member_count ?? 0) }} عضو
+              {{ group.member_count ?? 0 }} عضو
             </span>
           </li>
           <li v-if="!userGroups.length" class="text-center text-gray-400 py-4">
@@ -396,7 +396,21 @@ const loadUserGroups = async () => {
         me?.Groups ??
         me?.groups ??
         me?.group_ids?.map(id => ({ id })) ?? []
-    userGroups.value = Array.isArray(groups) ? groups : []
+    const rawGroups = Array.isArray(groups) ? groups : []
+
+    userGroups.value = await Promise.all(
+      rawGroups.map(async (g) => {
+        if (g.member_count != null) return g
+        if (Array.isArray(g.Users) || Array.isArray(g.users)) return { ...g, member_count: (g.Users ?? g.users).length }
+        try {
+          const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`)
+          const users = r.data?.data ?? r.data
+          return { ...g, member_count: Array.isArray(users) ? users.length : 0 }
+        } catch {
+          return { ...g, member_count: 0 }
+        }
+      }),
+    )
   } catch (error) {
     console.error('Error loading user groups:', error)
     userGroups.value = []

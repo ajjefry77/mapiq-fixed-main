@@ -24,6 +24,20 @@
           {{ unreadCount }}
       </span>
     </button>
+    <div v-if="activeTab === 'in'" class="flex gap-1 pr-2 self-center">
+      <button
+          class="px-2 py-0.5 text-xs rounded"
+          :class="sharedSubTab === 'files' ? 'bg-blue-400 text-white' : 'bg-white border'"
+          @click="sharedSubTab = 'files'" >
+        فایل‌ها (پوشه ورودی)
+      </button>
+      <button
+          class="px-2 py-0.5 text-xs rounded"
+          :class="sharedSubTab === 'groups' ? 'bg-blue-400 text-white' : 'bg-white border'"
+          @click="sharedSubTab = 'groups'" >
+        گروه‌ها
+      </button>
+    </div>
     <button
         class="px-2 py-1 text-sm rounded"
         :class="activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'"
@@ -127,21 +141,53 @@
   </div>
 
   <div v-if="activeTab === 'in'" class="text-xs flex flex-col h-full min-h-0">
-    <div class="flex items-center justify-between mt-0 mb-2">
-      <p class="text-sm text-gray-600">پوشه ورودی:</p>
-    </div>
-    <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
+    <div v-if="sharedSubTab === 'files'">
+      <div class="flex items-center justify-between mt-0 mb-2">
+        <p class="text-sm text-gray-600">پوشه ورودی:</p>
+      </div>
+      <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
 
-    <div class="overflow-y-auto">
-      <ul class="space-y-1">
-        <li
-            v-for="(file, index) in inboxFiles"
-            :key="index"
-            class="flex items-center justify-between bg-white px-2  border rounded">
-          <item-box v-if="viewer && inboxFiles" :viewer="viewer" :name ="getTitle(file)" :id="file.id" :idx="index"
-                    :loadedFiles="inboxFiles" @drawInbox="drawInbox" :unread="file.opened"/>
-        </li>
-      </ul>
+      <div class="overflow-y-auto">
+        <ul class="space-y-1">
+          <li
+              v-for="(file, index) in inboxFiles"
+              :key="index"
+              class="flex items-center justify-between bg-white px-2  border rounded">
+            <item-box v-if="viewer && inboxFiles" :viewer="viewer" :name ="getTitle(file)" :id="file.id" :idx="index"
+                      :loadedFiles="inboxFiles" @drawInbox="drawInbox" :unread="file.opened"/>
+          </li>
+          <li v-if="!inboxFiles.length" class="text-center text-gray-400 py-4">
+            پوشه ورودی خالی است
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div v-else-if="sharedSubTab === 'groups'" class="flex flex-col h-full min-h-0">
+      <div class="flex items-center justify-between mt-0 mb-2">
+        <p class="text-sm text-gray-600">گروه‌های من:</p>
+      </div>
+      <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
+
+      <div class="overflow-y-auto">
+        <ul class="space-y-1">
+          <li
+              v-for="(group, index) in userGroups"
+              :key="index"
+              class="flex items-center justify-between bg-white px-2 py-1 border rounded">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-users text-gray-600"></i>
+              <span class="text-sm text-gray-800 truncate w-48">{{ group.name }}</span>
+            </div>
+            <span class="text-xs text-gray-500">
+              {{ (group.Users?.length ?? group.users?.length ?? group.member_count ?? 0) }} عضو
+            </span>
+          </li>
+          <li v-if="!userGroups.length" class="text-center text-gray-400 py-4">
+            شما در هیچ گروهی عضو نیستید
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -200,7 +246,9 @@ const isShow = ref(true)
 const loading = ref(false)
 const isActive = ref(false)
 const activeTab = ref("my2")
+const sharedSubTab = ref("files")
 const inboxFiles = ref([]);
+const userGroups = ref([]);
 const users = ref([]);
 const unreadCount = ref(0);
 const csvRows = ref([])
@@ -254,6 +302,7 @@ onMounted(async () => {
 
     await loadWorks();
     await loadInbox();
+    await loadUserGroups();
     if (authStore.isAdmin || authStore.isGroupManager) await load_Users();
     intervalId = setInterval(loadInbox, 20000)
 
@@ -337,6 +386,22 @@ const getTitle = (file) => {
   let user = users.value.find(a=> a.id == file.sender_id)
   return (file.MyWork?.name??'') + '  (' + (user.name?? user.username) + ')';
 }
+
+const loadUserGroups = async () => {
+  if (!authStore.user) return
+  try {
+    const res = await axios.get(SERVER + "/api/auth/me")
+    const me = res.data?.data ?? res.data
+    const groups =
+        me?.Groups ??
+        me?.groups ??
+        me?.group_ids?.map(id => ({ id })) ?? []
+    userGroups.value = Array.isArray(groups) ? groups : []
+  } catch (error) {
+    console.error('Error loading user groups:', error)
+    userGroups.value = []
+  }
+};
 
 const load_Users = async () => {
   try {

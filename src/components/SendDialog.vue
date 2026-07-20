@@ -42,15 +42,19 @@
 import { ref, watch, defineEmits, defineProps, onMounted } from 'vue'
 import axios from 'axios';
 import UserSearch from "./UserSearch.vue";
+import {useAuthStore} from "../stores/auth";
 
 const SERVER = import.meta.env.VITE_SERVER
+const authStore = useAuthStore();
 
 const users = ref([]);
 const workflows = ref([]);
 const search = ref("");
 
 onMounted(async () => {
-  await Promise.all([load_Users()/*, load_Works()*/]);
+  if (authStore.isAdmin || authStore.isGroupManager) {
+    await Promise.all([load_Users()/*, load_Works()*/]);
+  }
 });
 
 const load_Users = async () => {

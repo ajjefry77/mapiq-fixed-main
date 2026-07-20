@@ -254,7 +254,7 @@ onMounted(async () => {
 
     await loadWorks();
     await loadInbox();
-    await load_Users();
+    if (authStore.isAdmin || authStore.isGroupManager) await load_Users();
     intervalId = setInterval(loadInbox, 20000)
 
     for (let pin of props.pins) {

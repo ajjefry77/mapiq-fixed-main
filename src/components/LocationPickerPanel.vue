@@ -203,17 +203,10 @@
                 </div>
 
                 <div class="lpp-submit-section">
-                  <div v-if="submitError" class="lpp-submit-error">⚠️ {{ submitError }}</div>
                   <button class="lpp-btn lpp-btn-success lpp-submit-btn" :disabled="submitting" @click="handleSubmit">
                     <span v-if="submitting" class="lpp-spinner-sm"></span>
                     {{ submitting ? 'در حال ارسال...' : '✅ ارسال اطلاعات' }}
                   </button>
-                </div>
-
-                <div v-if="submitted" class="lpp-success">
-                  <div class="lpp-success-icon">✅</div>
-                  <h3>اطلاعات با موفقیت ثبت شد!</h3>
-                  <button class="lpp-btn lpp-btn-ghost" @click="resetForm">ارسال فرم دیگر</button>
                 </div>
               </div>
             </div>
@@ -256,10 +249,10 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { useForms } from '../composables/fb/useForms.js'
-import { useGroups } from '../composables/fb/useGroups.js'
 import { useAuthStore } from '../stores/auth'
 import { useGeolocation } from '../composables/fb/useGeolocation.js'
+import { useToast } from 'vue-toast-notification'
+import axios from 'axios'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -268,10 +261,18 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:visible', 'close', 'savePoint'])
 
+const SERVER = import.meta.env.VITE_SERVER
 const authStore = useAuthStore()
-const { fetchForms, fetchForm, submitForm } = useForms()
-const { fetchGroups } = useGroups()
 const { locating, geoError, locate } = useGeolocation()
+const $toast = useToast()
+
+function showMessage(msg, type) {
+  $toast.open({
+    message: msg,
+    type: type,
+    duration: 4000
+  })
+}
 
 // ─── Forms ──────────────────────────────────────────
 const allForms = ref([])
@@ -303,8 +304,7 @@ const myGroupIds = computed(() => {
       .map(g => String(g.id))
   }
   // کاربر عادی: گروه‌هایی که عضو آنهاست
-  const raw = user.group_ids ?? user.Groups ?? []
-  return (Array.isArray(raw) ? raw : []).map(g => String((g && g.id) ?? g))
+  return allGroups.value.map(g => String(g.id))
 })
 
 const assignedForms = computed(() => {
@@ -336,25 +336,25 @@ async function loadForms() {
   formsLoading.value = true
   formsError.value = null
   try {
-    const [formsRes, groupsRes] = await Promise.all([
-      fetchForms().catch(() => null),
-      fetchGroups().catch(() => null),
-    ])
-    // هندل کردن اشکال مختلف پاسخ (آرایه یا {data:[]} یا {data:{data:[]}})
-    let forms = formsRes
-    if (forms && !Array.isArray(forms)) {
-      forms = forms.data ?? forms.data?.data ?? forms.forms ?? []
-    }
-    allForms.value = Array.isArray(forms) ? forms : []
+    const formsRes = await axios.get(SERVER + '/api/forms')
+    allForms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
 
-    let groups = groupsRes
-    if (groups && !Array.isArray(groups)) {
-      groups = groups.data ?? groups.data?.data ?? groups.groups ?? []
-    }
-    allGroups.value = Array.isArray(groups) ? groups : []
-
-    if (!allForms.value.length) {
-      formsError.value = null // فرمی یافت نشد، پیام خالی نمایش داده می‌شود
+    if (authStore.isAdmin || authStore.isGroupManager) {
+      const groupsRes = await axios.get(SERVER + '/api/groups')
+      allGroups.value = Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data?.data || []
+    } else {
+      try {
+        const meRes = await axios.get(SERVER + '/api/auth/me')
+        const me = meRes.data?.data || meRes.data
+        const myGroups = me?.Groups ?? me?.groups ?? []
+        if (Array.isArray(myGroups) && myGroups.length) {
+          allGroups.value = myGroups
+        } else if (me?.group_ids?.length) {
+          allGroups.value = me.group_ids.map(id => ({ id }))
+        }
+      } catch (e) {
+        allGroups.value = []
+      }
     }
   } catch (e) {
     console.error('loadForms error:', e)
@@ -370,7 +370,8 @@ async function selectForm(form) {
   selectedFormId.value = form.id
   formLoading.value = true
   try {
-    currentForm.value = await fetchForm(form.id)
+    const res = await axios.get(SERVER + '/api/forms/' + form.id + '/public')
+    currentForm.value = res.data?.data || res.data
   } catch (e) {
     formsError.value = e.message || 'خطا در بارگذاری فرم'
     selectedFormId.value = null
@@ -485,10 +486,11 @@ async function handleSubmit() {
     const locField = currentForm.value.fields.find(f => f.type === 'location')
     if (locField) payload[locField.id] = { lat: +lat.toFixed(6), lng: +lng.toFixed(6) }
 
-    await submitForm(selectedFormId.value, payload)
-    submitted.value = true
+    await axios.post(SERVER + '/api/forms/' + selectedFormId.value + '/submit', { data: payload })
+    showMessage('اطلاعات با موفقیت ثبت شد!', 'success')
+    resetForm()
   } catch (e) {
-    submitError.value = e.message || 'خطا در ارسال فرم'
+    showMessage(e.message || 'خطا در ارسال فرم', 'error')
   } finally {
     submitting.value = false
   }

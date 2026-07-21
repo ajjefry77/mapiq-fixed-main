@@ -129,7 +129,6 @@ async function loadGroups() {
 
 async function loadGroupUsers(groupId) {
   const r = await axios.get(`${SERVER}/api/groups/${groupId}/users/`)
-  console.log(groupId, r.data)
   return r.data.data || r.data
 }
 

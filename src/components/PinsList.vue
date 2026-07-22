@@ -227,7 +227,7 @@ import LoadCSV from "../components/LoadCSV.vue";
 import {useToast} from "vue-toast-notification";
 import { useSharedArray } from '../stores/app'
 
-const {getExtentedIds,getVisibleIds, isExtented, isVisible, setExtentedIds,setVisibleIds, extentedIds, visibleIds} = useSharedArray()
+const {getExtendedIds,getVisibleIds, isExtended, isVisible, setExtendedIds,setVisibleIds, extendedIds, visibleIds} = useSharedArray()
 
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 const authStore = useAuthStore();
@@ -277,7 +277,7 @@ function selectGroup(group) {
 }
 
 const saveIds = () => {
-  setExtentedIds();
+  setExtendedIds();
   setVisibleIds();
 }
 
@@ -295,7 +295,7 @@ onMounted(async () => {
     // const extentedIds = JSON.parse(localStorage.getItem("expandedIds") || "[]");
     // const visibleIds = JSON.parse(localStorage.getItem("visibleIds") || "[]");
 
-    await getExtentedIds();
+    await getExtendedIds();
     await getVisibleIds();
 
     console.log('Mounted : ' , authStore.user )

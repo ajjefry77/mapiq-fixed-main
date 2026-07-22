@@ -187,20 +187,17 @@
 <script setup>
 
 //lucide-vue-next
-import {ref, reactive, onMounted, computed, inject, onActivated, onDeactivated, provide} from 'vue'
+import {ref, reactive, onMounted, computed, inject, onActivated, onDeactivated, provide, onUnmounted} from 'vue'
 import AddFile from '../components/AddFile.vue'
-import SearchCode from '../components/SearchCode.vue'
 
 import NorthArrow from '../components/NorthIcon.vue';
 import FlyPosition from '../components/FlyPosition.vue';
 import DrawTools from '../components/DrawTools.vue';
 import FeatureInfoPanel from '../components/FeatureInfoPanel.vue';
 import DataView from '../components/DataView.vue';
-import ItemBox from '../components/ItemBox.vue';
 import Loading from '../components/Loading.vue'
 import PinsList from "../components/PinsList.vue";
 import OpenDialog from '../components/OpenDialog.vue'
-import ShowFlag from '../components/ShowFlag.vue'
 import SearchAddress from '../components/SearchAddress.vue'
 import Profile from '../components/Profile.vue'
 import ToggleSwitch from "../components/ToggleSwitch.vue"
@@ -255,7 +252,6 @@ const ShowForLogin = ref(true)
 const isOpen = ref(false)
 const visibleLayers = ref([])
 const showLayerPanel = ref(false)
-let showFolder = ref(false)
 let activeTab = ref("layers")
 let activeTab1 = ref("my")
 
@@ -397,19 +393,15 @@ const hideOpacitySlider = (event) => {
     activeOpacityLayer.value = null;
 };
 
+const onWindowClick = (event) => {
+  hideContextMenu(event);
+  hideOpacitySlider(event);
+};
+
 onMounted(() => {
-  window.addEventListener('click', (event) => {
-    hideContextMenu(event);
-    hideOpacitySlider(event);
-  });
+  window.addEventListener('click', onWindowClick);
 
   initMap_Cesium();
-  //loadUsers();
-  //loadFiles();
-  //loadInbox();
-  //loadOutbox();
-  //fetchLayers()
-  //fetchFiles()
 
   setTimeout(() => {
     const logo = document.querySelector(".cesium-credit-logoContainer");
@@ -423,6 +415,14 @@ onMounted(() => {
 
   }, 100);
 
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', onWindowClick);
+  if (viewer) {
+    viewer.destroy();
+    viewer = null;
+  }
 });
 
 onActivated(async  () => {
@@ -547,18 +547,6 @@ const initMap_Cesium = async () => {
   //viewer.scene.screenSpaceCameraController.disableZooming = false;
   //viewer.scene.screenSpaceCameraController.enableRotate = false; // جلوگیری از چرخش در 2D
   //viewer.scene.screenSpaceCameraController.enableTilt = false;  // جلوگیری از شیب
-
-// محدود کردن محدوده دید (در صورت نیاز)
-  viewer.scene.preRender.addEventListener(() => {
-    const rectangle = viewer.camera.computeViewRectangle();
-    if (rectangle) {
-      // اعمال محدودیت‌های دلخواه برای عرض جغرافیایی
-      const maxLatitude = Cesium.Math.toRadians(85);
-      if (rectangle.north > maxLatitude) {
-        // تنظیم مجدد دوربین
-      }
-    }
-  });
 
   viewer.scene.postRender.addEventListener(() => {
     scale.value = getScale();

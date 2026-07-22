@@ -59,7 +59,7 @@ const $toast = useToast()
 
 import { useSharedArray } from '../stores/app'
 import axios from "axios";
-const {toggleExtented, toggleVisible} = useSharedArray()
+const {toggleExtended, toggleVisible} = useSharedArray()
 
 const SERVER = import.meta.env.VITE_SERVER
 const SelectGroup = inject('SelectGroup')
@@ -108,7 +108,7 @@ const toggle = (item) => {
 
 function toggleGroup(item) {
   item.expanded = !item.expanded;
-  toggleExtented(item.id);
+  toggleExtended(item.id);
 }
 
 function handleSelectGroup(item, idx) {

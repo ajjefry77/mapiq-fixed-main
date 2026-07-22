@@ -17,6 +17,7 @@ const DEFAULT_CONFIG: SecurityConfig = {
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 let sessionTimer: ReturnType<typeof setTimeout> | null = null
 let lastActivity = Date.now()
+let activityDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 export function sanitizeInput(input: string): string {
   return input
@@ -59,8 +60,11 @@ export function setupCSRFProtection(): void {
 }
 
 export function trackActivity(): void {
-  lastActivity = Date.now()
-  resetSessionTimer()
+  if (activityDebounceTimer) clearTimeout(activityDebounceTimer)
+  activityDebounceTimer = setTimeout(() => {
+    lastActivity = Date.now()
+    resetSessionTimer()
+  }, 300)
 }
 
 export function resetSessionTimer(): void {

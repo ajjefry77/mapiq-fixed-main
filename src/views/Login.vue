@@ -71,10 +71,10 @@ async function send_code() {
       number : form.username
     })
 
-    if (result.success) {
+    if (result.data?.success) {
       console.log(result);
     } else {
-      error.value = result.error;
+      error.value = result.data?.error;
     }
   } catch (err) {
     error.value = 'خطا در ورود به سیستم';

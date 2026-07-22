@@ -74,7 +74,7 @@ const props = defineProps({
   pins: { type: Object, required: true },
   openId :  { type: Object, required: true },
   viewer: { type: Object, required: true },
-
+  map: { type: Object },
 });
 
 const emit = defineEmits([  "update:visible", "update:pins"]);

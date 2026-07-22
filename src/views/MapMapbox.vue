@@ -80,7 +80,7 @@
     </div>
   </div>
 
-  <OpenDialog v-if="mapReady" v-model:visible="openDialog" :openId="openWorkId" :pins="Pins" @update:pins="Pins = $event" :map="map"/>
+  <OpenDialog v-if="mapReady" v-model:visible="openDialog" :openId="openWorkId" :pins="Pins" @update:pins="Pins = $event" :viewer="map"/>
   <Profile />
   <Loading :active="loading" />
   <button v-if="isMobileUA" @click="getLocation" style="z-index: 9999"
@@ -215,13 +215,29 @@ function setBaseLayer(basemap) {
   if (!map) return;
   if (basemap.tiles) {
     const sourceId = 'basemap-custom';
-    if (map.getSource(sourceId)) map.removeSource(sourceId);
+    const layerId = 'basemap-custom-layer';
+
+    if (map.getLayer(layerId)) {
+      map.removeLayer(layerId);
+    }
+    if (map.getSource(sourceId)) {
+      map.removeSource(sourceId);
+    }
+
     map.addSource(sourceId, { type: 'raster', tiles: [basemap.tiles], tileSize: 256, attribution: '' });
     const layers = map.getStyle().layers;
     const firstSymbolId = layers.find(l => l.type === 'symbol')?.id;
-    if (map.getLayer('basemap-custom-layer')) map.removeLayer('basemap-custom-layer');
-    map.addLayer({ id: 'basemap-custom-layer', type: 'raster', source: sourceId }, firstSymbolId);
-  } else if (basemap.style) {
+    map.addLayer({ id: layerId, type: 'raster', source: sourceId }, firstSymbolId);
+  } else if (basemap.style === "satellite") {
+    const satelliteLayer = {
+      version: 8,
+      sources: {
+        'satellite': { type: 'raster', tiles: ['https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}'], tileSize: 256 }
+      },
+      layers: [{ id: 'satellite', type: 'raster', source: 'satellite', minzoom: 0, maxzoom: 22 }]
+    };
+    map.setStyle(satelliteLayer);
+  } else {
     map.setStyle(basemap.style);
   }
   expanded.value = false;

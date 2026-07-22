@@ -6,6 +6,7 @@ const Register = () => import('../views/Register.vue');
 const Dashboard = () => import('../views/Dashboard.vue');
 const Users = () => import('../views/Users.vue');
 const MapCesium = () => import('../views/MapCesium.vue');
+const MapMapbox = () => import('../views/MapMapbox.vue');
 const Workflow = () => import('../views/Workflow.vue');
 const Setting = () => import('../views/Setting.vue');
 const Roles = () => import('../views/Roles.vue');
@@ -23,10 +24,10 @@ const FormSubmissions = () => import('../views/formbuilder/FormSubmissions.vue')
 const PermissionLayers = () => import('../views/PermissionLayers.vue');
 const WorksLayers = () => import('../views/WorksLayers.vue');
 
-const PUBLIC_ROUTES = ['/login', '/register', '/map'];
+const PUBLIC_ROUTES = ['/login', '/register', '/mapbox'];
 
 const routes = [
-  { path: '/', redirect: '/map' },
+  { path: '/', redirect: '/mapbox' },
   {
     path: '/login',
     name: 'Login',
@@ -66,7 +67,13 @@ const routes = [
   {
     path: '/map/:token?',
     name: 'MapCesium',
-    component: MapCesium
+    component: MapCesium,
+    meta: { requiresAuth: true, requiredRole: 'admin' }
+  },
+  {
+    path: '/mapbox/:token?',
+    name: 'MapMapbox',
+    component: MapMapbox
   },
   {
     path: '/setting',
@@ -148,7 +155,7 @@ const routes = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/map'
+    redirect: '/mapbox'
   }
 ];
 
@@ -177,7 +184,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    return next('/map')
+    return next('/mapbox')
   }
 
   if (to.meta.requiredRole) {
@@ -201,6 +208,13 @@ router.beforeEach(async (to, _from, next) => {
     const token = to.params.token as string
     if (token && !/^[a-zA-Z0-9\-_]+$/.test(token)) {
       return next('/map')
+    }
+  }
+
+  if (to.path === '/mapbox' && to.params.token) {
+    const token = to.params.token as string
+    if (token && !/^[a-zA-Z0-9\-_]+$/.test(token)) {
+      return next('/mapbox')
     }
   }
 

@@ -37,7 +37,7 @@ export default defineConfig({
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://api.mapbox.com; style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://api.mapbox.com https://*.cesium.com https://*.google.com http://localhost:*; connect-src 'self' https://mapiq.ir:* http://localhost:* https://*.tile.openstreetmap.org https://api.mapbox.com wss://*.cesium.com https://*.cesium.com https://*.google.com; worker-src 'self' blob:; child-src 'self' blob:;"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://api.mapbox.com; style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://api.mapbox.com https://*.cesium.com https://*.google.com http://localhost:*; connect-src 'self' https://mapiq.ir:* http://localhost:* https://*.tile.openstreetmap.org https://api.mapbox.com https://events.mapbox.com wss://*.cesium.com https://*.cesium.com https://*.google.com; worker-src 'self' blob:; child-src 'self' blob:;"
     },
     proxy: {
       '/api': {

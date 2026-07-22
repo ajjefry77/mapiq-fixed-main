@@ -72,6 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
   )
 
   const isLogin = ref<boolean>(false)
+  const isMapboxMode = ref<boolean>(localStorage.getItem('mapEngine') === 'mapbox')
   const token = ref<string | null>(localStorage.getItem('token'))
   const userPermissions = ref<string[]>([])
   let authCheckPromise: Promise<void> | null = null
@@ -341,6 +342,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const switchMapEngine = () => {
+    isMapboxMode.value = !isMapboxMode.value
+    localStorage.setItem('mapEngine', isMapboxMode.value ? 'mapbox' : 'cesium')
+  }
+
   updateLockoutStatus()
 
   return {
@@ -357,6 +363,8 @@ export const useAuthStore = defineStore('auth', () => {
     loginAttempts,
     isLocked,
     lockoutRemaining,
+    isMapboxMode,
+    switchMapEngine,
     login,
     register,
     logout,

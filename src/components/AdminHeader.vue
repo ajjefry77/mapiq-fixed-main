@@ -1,8 +1,8 @@
 <template>
   <nav class="admin-topbar" v-if="!isPublicRoute">
-    <router-link :to="authStore.isAuthenticated ? '/dashboard' : '/map'" class="topbar-logo">
+    <router-link :to="authStore.isAuthenticated ? '/dashboard' : '/mapbox'" class="topbar-logo">
       <span class="logo-dot"></span>
-      <template v-if="route.path === '/map' || route.path === '/login' || route.path === '/register'">Map IQ</template>
+      <template v-if="route.path === '/mapbox' || route.path === '/login' || route.path === '/register'">Map IQ</template>
       <template v-else-if="authStore.isAdmin">پنل مدیریت</template>
       <template v-else>پنل کاربری</template>
     </router-link>
@@ -17,7 +17,11 @@
 
     <div class="topbar-right" :class="{ 'nav-open': mobileOpen }">
       <div v-if="authStore.isAuthenticated" class="topbar-nav">
-        <router-link to="/map" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقشه</router-link>
+        <router-link to="/mapbox" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقشه</router-link>
+        <router-link v-if="authStore.isAdmin" :to="authStore.isMapboxMode ? '/map' : '/mapbox'" class="nav-link" @click="switchMapEngine" :title="authStore.isMapboxMode ? 'رفتن به Cesium' : 'رفتن به Mapbox'">
+          <i :class="authStore.isMapboxMode ? 'fas fa-globe' : 'fas fa-map'" class="mr-1"></i>
+          {{ authStore.isMapboxMode ? 'Cesium' : 'Mapbox' }}
+        </router-link>
         <router-link v-if="authStore.isAdmin || authStore.isGroupManager" to="/dashboard" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">داشبورد</router-link>
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_users')" to="/users" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">کاربران</router-link>
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_roles')" to="/roles" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقش‌ها</router-link>
@@ -123,6 +127,12 @@ function handleLogout() {
   authStore.logout()
   menuOpen.value = false
   router.push("/login")
+}
+
+function switchMapEngine() {
+  authStore.switchMapEngine()
+  const target = authStore.isMapboxMode ? '/mapbox' : '/map'
+  router.push(target)
 }
 
 function handleClickOutside(e) {

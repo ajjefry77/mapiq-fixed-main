@@ -2,7 +2,7 @@
   <div>
     <button
         @click="togglePanel"
-        class= 'absolute top-[calc(var(--top)+124px)] left-[12px] w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md'
+        class= 'absolute top-[calc(var(--top)+115px)] left-[12px] w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md'
         title="جستجوی آدرس">
       <i class="fas fa-search m-1"></i>
     </button>

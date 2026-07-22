@@ -77,14 +77,6 @@
       <MapboxDrawTools ref="drawing" v-if="mapReady" :map="map" :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
       <MapboxFeatureInfoPanel ref="featurePanel" v-if="mapReady" :map="map" :pins="Pins" @disableDrawing="() => drawing?.inactiveDrawing()"/>
 
-      <div v-if="mapReady" class="absolute left-1 z-50 flex flex-col gap-0.5" style="top: calc(var(--top, 0px) + 455px);">
-        <button @click="map.zoomIn()" class="w-8 h-8 rounded flex items-center justify-center shadow-md bg-gray-200 hover:bg-gray-300 text-black" title="بزرگنمایی">
-          <i class="fas fa-plus text-sm"></i>
-        </button>
-        <button @click="map.zoomOut()" class="w-8 h-8 rounded flex items-center justify-center shadow-md bg-gray-200 hover:bg-gray-300 text-black" title="کوچکنمایی">
-          <i class="fas fa-minus text-sm"></i>
-        </button>
-      </div>
     </div>
   </div>
 
@@ -333,8 +325,6 @@ function initMap() {
     attributionControl: false
   });
 
-  map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
   map.on('mousemove', (e) => {
     const { lng, lat } = e.lngLat;
     Lon.value = lng.toFixed(6);
@@ -449,8 +439,9 @@ onUnmounted(() => {
   filter: invert(1);
 }
 .mapboxgl-ctrl-top-right {
-  top: 8px !important;
-  right: 8px !important;
+  top: calc(var(--top, 0px) + 380px) !important;
+  left: 4px !important;
+  right: auto !important;
 }
 .mapboxgl-ctrl-bottom-left {
   display: none !important;

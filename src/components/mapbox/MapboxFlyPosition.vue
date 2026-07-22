@@ -1,5 +1,5 @@
 <template>
-  <div class="absolute top-[calc(var(--top)+103px)] left-[12px] z-50 flex items-center ">
+  <div class="absolute top-[calc(var(--top)+75px)] left-[12px] z-50 flex items-center">
     <button
         @click="expanded = !expanded"
         class= 'w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md' dir="ltr"

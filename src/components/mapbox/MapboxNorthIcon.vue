@@ -1,5 +1,5 @@
 <template>
-  <button class="absolute top-6 right-[350px] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg" style="background: rgba(26,29,39,.85);"
+  <button class="absolute top-32 md:top-20 right-[5px] md:right-[350px] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg" style="background: rgba(26,29,39,.85);"
     @click="resetNorth" title="Reset to North">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-red-600 absolute top-1" viewBox="0 0 24 24" fill="currentColor"
       :style="{transform: `rotate(${rotation}deg)`, 'transform-origin': '50% 120%'}">

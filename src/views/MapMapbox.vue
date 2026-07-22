@@ -90,8 +90,11 @@
   </button>
 
   <div v-if="contextMenu.visible" class="absolute bg-white border rounded shadow-lg py-2 z-50 text-xs px-2"
-       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }">
-    <span class="block border-b-2 border-gray-400 font-bold mt-1 pb-2 px-2"> ترتیب نمایش لایه ها در نقشه</span>
+       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
+    <div class="flex justify-between items-center border-b-2 border-gray-400 font-bold mt-1 pb-2 px-2">
+      <span>ترتیب نمایش لایه ها در نقشه</span>
+      <button @click="hideContextMenu" class="text-lg leading-none hover:text-red-600">&times;</button>
+    </div>
     <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200 mt-2" @click="changeOrder(contextMenu.item, 'lower')">یک لایه به پایین</button>
     <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200" @click="changeOrder(contextMenu.item, 'raise')">یک لایه به بالا</button>
     <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200" @click="changeOrder(contextMenu.item, 'raiseToTop')">بعنوان بالاترین لایه</button>
@@ -397,9 +400,11 @@ function toggleLayer(layerName) {
 onMounted(async () => {
   await nextTick();
   initMap();
+  document.addEventListener('click', hideContextMenu);
 });
 
 onUnmounted(() => {
+  document.removeEventListener('click', hideContextMenu);
   if (map) { map.remove(); map = null; }
 });
 </script>

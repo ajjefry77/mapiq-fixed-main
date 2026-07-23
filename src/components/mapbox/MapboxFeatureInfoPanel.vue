@@ -63,14 +63,17 @@
       </div>
       <div v-if="showWidth" class="flex items-center justify-between mt-1 mb-2">
         <span class="text-sm"> عرض خط :</span>
-        <input type="number" v-model="widthVal" class="w-40 h-8 cursor-pointer px-3 border border-gray-400 rounded"/>
+        <input type="number" v-model="widthVal" @change="applyStyle" class="w-40 h-8 cursor-pointer px-3 border border-gray-400 rounded"/>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
+import axios from "axios";
+
+const SERVER = import.meta.env.VITE_SERVER;
 
 const props = defineProps({
   map: Object,
@@ -89,10 +92,34 @@ const selectFeatureId = ref(null);
 const activeTab = ref('info');
 const isActive = ref(true);
 const featureInfo = ref(null);
+const isEditingVertices = ref(false);
 
 const emit = defineEmits(["disableDrawing"]);
 
 let clickHandler = null;
+
+// متغیرهای ویرایش
+let editHandlesSourceId = 'edit-handles-' + crypto.randomUUID();
+let editLayerId = 'edit-layer-' + crypto.randomUUID();
+let editCoords = [];
+let editGeomType = null;
+let editSourceId = null;
+let isEditingActive = false;
+let editedPin = null;
+let originalFeature = null;
+let editingLayerId = null;
+
+const editState = {
+  isDragging: false,
+  draggedIndex: null,
+  mouseMoved: false,
+};
+
+let onEditMouseDown = null;
+let onEditMouseMove = null;
+let onEditMouseUp = null;
+let onEditContextMenu = null;
+let onEditDblClick = null;
 
 function toggleHandler() {
   if (!isActive.value) activate();
@@ -123,21 +150,61 @@ function disableEdit() {
     props.map.off('click', clickHandler);
     clickHandler = null;
   }
+  disableVertexEditing();
   props.map.getCanvas().style.cursor = 'default';
   featureInfo.value = null;
 }
 
 function onMapClick(e) {
-  const features = props.map.queryRenderedFeatures(e.point, { layers: undefined });
+  if (editState.isDragging) return;
+  
+  // اول بررسی کن ببین روی هندل‌های ویرایش کلیک شده یا نه
+  const handleFeatures = props.map.queryRenderedFeatures(e.point, { 
+    layers: [editHandlesSourceId + '-points'] 
+  });
+  
+  if (handleFeatures && handleFeatures.length > 0) {
+    return; // کلیک روی هندل‌ها توسط event handlers خودشون مدیریت میشه
+  }
+  
+  // اگر در حالت ویرایش هستیم و روی فضای خالی کلیک شده
+  if (isEditingActive) {
+    addVertexAtClick(e);
+    return;
+  }
+  
+  // بررسی feature های عادی
+  const features = props.map.queryRenderedFeatures(e.point);
   if (!features || features.length === 0) return;
 
   const feature = features[0];
   const layerId = feature.layer?.id;
-  if (!layerId) return;
+  
+  if (!layerId || layerId === editHandlesSourceId + '-points') return;
 
   selectFeatureId.value = feature.id || layerId;
   showFeatureInfo(feature, layerId);
   enableEditing(feature, layerId);
+}
+
+function addVertexAtClick(e) {
+  if (!isEditingActive) return;
+  
+  const newCoord = [e.lngLat.lng, e.lngLat.lat];
+  let insertIdx;
+  
+  if (editGeomType === 'LineString' || editGeomType === 'Polygon') {
+    insertIdx = findClosestEdgeIndex(newCoord, editGeomType === 'Polygon');
+    editCoords.splice(insertIdx + 1, 0, newCoord);
+  }
+  
+  updateHandlesGeoJSON();
+  updateOriginalGeometry();
+  
+  if (editedPin) {
+    updatePinShape();
+    saveEditedPin();
+  }
 }
 
 function showFeatureInfo(feature, layerId) {
@@ -214,11 +281,6 @@ function getEntityStyle(layerId) {
     } catch (e) {}
     widthVal.value = props.map.getPaintProperty(layerId, 'circle-radius') || 5;
   }
-
-  const pre_bg = bgColor.value;
-  const pre_bd = borderColor.value;
-  const pre_w = widthVal.value;
-  const pre_tr = transparency.value;
 }
 
 function rgbToHex(color) {
@@ -244,22 +306,22 @@ function applyStyle() {
   if (type === 'fill') {
     const alpha = 1 - (transparency.value / 100);
     const c = hexToRgb(bgColor.value);
-    props.map.setPaintProperty(layerId, 'fill-color', [c.r / 255, c.g / 255, c.b / 255, alpha]);
+    props.map.setPaintProperty(layerId, 'fill-color', `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`);
     if (borderColor.value) {
       const bc = hexToRgb(borderColor.value);
-      props.map.setPaintProperty(layerId, 'fill-outline-color', [bc.r / 255, bc.g / 255, bc.b / 255, 1]);
+      props.map.setPaintProperty(layerId, 'fill-outline-color', `rgba(${bc.r}, ${bc.g}, ${bc.b}, 1)`);
     }
   }
 
   if (type === 'line') {
     const c = hexToRgb(borderColor.value);
-    props.map.setPaintProperty(layerId, 'line-color', [c.r / 255, c.g / 255, c.b / 255, 1]);
+    props.map.setPaintProperty(layerId, 'line-color', `rgba(${c.r}, ${c.g}, ${c.b}, 1)`);
     if (widthVal.value) props.map.setPaintProperty(layerId, 'line-width', Number(widthVal.value));
   }
 
   if (type === 'circle') {
     const c = hexToRgb(bgColor.value);
-    props.map.setPaintProperty(layerId, 'circle-color', [c.r / 255, c.g / 255, c.b / 255, 1]);
+    props.map.setPaintProperty(layerId, 'circle-color', `rgba(${c.r}, ${c.g}, ${c.b}, 1)`);
     if (widthVal.value) props.map.setPaintProperty(layerId, 'circle-radius', Number(widthVal.value));
   }
 }
@@ -299,22 +361,538 @@ function formatArea(a) {
   return a >= 10000 ? (a / 10000).toFixed(2) + " هکتار" : a.toFixed(2) + " متر مربع";
 }
 
-function enableEditing(feature, layerId) {}
+function enableEditing(feature, layerId) {
+  disableVertexEditing();
+
+  const geometry = feature.geometry?.type;
+  if (geometry !== 'LineString' && geometry !== 'Polygon') return;
+
+  // ذخیره feature اصلی برای بازگشت در صورت cancel
+  originalFeature = JSON.parse(JSON.stringify(feature));
+  editingLayerId = layerId;
+
+  editGeomType = geometry;
+  
+  // استخراج مختصات
+  if (geometry === 'LineString') {
+    editCoords = feature.geometry.coordinates.map(c => [...c]);
+  } else if (geometry === 'Polygon') {
+    editCoords = feature.geometry.coordinates[0].map(c => [...c]);
+    // حذف آخرین نقطه تکراری
+    if (editCoords.length > 1 && 
+        editCoords[0][0] === editCoords[editCoords.length - 1][0] && 
+        editCoords[0][1] === editCoords[editCoords.length - 1][1]) {
+      editCoords.pop();
+    }
+  }
+
+  // پیدا کردن pin
+  editedPin = findPinById(props.pins, feature.id || feature.properties?.id);
+
+  // گرفتن source مربوط به این layer
+  const layer = props.map.getLayer(layerId);
+  if (layer) {
+    editSourceId = layer.source;
+  }
+
+  isEditingActive = true;
+  isEditingVertices.value = true;
+  
+  props.map.getCanvas().style.cursor = 'crosshair';
+  
+  setupVertexHandles();
+}
+
+function setupVertexHandles() {
+  const map = props.map;
+  if (!map) return;
+
+  // حذف موارد قبلی
+  if (map.getLayer(editHandlesSourceId + '-points')) {
+    map.removeLayer(editHandlesSourceId + '-points');
+  }
+  if (map.getSource(editHandlesSourceId)) {
+    map.removeSource(editHandlesSourceId);
+  }
+
+  // اضافه کردن source جدید برای هندل‌ها
+  map.addSource(editHandlesSourceId, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] }
+  });
+
+  // اضافه کردن layer برای نمایش نقاط
+  map.addLayer({
+    id: editHandlesSourceId + '-points',
+    type: 'circle',
+    source: editHandlesSourceId,
+    paint: {
+      'circle-radius': 8,
+      'circle-color': '#ffffff',
+      'circle-stroke-color': '#1e90ff',
+      'circle-stroke-width': 3
+    }
+  });
+
+  updateHandlesGeoJSON();
+  bindEditEvents();
+}
+
+function updateHandlesGeoJSON() {
+  const map = props.map;
+  if (!map) return;
+  
+  const src = map.getSource(editHandlesSourceId);
+  if (!src) return;
+
+  const features = editCoords.map((coord, idx) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: coord },
+    properties: { index: idx }
+  }));
+
+  src.setData({ type: 'FeatureCollection', features });
+}
+
+function bindEditEvents() {
+  const map = props.map;
+  if (!map) return;
+  
+  unbindEditEvents();
+
+  onEditMouseDown = (e) => {
+    if (!isEditingActive) return;
+    
+    const features = map.queryRenderedFeatures(e.point, { 
+      layers: [editHandlesSourceId + '-points'] 
+    });
+    
+    if (!features || features.length === 0) return;
+
+    e.preventDefault();
+    if (e.originalEvent) e.originalEvent.preventDefault();
+
+    const idx = features[0].properties.index;
+    editState.isDragging = true;
+    editState.draggedIndex = idx;
+    editState.mouseMoved = false;
+
+    map.getCanvas().style.cursor = 'grabbing';
+    if (map.dragPan) map.dragPan.disable();
+  };
+
+  onEditMouseMove = (e) => {
+    if (!isEditingActive) return;
+    
+    if (!editState.isDragging) {
+      const hoverFeatures = map.queryRenderedFeatures(e.point, { 
+        layers: [editHandlesSourceId + '-points'] 
+      });
+      map.getCanvas().style.cursor = hoverFeatures.length > 0 ? 'grab' : 'crosshair';
+      return;
+    }
+
+    editState.mouseMoved = true;
+    const newCoord = [e.lngLat.lng, e.lngLat.lat];
+    editCoords[editState.draggedIndex] = newCoord;
+    
+    // به‌روزرسانی همزمان
+    updateHandlesGeoJSON();
+    updateOriginalGeometry();
+  };
+
+  onEditMouseUp = () => {
+    if (!editState.isDragging) return;
+
+    const wasMoved = editState.mouseMoved;
+    editState.isDragging = false;
+    editState.draggedIndex = null;
+    editState.mouseMoved = false;
+    
+    map.getCanvas().style.cursor = 'crosshair';
+    if (map.dragPan) map.dragPan.enable();
+
+    if (wasMoved && editedPin) {
+      updatePinShape();
+      saveEditedPin();
+    }
+  };
+
+  onEditContextMenu = (e) => {
+    if (!isEditingActive) return;
+    e.preventDefault();
+
+    const features = map.queryRenderedFeatures(e.point, { 
+      layers: [editHandlesSourceId + '-points'] 
+    });
+    
+    if (features && features.length > 0) {
+      const idx = features[0].properties.index;
+      
+      if (editGeomType === 'Polygon' && editCoords.length <= 3) return;
+      if (editGeomType === 'LineString' && editCoords.length <= 2) return;
+
+      editCoords.splice(idx, 1);
+      updateHandlesGeoJSON();
+      updateOriginalGeometry();
+      
+      if (editedPin) {
+        updatePinShape();
+        saveEditedPin();
+      }
+    }
+  };
+
+  onEditDblClick = (e) => {
+    if (!isEditingActive) return;
+
+    const features = map.queryRenderedFeatures(e.point, { 
+      layers: [editHandlesSourceId + '-points'] 
+    });
+    
+    if (features && features.length > 0) {
+      const idx = features[0].properties.index;
+      
+      if (editGeomType === 'Polygon' && editCoords.length <= 3) return;
+      if (editGeomType === 'LineString' && editCoords.length <= 2) return;
+
+      editCoords.splice(idx, 1);
+      updateHandlesGeoJSON();
+      updateOriginalGeometry();
+      
+      if (editedPin) {
+        updatePinShape();
+        saveEditedPin();
+      }
+    }
+  };
+
+  map.on('mousedown', editHandlesSourceId + '-points', onEditMouseDown);
+  map.on('mousemove', onEditMouseMove);
+  map.on('mouseup', onEditMouseUp);
+  map.on('contextmenu', onEditContextMenu);
+  map.on('dblclick', editHandlesSourceId + '-points', onEditDblClick);
+}
+
+function unbindEditEvents() {
+  const map = props.map;
+  if (!map) return;
+
+  if (onEditMouseDown) {
+    map.off('mousedown', editHandlesSourceId + '-points', onEditMouseDown);
+    onEditMouseDown = null;
+  }
+  if (onEditMouseMove) {
+    map.off('mousemove', onEditMouseMove);
+    onEditMouseMove = null;
+  }
+  if (onEditMouseUp) {
+    map.off('mouseup', onEditMouseUp);
+    onEditMouseUp = null;
+  }
+  if (onEditContextMenu) {
+    map.off('contextmenu', onEditContextMenu);
+    onEditContextMenu = null;
+  }
+  if (onEditDblClick) {
+    map.off('dblclick', editHandlesSourceId + '-points', onEditDblClick);
+    onEditDblClick = null;
+  }
+  
+  if (map.dragPan) map.dragPan.enable();
+}
+
+function disableVertexEditing() {
+  unbindEditEvents();
+  
+  const map = props.map;
+  if (!map) return;
+
+  try {
+    if (map.getLayer(editHandlesSourceId + '-points')) {
+      map.removeLayer(editHandlesSourceId + '-points');
+    }
+  } catch (e) {}
+  
+  try {
+    if (map.getSource(editHandlesSourceId)) {
+      map.removeSource(editHandlesSourceId);
+    }
+  } catch (e) {}
+
+  isEditingActive = false;
+  isEditingVertices.value = false;
+  editCoords = [];
+  editGeomType = null;
+  editSourceId = null;
+  editedPin = null;
+  originalFeature = null;
+  editingLayerId = null;
+  editState.isDragging = false;
+  editState.draggedIndex = null;
+  
+  if (map.dragPan) map.dragPan.enable();
+}
+
+function findClosestEdgeIndex(point, isPolygon = false) {
+  let minDist = Infinity;
+  let insertIdx = 0;
+  const len = editCoords.length;
+
+  for (let i = 0; i < len; i++) {
+    const a = editCoords[i];
+    const b = editCoords[(i + 1) % len];
+    const dist = pointToSegmentDistance(point, a, b);
+    if (dist < minDist) {
+      minDist = dist;
+      insertIdx = i;
+    }
+  }
+  return insertIdx;
+}
+
+function pointToSegmentDistance(p, a, b) {
+  const [px, py] = p;
+  const [ax, ay] = a;
+  const [bx, by] = b;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+  let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projX = ax + t * dx;
+  const projY = ay + t * dy;
+  return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+}
+
+function updateOriginalGeometry() {
+  const map = props.map;
+  const srcId = editSourceId;
+  
+  if (!srcId || !map) {
+    console.warn('❌ No source ID or map available');
+    return;
+  }
+
+  const src = map.getSource(srcId);
+  if (!src) {
+    console.warn('❌ Source not found:', srcId);
+    return;
+  }
+
+  console.log('✅ Source found:', srcId, 'Type:', src.type);
+
+  // روش 1: اگر source از نوع geojson است
+  if (src.type === 'geojson') {
+    let newCoords;
+    if (editGeomType === 'LineString') {
+      newCoords = editCoords.map(c => [...c]);
+    } else if (editGeomType === 'Polygon') {
+      const closedCoords = [...editCoords, [...editCoords[0]]];
+      newCoords = [closedCoords];
+    }
+
+    const updatedData = {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: editGeomType,
+          coordinates: newCoords
+        },
+        properties: originalFeature?.properties || {}
+      }]
+    };
+
+    console.log('🔄 Updating GeoJSON source with new coordinates');
+    src.setData(updatedData);
+    return;
+  }
+
+  // روش 2: اگر source از نوع vector است (مثل tileset)
+  if (src.type === 'vector') {
+    console.log('📦 Vector source detected, trying alternative method...');
+    
+    // ساخت یک GeoJSON source موقت برای نمایش ویرایش
+    const tempSourceId = 'temp-edit-' + crypto.randomUUID();
+    const tempLayerId = 'temp-edit-layer-' + crypto.randomUUID();
+    
+    let newCoords;
+    if (editGeomType === 'LineString') {
+      newCoords = editCoords.map(c => [...c]);
+    } else if (editGeomType === 'Polygon') {
+      const closedCoords = [...editCoords, [...editCoords[0]]];
+      newCoords = [closedCoords];
+    }
+
+    // حذف source موقت قبلی اگر وجود دارد
+    if (map.getLayer(editLayerId)) {
+      map.removeLayer(editLayerId);
+    }
+    if (map.getSource(editLayerId)) {
+      map.removeSource(editLayerId);
+    }
+
+    // اضافه کردن source موقت
+    map.addSource(editLayerId, {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: {
+            type: editGeomType,
+            coordinates: newCoords
+          },
+          properties: originalFeature?.properties || {}
+        }]
+      }
+    });
+
+    // اضافه کردن layer موقت با همان استایل
+    const originalLayer = map.getLayer(editingLayerId);
+    if (originalLayer) {
+      const layerConfig = {
+        id: editLayerId,
+        type: originalLayer.type,
+        source: editLayerId,
+      };
+
+      // کپی paint properties
+      if (originalLayer.type === 'line') {
+        layerConfig.paint = {
+          'line-color': map.getPaintProperty(editingLayerId, 'line-color') || '#000000',
+          'line-width': map.getPaintProperty(editingLayerId, 'line-width') || 2,
+          'line-opacity': map.getPaintProperty(editingLayerId, 'line-opacity') || 1
+        };
+      } else if (originalLayer.type === 'fill') {
+        layerConfig.paint = {
+          'fill-color': map.getPaintProperty(editingLayerId, 'fill-color') || '#000000',
+          'fill-opacity': map.getPaintProperty(editingLayerId, 'fill-opacity') || 0.5,
+          'fill-outline-color': map.getPaintProperty(editingLayerId, 'fill-outline-color') || '#000000'
+        };
+      }
+
+      // مخفی کردن layer اصلی
+      map.setLayoutProperty(editingLayerId, 'visibility', 'none');
+      
+      // اضافه کردن layer موقت
+      map.addLayer(layerConfig);
+      
+      // به‌روزرسانی editSourceId برای استفاده در cancel
+      editSourceId = editLayerId;
+    }
+    
+    return;
+  }
+
+  console.warn('❌ Unknown source type:', src.type);
+}
+
+function updatePinShape() {
+  if (!editedPin || !editedPin.shape) return;
+
+  if (editGeomType === 'LineString') {
+    editedPin.shape.positions = editCoords.map(c => ({ 
+      lon: c[0], 
+      lat: c[1], 
+      height: 0 
+    }));
+  } else if (editGeomType === 'Polygon') {
+    const coords = editCoords.map(c => ({ 
+      lon: c[0], 
+      lat: c[1], 
+      height: 0 
+    }));
+    coords.push({ ...coords[0] });
+    editedPin.shape.positions = coords;
+  }
+}
+
+function saveEditedPin() {
+  if (!editedPin) return;
+
+  const pinToSave = {
+    id: editedPin.id,
+    name: editedPin.name || shapeName.value,
+    type: editedPin.type,
+    save: editedPin.save,
+    shape: JSON.parse(JSON.stringify(editedPin.shape))
+  };
+
+  saveEditedPinToServer(pinToSave);
+}
+
+async function saveEditedPinToServer(pin) {
+  try {
+    const fd = new FormData();
+    fd.append("type", pin.type);
+    fd.append("name", pin.name);
+    fd.append("obj_id", pin.id);
+    fd.append("content", JSON.stringify(pin.shape));
+    
+    const userId = await getUserId();
+    if (!userId) {
+      console.error("❌ User ID not found");
+      return;
+    }
+    
+    const response = await axios.post(SERVER + '/api/Save/myWork/' + userId, fd, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    
+    console.log('✅ Pin saved successfully:', response.data);
+  } catch (err) {
+    console.error("❌ خطا در ذخیره ویرایش:", err);
+  }
+}
+
+async function getUserId() {
+  try {
+    const res = await axios.get(SERVER + '/api/auth/me');
+    return res.data?.data?.id ?? res.data?.id;
+  } catch { 
+    console.error('❌ Error getting user ID');
+    return null; 
+  }
+}
 
 function clearSelection() {
+  disableVertexEditing();
   featureInfo.value = null;
   selectFeatureId.value = null;
-  props.map.getCanvas().style.cursor = 'default';
+  props.map.getCanvas().style.cursor = 'crosshair';
   activate();
 }
 
 function cancel() {
+  // برگرداندن layer اصلی به حالت visible
+  if (editingLayerId && props.map.getLayer(editingLayerId)) {
+    props.map.setLayoutProperty(editingLayerId, 'visibility', 'visible');
+  }
+  
+  // حذف layer و source موقت
+  try {
+    if (props.map.getLayer(editLayerId)) {
+      props.map.removeLayer(editLayerId);
+    }
+  } catch (e) {}
+  
+  try {
+    if (props.map.getSource(editLayerId)) {
+      props.map.removeSource(editLayerId);
+    }
+  } catch (e) {}
+  
+  disableVertexEditing();
   featureInfo.value = null;
   selectFeatureId.value = null;
   activate();
 }
 
 function findPinById(items, id) {
+  if (!items) return null;
   for (const item of items) {
     if (item.id == id) return item;
     if (item.children && item.children.length) {
@@ -327,6 +905,13 @@ function findPinById(items, id) {
 
 onMounted(() => {
   setTimeout(() => { activate(); }, 2500);
+});
+
+onUnmounted(() => {
+  disableVertexEditing();
+  if (clickHandler && props.map) {
+    props.map.off('click', clickHandler);
+  }
 });
 
 defineExpose({ toggleHandler, disableEdit });

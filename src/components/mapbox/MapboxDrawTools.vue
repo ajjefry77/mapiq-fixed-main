@@ -58,20 +58,10 @@
             x2="75"
             y2="25"
             stroke-width="6"
-            :class="drawMode === 'polyline' ? 'stroke-white' : 'stroke-black'"
+            stroke="currentColor"
           />
-          <circle
-            cx="25"
-            cy="75"
-            r="6"
-            :class="drawMode === 'polyline' ? 'fill-white' : 'fill-black'"
-          />
-          <circle
-            cx="75"
-            cy="25"
-            r="6"
-            :class="drawMode === 'polyline' ? 'fill-white' : 'fill-black'"
-          />
+          <circle cx="25" cy="75" r="6" fill="currentColor" />
+          <circle cx="75" cy="25" r="6" fill="currentColor" />
         </svg>
       </button>
       <button

@@ -1,76 +1,173 @@
 <template>
   <div class="absolute top-[calc(var(--top)+25px)] left-[12px]">
-    <button @click="toggleHandler" title="اطلاعات"
-            :class="['w-8 h-8 rounded flex items-center justify-center shadow-md', isActive ? 'text-white bg-blue-500' : 'text-black bg-gray-200']">
+    <button
+      @click="toggleHandler"
+      title="اطلاعات"
+      :class="[
+        'w-8 h-8 rounded flex items-center justify-center shadow-md',
+        isActive ? 'text-white bg-blue-500' : 'text-black bg-gray-200',
+      ]"
+    >
       <i class="fas fa-info font-bold"></i>
     </button>
   </div>
 
-  <div v-if="featureInfo" class="absolute bottom-[10px] right-[350px] bg-white shadow-lg rounded-xl p-4 w-80 max-h-[500px] min-h-[250px]">
-    <button @click="cancel" class="absolute top-[10px] left-[15px] text-gray-500 hover:text-red-600">✖</button>
-    <button @click="clearSelection" class="absolute top-[10px] left-[40px] text-gray-500 hover:text-green-600">
-      <i class="fas fa-check"/>
+  <div
+    v-if="featureInfo"
+    class="absolute bottom-[10px] right-[350px] bg-white shadow-lg rounded-xl p-4 w-80 max-h-[500px] min-h-[250px]"
+  >
+    <button
+      @click="cancel"
+      class="absolute top-[10px] left-[15px] text-gray-500 hover:text-red-600"
+    >
+      ✖
+    </button>
+    <button
+      @click="clearSelection"
+      class="absolute top-[10px] left-[40px] text-gray-500 hover:text-green-600"
+    >
+      <i class="fas fa-check" />
     </button>
     <div class="flex mb-2">
-      <button class="px-2 py-1 text-sm rounded"
-              :class="activeTab === 'info' ? 'bg-blue-500 text-white' : 'bg-white border'"
-              @click="activeTab = 'info'">مشخصات</button>
-      <button class="px-2 py-1 text-sm rounded"
-              :class="activeTab === 'edit' ? 'bg-blue-500 text-white' : 'bg-white border'"
-              @click="activeTab = 'edit'">استایل</button>
+      <button
+        class="px-2 py-1 text-sm rounded"
+        :class="
+          activeTab === 'info' ? 'bg-blue-500 text-white' : 'bg-white border'
+        "
+        @click="activeTab = 'info'"
+      >
+        مشخصات
+      </button>
+      <button
+        class="px-2 py-1 text-sm rounded"
+        :class="
+          activeTab === 'edit' ? 'bg-blue-500 text-white' : 'bg-white border'
+        "
+        @click="activeTab = 'edit'"
+      >
+        استایل
+      </button>
     </div>
 
     <div v-if="activeTab === 'info'">
       <div class="flex flex-col gap-2 items-center justify-between mt-0 mb-2">
-        <input type="text" v-model="shapeName" class="w-full h-8 text-sm cursor-pointer px-2 border border-gray-400 rounded"/>
+        <input
+          type="text"
+          v-model="shapeName"
+          class="w-full h-8 text-sm cursor-pointer px-2 border border-gray-400 rounded"
+        />
         <ul class="space-y-1 text-sm w-full">
-          <li v-if="featureInfo.description" class="max-h-[300px] w-full overflow-y-auto">
+          <li
+            v-if="featureInfo.description"
+            class="max-h-[300px] w-full overflow-y-auto"
+          >
             <span class="font-semibold">توضیحات : </span>
-            <span class="font-semibold" dir="rtl" v-html="featureInfo.description"></span>
+            <span
+              class="font-semibold"
+              dir="rtl"
+              v-html="featureInfo.description"
+            ></span>
           </li>
           <li v-if="featureInfo.length" class="mt-4">
-            <span class="font-semibold leading-loose">طول : </span>{{ featureInfo.length }}
+            <span class="font-semibold leading-loose">طول : </span
+            >{{ featureInfo.length }}
           </li>
           <li v-if="featureInfo.perimeter">
-            <span class="font-semibold leading-loose mt-1">محیط : </span>{{ featureInfo.perimeter }}
+            <span class="font-semibold leading-loose mt-1">محیط : </span
+            >{{ featureInfo.perimeter }}
           </li>
           <li v-if="featureInfo.area">
-            <span class="font-semibold leading-loose mt-1">مساحت : </span>{{ featureInfo.area }}
+            <span class="font-semibold leading-loose mt-1">مساحت : </span
+            >{{ featureInfo.area }}
           </li>
         </ul>
       </div>
     </div>
 
     <div v-if="activeTab === 'edit'">
-      <div class="h-4"/>
-      <div v-if="showBgColor" class="flex items-center justify-between mt-1 mb-2">
+      <div class="h-4" />
+
+      <!-- رنگ زمینه با پیش‌نمایش -->
+      <div
+        v-if="showBgColor"
+        class="flex items-center justify-between mt-1 mb-2"
+      >
         <span class="text-sm"> رنگ زمینه :</span>
-        <label class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer" title="انتخاب رنگ">
-          <span class="w-5 h-5" :style="{ backgroundColor: bgColor }"></span>
-          <input type="color" v-model="bgColor" @change="applyStyle" class="w-40 h-8 cursor-pointer"/>
-        </label>
+        <div class="flex items-center gap-2">
+          <label
+            class="relative w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer"
+            title="انتخاب رنگ"
+          >
+            <div
+              class="w-5 h-5 rounded border border-gray-300"
+              :style="{ backgroundColor: bgColor }"
+            ></div>
+            <input
+              type="color"
+              v-model="bgColor"
+              @input="applyStyle"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </label>
+          <span class="text-xs text-gray-500 font-mono">{{ bgColor }}</span>
+        </div>
       </div>
-      <div v-if="showBgColor" class="w-full">
+
+      <!-- شفافیت -->
+      <div v-if="showBgColor" class="w-full mt-2 mb-2">
         <label class="text-sm font-semibold">شفافیت: {{ transparency }}%</label>
-        <input type="range" min="0" max="100" v-model="transparency" class="w-full" @change="applyStyle"/>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          v-model="transparency"
+          class="w-full"
+          @input="applyStyle"
+        />
       </div>
-      <div v-if="showBorderColor" class="flex items-center justify-between mt-1 mb-2">
+
+      <!-- رنگ حاشیه با پیش‌نمایش -->
+      <div
+        v-if="showBorderColor"
+        class="flex items-center justify-between mt-1 mb-2"
+      >
         <span class="text-sm"> رنگ حاشیه :</span>
-        <label class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer" title="انتخاب رنگ">
-          <span class="w-5 h-5" :style="{ backgroundColor: borderColor }"></span>
-          <input type="color" v-model="borderColor" @change="applyStyle" class="w-40 h-8 cursor-pointer"/>
-        </label>
+        <div class="flex items-center gap-2">
+          <label
+            class="relative w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer"
+            title="انتخاب رنگ"
+          >
+            <div
+              class="w-5 h-5 rounded border border-gray-300"
+              :style="{ backgroundColor: borderColor }"
+            ></div>
+            <input
+              type="color"
+              v-model="borderColor"
+              @input="applyStyle"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </label>
+          <span class="text-xs text-gray-500 font-mono">{{ borderColor }}</span>
+        </div>
       </div>
+
+      <!-- عرض خط -->
       <div v-if="showWidth" class="flex items-center justify-between mt-1 mb-2">
         <span class="text-sm"> عرض خط :</span>
-        <input type="number" v-model="widthVal" @change="applyStyle" class="w-40 h-8 cursor-pointer px-3 border border-gray-400 rounded"/>
+        <input
+          type="number"
+          v-model="widthVal"
+          @input="applyStyle"
+          class="w-40 h-8 cursor-pointer px-3 border border-gray-400 rounded"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import axios from "axios";
 
 const SERVER = import.meta.env.VITE_SERVER;
@@ -94,13 +191,12 @@ const isActive = ref(true);
 const featureInfo = ref(null);
 const isEditingVertices = ref(false);
 
-const emit = defineEmits(["disableDrawing"]);
+const emit = defineEmits(["disableDrawing", "refreshPins", "pinUpdated"]);
 
 let clickHandler = null;
 
-// متغیرهای ویرایش
-let editHandlesSourceId = 'edit-handles-' + crypto.randomUUID();
-let editLayerId = 'edit-layer-' + crypto.randomUUID();
+let editHandlesSourceId = null;
+let editLayerId = null;
 let editCoords = [];
 let editGeomType = null;
 let editSourceId = null;
@@ -108,6 +204,7 @@ let isEditingActive = false;
 let editedPin = null;
 let originalFeature = null;
 let editingLayerId = null;
+let saveTimeout = null;
 
 const editState = {
   isDragging: false,
@@ -119,7 +216,10 @@ let onEditMouseDown = null;
 let onEditMouseMove = null;
 let onEditMouseUp = null;
 let onEditContextMenu = null;
-let onEditDblClick = null;
+
+function generateUniqueId() {
+  return 'edit-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
 
 function toggleHandler() {
   if (!isActive.value) activate();
@@ -158,29 +258,27 @@ function disableEdit() {
 function onMapClick(e) {
   if (editState.isDragging) return;
   
-  // اول بررسی کن ببین روی هندل‌های ویرایش کلیک شده یا نه
-  const handleFeatures = props.map.queryRenderedFeatures(e.point, { 
-    layers: [editHandlesSourceId + '-points'] 
-  });
-  
-  if (handleFeatures && handleFeatures.length > 0) {
-    return; // کلیک روی هندل‌ها توسط event handlers خودشون مدیریت میشه
-  }
-  
-  // اگر در حالت ویرایش هستیم و روی فضای خالی کلیک شده
   if (isEditingActive) {
+    if (editHandlesSourceId) {
+      try {
+        const handleFeatures = props.map.queryRenderedFeatures(e.point, { 
+          layers: [editHandlesSourceId + '-points'] 
+        });
+        if (handleFeatures && handleFeatures.length > 0) return;
+      } catch (err) {}
+    }
+    
     addVertexAtClick(e);
     return;
   }
   
-  // بررسی feature های عادی
   const features = props.map.queryRenderedFeatures(e.point);
   if (!features || features.length === 0) return;
 
   const feature = features[0];
   const layerId = feature.layer?.id;
   
-  if (!layerId || layerId === editHandlesSourceId + '-points') return;
+  if (!layerId || (editHandlesSourceId && layerId.includes('edit-handles'))) return;
 
   selectFeatureId.value = feature.id || layerId;
   showFeatureInfo(feature, layerId);
@@ -188,22 +286,18 @@ function onMapClick(e) {
 }
 
 function addVertexAtClick(e) {
-  if (!isEditingActive) return;
+  if (!isEditingActive || !editCoords.length) return;
   
   const newCoord = [e.lngLat.lng, e.lngLat.lat];
-  let insertIdx;
-  
-  if (editGeomType === 'LineString' || editGeomType === 'Polygon') {
-    insertIdx = findClosestEdgeIndex(newCoord, editGeomType === 'Polygon');
-    editCoords.splice(insertIdx + 1, 0, newCoord);
-  }
+  const insertIdx = findClosestEdgeIndex(newCoord, editGeomType === 'Polygon');
+  editCoords.splice(insertIdx + 1, 0, newCoord);
   
   updateHandlesGeoJSON();
   updateOriginalGeometry();
   
   if (editedPin) {
     updatePinShape();
-    saveEditedPin();
+    scheduleSave();
   }
 }
 
@@ -237,7 +331,6 @@ function showFeatureInfo(feature, layerId) {
 
   shapeName.value = props_data.name || '';
   featureInfo.value = info;
-
   getEntityStyle(layerId);
 }
 
@@ -254,12 +347,8 @@ function getEntityStyle(layerId) {
   if (type === 'fill') {
     showBgColor.value = true;
     showBorderColor.value = true;
-    try {
-      bgColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'fill-color'));
-    } catch (e) {}
-    try {
-      borderColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'fill-outline-color') || '#000000');
-    } catch (e) {}
+    try { bgColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'fill-color')); } catch (e) {}
+    try { borderColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'fill-outline-color') || '#000000'); } catch (e) {}
     const opacity = props.map.getPaintProperty(layerId, 'fill-opacity');
     if (opacity !== undefined) transparency.value = Math.round((1 - opacity) * 100);
   }
@@ -267,18 +356,14 @@ function getEntityStyle(layerId) {
   if (type === 'line') {
     showBorderColor.value = true;
     showWidth.value = true;
-    try {
-      borderColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'line-color'));
-    } catch (e) {}
+    try { borderColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'line-color')); } catch (e) {}
     widthVal.value = props.map.getPaintProperty(layerId, 'line-width') || 3;
   }
 
   if (type === 'circle') {
     showBgColor.value = true;
     showWidth.value = true;
-    try {
-      bgColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'circle-color'));
-    } catch (e) {}
+    try { bgColor.value = rgbToHex(props.map.getPaintProperty(layerId, 'circle-color')); } catch (e) {}
     widthVal.value = props.map.getPaintProperty(layerId, 'circle-radius') || 5;
   }
 }
@@ -286,6 +371,12 @@ function getEntityStyle(layerId) {
 function rgbToHex(color) {
   if (!color) return '#000000';
   if (typeof color === 'string' && color.startsWith('#')) return color;
+  if (typeof color === 'string' && color.startsWith('rgb')) {
+    const matches = color.match(/\d+/g);
+    if (matches && matches.length >= 3) {
+      return '#' + matches.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+    }
+  }
   if (Array.isArray(color)) {
     const r = Math.round(color[0] * 255);
     const g = Math.round(color[1] * 255);
@@ -323,6 +414,11 @@ function applyStyle() {
     const c = hexToRgb(bgColor.value);
     props.map.setPaintProperty(layerId, 'circle-color', `rgba(${c.r}, ${c.g}, ${c.b}, 1)`);
     if (widthVal.value) props.map.setPaintProperty(layerId, 'circle-radius', Number(widthVal.value));
+  }
+  
+  // ذخیره استایل
+  if (editedPin) {
+    scheduleSave();
   }
 }
 
@@ -367,18 +463,14 @@ function enableEditing(feature, layerId) {
   const geometry = feature.geometry?.type;
   if (geometry !== 'LineString' && geometry !== 'Polygon') return;
 
-  // ذخیره feature اصلی برای بازگشت در صورت cancel
   originalFeature = JSON.parse(JSON.stringify(feature));
   editingLayerId = layerId;
-
   editGeomType = geometry;
   
-  // استخراج مختصات
   if (geometry === 'LineString') {
     editCoords = feature.geometry.coordinates.map(c => [...c]);
   } else if (geometry === 'Polygon') {
     editCoords = feature.geometry.coordinates[0].map(c => [...c]);
-    // حذف آخرین نقطه تکراری
     if (editCoords.length > 1 && 
         editCoords[0][0] === editCoords[editCoords.length - 1][0] && 
         editCoords[0][1] === editCoords[editCoords.length - 1][1]) {
@@ -387,12 +479,19 @@ function enableEditing(feature, layerId) {
   }
 
   // پیدا کردن pin
-  editedPin = findPinById(props.pins, feature.id || feature.properties?.id);
+  const featureId = feature.properties?.id || feature.id;
+  editedPin = findPinById(props.pins, featureId);
+  
+  if (!editedPin && feature.properties?.name) {
+    editedPin = findPinByName(props.pins, feature.properties.name);
+  }
 
-  // گرفتن source مربوط به این layer
+  console.log('✅ Found pin:', editedPin?.id, editedPin?.name);
+
   const layer = props.map.getLayer(layerId);
   if (layer) {
     editSourceId = layer.source;
+    console.log('📦 Using source:', editSourceId);
   }
 
   isEditingActive = true;
@@ -400,28 +499,33 @@ function enableEditing(feature, layerId) {
   
   props.map.getCanvas().style.cursor = 'crosshair';
   
+  editHandlesSourceId = 'edit-handles-' + generateUniqueId();
+  editLayerId = 'edit-layer-' + generateUniqueId();
+  
   setupVertexHandles();
 }
 
 function setupVertexHandles() {
   const map = props.map;
-  if (!map) return;
+  if (!map || !editHandlesSourceId) return;
 
-  // حذف موارد قبلی
-  if (map.getLayer(editHandlesSourceId + '-points')) {
-    map.removeLayer(editHandlesSourceId + '-points');
-  }
-  if (map.getSource(editHandlesSourceId)) {
-    map.removeSource(editHandlesSourceId);
-  }
+  try {
+    if (map.getLayer(editHandlesSourceId + '-points')) {
+      map.removeLayer(editHandlesSourceId + '-points');
+    }
+  } catch (e) {}
+  
+  try {
+    if (map.getSource(editHandlesSourceId)) {
+      map.removeSource(editHandlesSourceId);
+    }
+  } catch (e) {}
 
-  // اضافه کردن source جدید برای هندل‌ها
   map.addSource(editHandlesSourceId, {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] }
   });
 
-  // اضافه کردن layer برای نمایش نقاط
   map.addLayer({
     id: editHandlesSourceId + '-points',
     type: 'circle',
@@ -440,7 +544,7 @@ function setupVertexHandles() {
 
 function updateHandlesGeoJSON() {
   const map = props.map;
-  if (!map) return;
+  if (!map || !editHandlesSourceId) return;
   
   const src = map.getSource(editHandlesSourceId);
   if (!src) return;
@@ -456,47 +560,45 @@ function updateHandlesGeoJSON() {
 
 function bindEditEvents() {
   const map = props.map;
-  if (!map) return;
+  if (!map || !editHandlesSourceId) return;
   
   unbindEditEvents();
+
+  const handlesLayerId = editHandlesSourceId + '-points';
 
   onEditMouseDown = (e) => {
     if (!isEditingActive) return;
     
-    const features = map.queryRenderedFeatures(e.point, { 
-      layers: [editHandlesSourceId + '-points'] 
-    });
-    
-    if (!features || features.length === 0) return;
+    try {
+      const features = map.queryRenderedFeatures(e.point, { layers: [handlesLayerId] });
+      if (!features || features.length === 0) return;
 
-    e.preventDefault();
-    if (e.originalEvent) e.originalEvent.preventDefault();
+      e.preventDefault();
+      if (e.originalEvent) e.originalEvent.preventDefault();
 
-    const idx = features[0].properties.index;
-    editState.isDragging = true;
-    editState.draggedIndex = idx;
-    editState.mouseMoved = false;
+      editState.isDragging = true;
+      editState.draggedIndex = features[0].properties.index;
+      editState.mouseMoved = false;
 
-    map.getCanvas().style.cursor = 'grabbing';
-    if (map.dragPan) map.dragPan.disable();
+      map.getCanvas().style.cursor = 'grabbing';
+      if (map.dragPan) map.dragPan.disable();
+    } catch (err) {}
   };
 
   onEditMouseMove = (e) => {
     if (!isEditingActive) return;
     
     if (!editState.isDragging) {
-      const hoverFeatures = map.queryRenderedFeatures(e.point, { 
-        layers: [editHandlesSourceId + '-points'] 
-      });
-      map.getCanvas().style.cursor = hoverFeatures.length > 0 ? 'grab' : 'crosshair';
+      try {
+        const hoverFeatures = map.queryRenderedFeatures(e.point, { layers: [handlesLayerId] });
+        map.getCanvas().style.cursor = hoverFeatures.length > 0 ? 'grab' : 'crosshair';
+      } catch (err) {}
       return;
     }
 
     editState.mouseMoved = true;
-    const newCoord = [e.lngLat.lng, e.lngLat.lat];
-    editCoords[editState.draggedIndex] = newCoord;
+    editCoords[editState.draggedIndex] = [e.lngLat.lng, e.lngLat.lat];
     
-    // به‌روزرسانی همزمان
     updateHandlesGeoJSON();
     updateOriginalGeometry();
   };
@@ -514,74 +616,59 @@ function bindEditEvents() {
 
     if (wasMoved && editedPin) {
       updatePinShape();
-      saveEditedPin();
+      scheduleSave();
     }
   };
 
   onEditContextMenu = (e) => {
     if (!isEditingActive) return;
+    
     e.preventDefault();
-
-    const features = map.queryRenderedFeatures(e.point, { 
-      layers: [editHandlesSourceId + '-points'] 
-    });
-    
-    if (features && features.length > 0) {
-      const idx = features[0].properties.index;
-      
-      if (editGeomType === 'Polygon' && editCoords.length <= 3) return;
-      if (editGeomType === 'LineString' && editCoords.length <= 2) return;
-
-      editCoords.splice(idx, 1);
-      updateHandlesGeoJSON();
-      updateOriginalGeometry();
-      
-      if (editedPin) {
-        updatePinShape();
-        saveEditedPin();
-      }
+    if (e.originalEvent) {
+      e.originalEvent.preventDefault();
+      e.originalEvent.stopPropagation();
     }
+
+    try {
+      const features = map.queryRenderedFeatures(e.point, { layers: [handlesLayerId] });
+      
+      if (features && features.length > 0) {
+        const idx = features[0].properties.index;
+        
+        if (editGeomType === 'Polygon' && editCoords.length <= 3) return;
+        if (editGeomType === 'LineString' && editCoords.length <= 2) return;
+
+        editCoords.splice(idx, 1);
+        updateHandlesGeoJSON();
+        updateOriginalGeometry();
+        
+        if (editedPin) {
+          updatePinShape();
+          scheduleSave();
+        }
+      }
+    } catch (err) {}
   };
 
-  onEditDblClick = (e) => {
-    if (!isEditingActive) return;
-
-    const features = map.queryRenderedFeatures(e.point, { 
-      layers: [editHandlesSourceId + '-points'] 
-    });
-    
-    if (features && features.length > 0) {
-      const idx = features[0].properties.index;
-      
-      if (editGeomType === 'Polygon' && editCoords.length <= 3) return;
-      if (editGeomType === 'LineString' && editCoords.length <= 2) return;
-
-      editCoords.splice(idx, 1);
-      updateHandlesGeoJSON();
-      updateOriginalGeometry();
-      
-      if (editedPin) {
-        updatePinShape();
-        saveEditedPin();
-      }
-    }
-  };
-
-  map.on('mousedown', editHandlesSourceId + '-points', onEditMouseDown);
+  map.on('mousedown', handlesLayerId, onEditMouseDown);
   map.on('mousemove', onEditMouseMove);
   map.on('mouseup', onEditMouseUp);
   map.on('contextmenu', onEditContextMenu);
-  map.on('dblclick', editHandlesSourceId + '-points', onEditDblClick);
 }
 
 function unbindEditEvents() {
   const map = props.map;
   if (!map) return;
 
-  if (onEditMouseDown) {
-    map.off('mousedown', editHandlesSourceId + '-points', onEditMouseDown);
-    onEditMouseDown = null;
+  const handlesLayerId = editHandlesSourceId ? editHandlesSourceId + '-points' : null;
+
+  if (handlesLayerId) {
+    if (onEditMouseDown) {
+      map.off('mousedown', handlesLayerId, onEditMouseDown);
+      onEditMouseDown = null;
+    }
   }
+  
   if (onEditMouseMove) {
     map.off('mousemove', onEditMouseMove);
     onEditMouseMove = null;
@@ -594,31 +681,46 @@ function unbindEditEvents() {
     map.off('contextmenu', onEditContextMenu);
     onEditContextMenu = null;
   }
-  if (onEditDblClick) {
-    map.off('dblclick', editHandlesSourceId + '-points', onEditDblClick);
-    onEditDblClick = null;
-  }
   
   if (map.dragPan) map.dragPan.enable();
 }
 
 function disableVertexEditing() {
+  // قبل از پاک کردن، ذخیره کن
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveNow();
+  }
+  
   unbindEditEvents();
   
   const map = props.map;
   if (!map) return;
 
-  try {
-    if (map.getLayer(editHandlesSourceId + '-points')) {
-      map.removeLayer(editHandlesSourceId + '-points');
-    }
-  } catch (e) {}
-  
-  try {
-    if (map.getSource(editHandlesSourceId)) {
-      map.removeSource(editHandlesSourceId);
-    }
-  } catch (e) {}
+  if (editHandlesSourceId) {
+    try {
+      if (map.getLayer(editHandlesSourceId + '-points')) {
+        map.removeLayer(editHandlesSourceId + '-points');
+      }
+    } catch (e) {}
+    
+    try {
+      if (map.getSource(editHandlesSourceId)) {
+        map.removeSource(editHandlesSourceId);
+      }
+    } catch (e) {}
+  }
+
+  if (editLayerId) {
+    try {
+      if (map.getLayer(editLayerId)) map.removeLayer(editLayerId);
+      if (map.getSource(editLayerId)) map.removeSource(editLayerId);
+    } catch (e) {}
+  }
+
+  if (editingLayerId && map.getLayer(editingLayerId)) {
+    map.setLayoutProperty(editingLayerId, 'visibility', 'visible');
+  }
 
   isEditingActive = false;
   isEditingVertices.value = false;
@@ -628,6 +730,8 @@ function disableVertexEditing() {
   editedPin = null;
   originalFeature = null;
   editingLayerId = null;
+  editHandlesSourceId = null;
+  editLayerId = null;
   editState.isDragging = false;
   editState.draggedIndex = null;
   
@@ -670,128 +774,53 @@ function updateOriginalGeometry() {
   const map = props.map;
   const srcId = editSourceId;
   
-  if (!srcId || !map) {
-    console.warn('❌ No source ID or map available');
-    return;
+  if (!srcId || !map) return;
+
+  let newCoords;
+  if (editGeomType === 'LineString') {
+    newCoords = editCoords.map(c => [...c]);
+  } else if (editGeomType === 'Polygon') {
+    const closedCoords = [...editCoords, [...editCoords[0]]];
+    newCoords = [closedCoords];
   }
 
   const src = map.getSource(srcId);
-  if (!src) {
-    console.warn('❌ Source not found:', srcId);
-    return;
-  }
+  if (!src) return;
 
-  console.log('✅ Source found:', srcId, 'Type:', src.type);
-
-  // روش 1: اگر source از نوع geojson است
   if (src.type === 'geojson') {
-    let newCoords;
-    if (editGeomType === 'LineString') {
-      newCoords = editCoords.map(c => [...c]);
-    } else if (editGeomType === 'Polygon') {
-      const closedCoords = [...editCoords, [...editCoords[0]]];
-      newCoords = [closedCoords];
-    }
-
-    const updatedData = {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: editGeomType,
-          coordinates: newCoords
-        },
-        properties: originalFeature?.properties || {}
-      }]
-    };
-
-    console.log('🔄 Updating GeoJSON source with new coordinates');
-    src.setData(updatedData);
-    return;
-  }
-
-  // روش 2: اگر source از نوع vector است (مثل tileset)
-  if (src.type === 'vector') {
-    console.log('📦 Vector source detected, trying alternative method...');
+    const currentData = src._data;
+    const features = currentData?.features || [];
     
-    // ساخت یک GeoJSON source موقت برای نمایش ویرایش
-    const tempSourceId = 'temp-edit-' + crypto.randomUUID();
-    const tempLayerId = 'temp-edit-layer-' + crypto.randomUUID();
-    
-    let newCoords;
-    if (editGeomType === 'LineString') {
-      newCoords = editCoords.map(c => [...c]);
-    } else if (editGeomType === 'Polygon') {
-      const closedCoords = [...editCoords, [...editCoords[0]]];
-      newCoords = [closedCoords];
-    }
-
-    // حذف source موقت قبلی اگر وجود دارد
-    if (map.getLayer(editLayerId)) {
-      map.removeLayer(editLayerId);
-    }
-    if (map.getSource(editLayerId)) {
-      map.removeSource(editLayerId);
-    }
-
-    // اضافه کردن source موقت
-    map.addSource(editLayerId, {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
+    const updatedFeatures = features.map(f => {
+      const fId = f.properties?.id || f.id;
+      const sId = selectFeatureId.value;
+      
+      if (fId == sId || f.properties?.name == shapeName.value || 
+          (editedPin && (fId == editedPin.id || f.properties?.name == editedPin.name))) {
+        return {
+          ...f,
           geometry: {
             type: editGeomType,
             coordinates: newCoords
-          },
-          properties: originalFeature?.properties || {}
-        }]
+          }
+        };
       }
+      return f;
     });
 
-    // اضافه کردن layer موقت با همان استایل
-    const originalLayer = map.getLayer(editingLayerId);
-    if (originalLayer) {
-      const layerConfig = {
-        id: editLayerId,
-        type: originalLayer.type,
-        source: editLayerId,
-      };
-
-      // کپی paint properties
-      if (originalLayer.type === 'line') {
-        layerConfig.paint = {
-          'line-color': map.getPaintProperty(editingLayerId, 'line-color') || '#000000',
-          'line-width': map.getPaintProperty(editingLayerId, 'line-width') || 2,
-          'line-opacity': map.getPaintProperty(editingLayerId, 'line-opacity') || 1
-        };
-      } else if (originalLayer.type === 'fill') {
-        layerConfig.paint = {
-          'fill-color': map.getPaintProperty(editingLayerId, 'fill-color') || '#000000',
-          'fill-opacity': map.getPaintProperty(editingLayerId, 'fill-opacity') || 0.5,
-          'fill-outline-color': map.getPaintProperty(editingLayerId, 'fill-outline-color') || '#000000'
-        };
-      }
-
-      // مخفی کردن layer اصلی
-      map.setLayoutProperty(editingLayerId, 'visibility', 'none');
-      
-      // اضافه کردن layer موقت
-      map.addLayer(layerConfig);
-      
-      // به‌روزرسانی editSourceId برای استفاده در cancel
-      editSourceId = editLayerId;
-    }
-    
-    return;
+    src.setData({
+      type: 'FeatureCollection',
+      features: updatedFeatures
+    });
   }
-
-  console.warn('❌ Unknown source type:', src.type);
 }
 
 function updatePinShape() {
-  if (!editedPin || !editedPin.shape) return;
+  if (!editedPin) return;
+
+  if (!editedPin.shape) {
+    editedPin.shape = { positions: [] };
+  }
 
   if (editGeomType === 'LineString') {
     editedPin.shape.positions = editCoords.map(c => ({ 
@@ -808,82 +837,126 @@ function updatePinShape() {
     coords.push({ ...coords[0] });
     editedPin.shape.positions = coords;
   }
+  
+  if (shapeName.value) {
+    editedPin.name = shapeName.value;
+  }
 }
 
-function saveEditedPin() {
+// سیستم ذخیره‌سازی با debounce
+function scheduleSave() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  saveTimeout = setTimeout(() => {
+    saveNow();
+  }, 500); // 500ms delay
+}
+
+function saveNow() {
   if (!editedPin) return;
+
+  updatePinShape();
 
   const pinToSave = {
     id: editedPin.id,
-    name: editedPin.name || shapeName.value,
-    type: editedPin.type,
-    save: editedPin.save,
-    shape: JSON.parse(JSON.stringify(editedPin.shape))
+    name: editedPin.name || shapeName.value || 'بدون نام',
+    type: editedPin.type || (editGeomType === 'Polygon' ? 'polygon' : 'polyline'),
+    save: true,
+    shape: editedPin.shape ? JSON.parse(JSON.stringify(editedPin.shape)) : null
   };
 
+  console.log('💾 Saving pin:', pinToSave.id, pinToSave.name, 'positions:', pinToSave.shape?.positions?.length);
+
+  // ذخیره در localStorage
+  saveToLocalStorage(pinToSave);
+  
+  // ذخیره در سرور
   saveEditedPinToServer(pinToSave);
+  
+  // به‌روزرسانی parent
+  emit("pinUpdated", pinToSave);
+  emit("refreshPins");
+}
+
+function saveToLocalStorage(pin) {
+  try {
+    const key = `pin-${pin.id}`;
+    const data = {
+      id: pin.id,
+      name: pin.name,
+      type: pin.type,
+      shape: pin.shape,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(key, JSON.stringify(data));
+    console.log('💾 Saved to localStorage:', key);
+  } catch (err) {
+    console.warn('Could not save to localStorage:', err);
+  }
 }
 
 async function saveEditedPinToServer(pin) {
   try {
+    if (!pin.id) {
+      console.error("❌ Pin ID is missing");
+      return;
+    }
+
+    const userId = await getUserId();
+    if (!userId) {
+      console.error("❌ User ID not found");
+      return;
+    }
+
     const fd = new FormData();
     fd.append("type", pin.type);
     fd.append("name", pin.name);
     fd.append("obj_id", pin.id);
     fd.append("content", JSON.stringify(pin.shape));
     
-    const userId = await getUserId();
-    if (!userId) {
-      console.error("❌ User ID not found");
-      return;
-    }
-    
-    const response = await axios.post(SERVER + '/api/Save/myWork/' + userId, fd, {
+    const response = await axios.post(`${SERVER}/api/Save/myWork/${userId}`, fd, {
       headers: { "Content-Type": "multipart/form-data" }
     });
     
-    console.log('✅ Pin saved successfully:', response.data);
+    console.log('✅ Server saved:', response.data?.id);
+    return response.data;
   } catch (err) {
-    console.error("❌ خطا در ذخیره ویرایش:", err);
+    console.error("❌ Server save failed:", err.response?.data || err.message);
+    // حتی اگر خطا داد، داده در localStorage هست
   }
 }
 
 async function getUserId() {
   try {
-    const res = await axios.get(SERVER + '/api/auth/me');
+    const res = await axios.get(`${SERVER}/api/auth/me`);
     return res.data?.data?.id ?? res.data?.id;
   } catch { 
-    console.error('❌ Error getting user ID');
     return null; 
   }
 }
 
 function clearSelection() {
+  // ذخیره قبل از پاک کردن
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  saveNow();
+  
   disableVertexEditing();
   featureInfo.value = null;
   selectFeatureId.value = null;
-  props.map.getCanvas().style.cursor = 'crosshair';
+  if (props.map) {
+    props.map.getCanvas().style.cursor = 'crosshair';
+  }
   activate();
 }
 
 function cancel() {
-  // برگرداندن layer اصلی به حالت visible
-  if (editingLayerId && props.map.getLayer(editingLayerId)) {
-    props.map.setLayoutProperty(editingLayerId, 'visibility', 'visible');
+  // کنسل بدون ذخیره
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
   }
-  
-  // حذف layer و source موقت
-  try {
-    if (props.map.getLayer(editLayerId)) {
-      props.map.removeLayer(editLayerId);
-    }
-  } catch (e) {}
-  
-  try {
-    if (props.map.getSource(editLayerId)) {
-      props.map.removeSource(editLayerId);
-    }
-  } catch (e) {}
   
   disableVertexEditing();
   featureInfo.value = null;
@@ -892,22 +965,90 @@ function cancel() {
 }
 
 function findPinById(items, id) {
-  if (!items) return null;
+  if (!items || id === undefined || id === null) return null;
+  
+  // اول localStorage رو چک کن
+  const localPin = loadFromLocalStorage(id);
+  
   for (const item of items) {
-    if (item.id == id) return item;
+    if (!item) continue;
+    
+    if (String(item.id) === String(id) || item.id == id) {
+      // اگر داده localStorage جدیدتره، از اون استفاده کن
+      if (localPin && localPin.timestamp > (item._timestamp || 0)) {
+        console.log('📂 Using localStorage version for:', id);
+        item.shape = localPin.shape;
+        item.name = localPin.name;
+        item._timestamp = localPin.timestamp;
+      }
+      return item;
+    }
+    
     if (item.children && item.children.length) {
       const found = findPinById(item.children, id);
+      if (found) return found;
+    }
+  }
+  
+  // اگر در pins پیدا نشد، از localStorage استفاده کن
+  if (localPin) {
+    console.log('📂 Pin found only in localStorage:', id);
+    return localPin;
+  }
+  
+  return null;
+}
+
+function findPinByName(items, name) {
+  if (!items || !name) return null;
+  
+  for (const item of items) {
+    if (!item) continue;
+    
+    if (item.name === name) return item;
+    
+    if (item.children && item.children.length) {
+      const found = findPinByName(item.children, name);
       if (found) return found;
     }
   }
   return null;
 }
 
+function loadFromLocalStorage(pinId) {
+  try {
+    const key = `pin-${pinId}`;
+    const data = localStorage.getItem(key);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.warn('Could not load from localStorage:', err);
+  }
+  return null;
+}
+
+// watch برای name changes
+watch(shapeName, (newName) => {
+  if (editedPin && newName && newName !== editedPin.name) {
+    editedPin.name = newName;
+    scheduleSave();
+  }
+});
+
 onMounted(() => {
-  setTimeout(() => { activate(); }, 2500);
+  setTimeout(() => { 
+    if (props.map) activate(); 
+  }, 2500);
 });
 
 onUnmounted(() => {
+  // ذخیره نهایی
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  saveNow();
+  
   disableVertexEditing();
   if (clickHandler && props.map) {
     props.map.off('click', clickHandler);
@@ -920,6 +1061,6 @@ defineExpose({ toggleHandler, disableEdit });
 <style scoped>
 table tr td {
   text-align: right !important;
-  font-family: 'Vazir', sans-serif;
+  font-family: "Vazir", sans-serif;
 }
 </style>

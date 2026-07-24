@@ -169,8 +169,6 @@ let isInitialNavigation = true
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  const isPublicRoute = to.meta.public === true || PUBLIC_ROUTES.includes(to.path)
-
   if (isInitialNavigation) {
     await authStore.checkAuth()
     isInitialNavigation = false
@@ -185,37 +183,6 @@ router.beforeEach(async (to, _from, next) => {
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
     return next('/mapbox')
-  }
-
-  if (to.meta.requiredRole) {
-    const requiredRole = to.meta.requiredRole as string
-    if (requiredRole === 'admin' && !authStore.isAdmin) {
-      return next('/mapbox')
-    }
-    if (requiredRole === 'group_manager' && !authStore.isGroupManager && !authStore.isAdmin) {
-      return next('/mapbox')
-    }
-  }
-
-  if (to.meta.permission) {
-    const permission = to.meta.permission as string
-    if (!authStore.hasPermission(permission)) {
-      return next('/mapbox')
-    }
-  }
-
-  if (to.path === '/map' && to.params.token) {
-    const token = to.params.token as string
-    if (token && !/^[a-zA-Z0-9\-_]+$/.test(token)) {
-      return next('/map')
-    }
-  }
-
-  if (to.path === '/mapbox' && to.params.token) {
-    const token = to.params.token as string
-    if (token && !/^[a-zA-Z0-9\-_]+$/.test(token)) {
-      return next('/mapbox')
-    }
   }
 
   next()

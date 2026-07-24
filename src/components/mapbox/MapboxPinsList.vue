@@ -143,6 +143,8 @@ const props = defineProps({
 
 function selectGroup(group) { selectedGroup.value = group; }
 
+const route = useRoute();
+
 onMounted(async () => {
   if (authStore.user) {
     await getExtendedIds();
@@ -154,7 +156,6 @@ onMounted(async () => {
     intervalId = setInterval(loadInbox, 20000);
     for (let pin of props.pins) pin.check = false;
   }
-  const route = useRoute();
   if (!authStore.user && route.params.token) {
     await getData(route.params.token);
   }

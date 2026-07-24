@@ -1,6 +1,6 @@
 <template>
  <div class="flex flex-col min-h-0">
-  <div class="flex mb-2">
+   <div class="flex gap-1 mb-2">
     <button class="px-2 py-1 text-sm rounded"
         :class="activeTab === 'my2' ? 'bg-blue-500 text-white' : 'bg-white border'"
         @click="activeTab = 'my2'">میز کار</button>

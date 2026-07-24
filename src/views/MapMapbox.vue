@@ -37,11 +37,13 @@
           <button @click="ShowForLogin = false" class="text-xl tp-2">&times;</button>
         </div>
 
-        <div class="absolute bottom-36 md:bottom-16 left-[8px] ml-1 z-50">
+        <div class="absolute bottom-36 md:bottom-16 left-[8px] ml-1 z-50 flex flex-col gap-2">
           <button @click="expanded = !expanded" class="w-12 h-12 bg-gray-700 text-white rounded flex flex-col items-center justify-center shadow-md" title="نقشه پایه">
             <i class="fas fa-layer-group text-xl"></i>
             <span class="text-xs">نقشه</span>
           </button>
+          <button @click="zoomIn" class="w-12 h-12 bg-gray-700 text-white rounded flex items-center justify-center shadow-md text-xl font-bold" title="بزرگنمایی">+</button>
+          <button @click="zoomOut" class="w-12 h-12 bg-gray-700 text-white rounded flex items-center justify-center shadow-md text-xl font-bold" title="کوچکنمایی">−</button>
           <div v-show="expanded" @click.stop
                class="absolute md:top-0 md:left-full md:ml-2 bottom-full left-0 mb-2 w-[300px] max-w-[calc(100vw-24px)] md:w-max p-2 bg-white border border-gray-300 rounded shadow-md flex flex-col">
             <div class="overflow-x-auto overflow-y-hidden md:overflow-visible flex gap-2 flex-nowrap">
@@ -390,6 +392,16 @@ function updateScale() {
     const s = metersPerPixel / 0.00028;
     scale.value = "1:" + Math.round(s).toLocaleString();
   }
+}
+
+function zoomIn() {
+  if (!map) return;
+  map.zoomIn({ duration: 200 });
+}
+
+function zoomOut() {
+  if (!map) return;
+  map.zoomOut({ duration: 200 });
 }
 
 function toggleLayer(layerName) {

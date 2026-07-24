@@ -58,12 +58,6 @@ axios.interceptors.response.use(
       }
     }
 
-    if (error.response?.status === 403) {
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/dashboard'
-      }
-    }
-
     if (error.response?.status === 429) {
       const retryAfter = error.response.headers['retry-after']
       console.warn(`Rate limited. Retry after ${retryAfter}s`)

@@ -856,9 +856,10 @@ const saveOneWorks = async (item) => {
     fd.append("parent_id", item.parent_id);
     if (item.type === "file") fd.append("file", item.file);
     else fd.append("content", JSON.stringify(toRaw(item.shape)));
-    await axios.post(SERVER + "/api/Save/myWork/" + authStore.user?.id, fd, {
+    const response = await axios.post(SERVER + "/api/Save/myWork/" + authStore.user?.id, fd, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+    if (response.data?.id) item.save = response.data.id; // مهم: برای ویرایش‌های بعدی لازم است
   } catch (err) {
     console.error(err);
   }

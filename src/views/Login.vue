@@ -91,7 +91,7 @@ const handleLogin = async () => {
     const result = await authStore.login(form.username, form.password);
 
     if (result.success) {
-      await router.push('/map');
+      await router.push('/mapbox');
     } else {
       error.value = result.error;
     }

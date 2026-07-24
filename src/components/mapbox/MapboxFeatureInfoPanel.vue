@@ -860,9 +860,9 @@ function saveNow() {
 
   const pinToSave = {
     id: editedPin.id,
+    save: editedPin.save, // آی‌دی واقعی رکورد در دیتابیس (برای آپدیت لازم است)
     name: editedPin.name || shapeName.value || 'بدون نام',
     type: editedPin.type || (editGeomType === 'Polygon' ? 'polygon' : 'polyline'),
-    save: true,
     shape: editedPin.shape ? JSON.parse(JSON.stringify(editedPin.shape)) : null
   };
 
@@ -903,24 +903,38 @@ async function saveEditedPinToServer(pin) {
       return;
     }
 
-    const userId = await getUserId();
-    if (!userId) {
-      console.error("❌ User ID not found");
-      return;
-    }
-
     const fd = new FormData();
     fd.append("type", pin.type);
     fd.append("name", pin.name);
-    fd.append("obj_id", pin.id);
     fd.append("content", JSON.stringify(pin.shape));
-    
-    const response = await axios.post(`${SERVER}/api/Save/myWork/${userId}`, fd, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
-    
-    console.log('✅ Server saved:', response.data?.id);
-    return response.data;
+
+    if (pin.save) {
+      // رکورد قبلاً در دیتابیس ذخیره شده -> باید آپدیت شود (PUT)، نه اینکه رکورد جدید ساخته شود
+      const response = await axios.put(`${SERVER}/api/save/myWork/${pin.save}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      console.log('✅ Server updated:', response.data?.id);
+      return response.data;
+    } else {
+      // اولین باری که این شکل ذخیره می‌شود -> باید ساخته شود (POST) و id برگشتی نگه داشته شود
+      const userId = await getUserId();
+      if (!userId) {
+        console.error("❌ User ID not found");
+        return;
+      }
+      fd.append("obj_id", pin.id);
+
+      const response = await axios.post(`${SERVER}/api/Save/myWork/${userId}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      if (editedPin && response.data?.id) {
+        editedPin.save = response.data.id; // برای ویرایش‌های بعدی لازم است
+      }
+
+      console.log('✅ Server created:', response.data?.id);
+      return response.data;
+    }
   } catch (err) {
     console.error("❌ Server save failed:", err.response?.data || err.message);
     // حتی اگر خطا داد، داده در localStorage هست

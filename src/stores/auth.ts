@@ -5,7 +5,8 @@ import {
   sanitizeInput,
   clearAllSensitiveData,
   setupTokenRefresh,
-  isSessionValid
+  isSessionValid,
+  trackActivity
 } from '../utils/security'
 
 const API_BASE_URL = import.meta.env.VITE_SERVER + '/api'
@@ -136,6 +137,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     resetLoginAttempts()
     updateLockoutStatus()
+
+    trackActivity()
 
     setupTokenRefresh(
       () => token.value,
@@ -268,6 +271,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         user.value = userData
         await loadUserPermissions()
+        trackActivity()
       } catch (error: any) {
         if (error.response?.status === 401 || error.response?.status === 403) {
           clearAuthData()

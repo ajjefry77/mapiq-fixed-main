@@ -190,17 +190,17 @@ router.beforeEach(async (to, _from, next) => {
   if (to.meta.requiredRole) {
     const requiredRole = to.meta.requiredRole as string
     if (requiredRole === 'admin' && !authStore.isAdmin) {
-      return next('/dashboard')
+      return next('/mapbox')
     }
     if (requiredRole === 'group_manager' && !authStore.isGroupManager && !authStore.isAdmin) {
-      return next('/dashboard')
+      return next('/mapbox')
     }
   }
 
   if (to.meta.permission) {
     const permission = to.meta.permission as string
     if (!authStore.hasPermission(permission)) {
-      return next('/dashboard')
+      return next('/mapbox')
     }
   }
 
@@ -219,14 +219,6 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   next()
-});
-
-router.afterEach((to) => {
-  const authStore = useAuthStore()
-
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    window.location.href = '/login'
-  }
 });
 
 export default router;

@@ -60,9 +60,9 @@ export function setupCSRFProtection(): void {
 }
 
 export function trackActivity(): void {
+  lastActivity = Date.now()
   if (activityDebounceTimer) clearTimeout(activityDebounceTimer)
   activityDebounceTimer = setTimeout(() => {
-    lastActivity = Date.now()
     resetSessionTimer()
   }, 300)
 }

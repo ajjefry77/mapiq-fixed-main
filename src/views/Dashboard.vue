@@ -289,19 +289,41 @@ async function loadMyData() {
         const mid = getGroupManagerId(g);
         return mid != null ? String(mid) === userId : !hasManagerField;
       });
+      if (!isAdmin.value) {
+        groups.value = myGroups;
+        return;
+      }
       groups.value = await Promise.all(
         myGroups.map(async (g) => {
-          if (Array.isArray(g.Users) || Array.isArray(g.users)) return g;
+          if (g.member_count != null) return g;
+          if (Array.isArray(g.Users) || Array.isArray(g.users)) return { ...g, Users: g.Users ?? g.users, member_count: (g.Users ?? g.users).length };
           try {
             const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`);
             const users = r.data?.data ?? r.data;
-            return { ...g, Users: Array.isArray(users) ? users : [] };
+            return { ...g, Users: Array.isArray(users) ? users : [], member_count: Array.isArray(users) ? users.length : 0 };
           } catch {
-            return g;
+            return { ...g, member_count: 0 };
           }
         }),
       );
     } else if (!isAdmin.value) {
+      const [formsRes, meRes] = await Promise.all([
+        axios.get(SERVER + "/api/forms"),
+        axios.get(SERVER + "/api/auth/me"),
+      ]);
+      forms.value = Array.isArray(formsRes.data)
+        ? formsRes.data
+        : formsRes.data?.data || [];
+      const me = meRes.data?.data || meRes.data;
+      const myGroups = me?.Groups ?? me?.groups ?? [];
+      if (Array.isArray(myGroups) && myGroups.length) {
+        groups.value = myGroups;
+      } else if (me?.group_ids?.length) {
+        groups.value = me.group_ids.map((id) => ({ id }));
+      } else {
+        groups.value = [];
+      }
+    } else {
       const [formsRes, meRes] = await Promise.all([
         axios.get(SERVER + "/api/forms"),
         axios.get(SERVER + "/api/auth/me"),

@@ -70,7 +70,7 @@
               <i class="fas fa-users text-gray-600"></i>
               <span class="text-sm truncate w-48">{{ group.name }}</span>
             </div>
-            <span class="text-xs text-gray-500">{{ group.member_count ?? 0 }} عضو</span>
+            <span v-if="authStore.isAdmin" class="text-xs text-gray-500">{{ group.member_count ?? 0 }} عضو</span>
           </li>
           <li v-if="!userGroups.length" class="text-center text-gray-400 py-4">شما در هیچ گروهی عضو نیستید</li>
         </ul>
@@ -183,8 +183,10 @@ const loadUserGroups = async () => {
     const me = res.data?.data ?? res.data;
     const groups = me?.Groups ?? me?.groups ?? [];
     const rawGroups = Array.isArray(groups) ? groups : [];
+    if (!authStore.isAdmin) { userGroups.value = rawGroups; return; }
     userGroups.value = await Promise.all(rawGroups.map(async (g) => {
       if (g.member_count != null) return g;
+      if (Array.isArray(g.Users) || Array.isArray(g.users)) return { ...g, member_count: (g.Users ?? g.users).length };
       try {
         const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`);
         const u = r.data?.data ?? r.data;

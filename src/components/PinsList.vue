@@ -179,7 +179,7 @@
               <i class="fas fa-users text-gray-600"></i>
               <span class="text-sm text-gray-800 truncate w-48">{{ group.name }}</span>
             </div>
-            <span class="text-xs text-gray-500">
+            <span v-if="authStore.isAdmin" class="text-xs text-gray-500">
               {{ group.member_count ?? 0 }} عضو
             </span>
           </li>
@@ -397,7 +397,7 @@ const loadUserGroups = async () => {
         me?.groups ??
         me?.group_ids?.map(id => ({ id })) ?? []
     const rawGroups = Array.isArray(groups) ? groups : []
-
+    if (!authStore.isAdmin) { userGroups.value = rawGroups; return }
     userGroups.value = await Promise.all(
       rawGroups.map(async (g) => {
         if (g.member_count != null) return g

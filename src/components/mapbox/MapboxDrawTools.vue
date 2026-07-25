@@ -92,63 +92,255 @@
         class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer"
         title="انتخاب رنگ"
       >
-        <span class="w-5 h-5" :style="{ backgroundColor: color }"></span>
+        <span class="w-5 h-5 rounded border" :style="{ backgroundColor: color }"></span>
         <input type="color" v-model="color" class="hidden" />
       </label>
     </div>
   </div>
 
+  <!-- فرم شناور -->
   <transition name="fade">
     <div
       v-if="showForm"
-      class="absolute inset-0 bg-black/40 flex items-end justify-end px-14 py-32 z-50"
+      class="absolute inset-0 flex items-start justify-center pt-20 z-50 pointer-events-none"
       @contextmenu.prevent
     >
-      <div class="bg-white rounded-2xl p-6 w-84 shadow-xl relative">
-        <button
-          @click="cancelForm"
-          class="absolute top-4 left-4 text-gray-500 hover:text-black"
-        >
-          ✕
-        </button>
-        <h2 class="text-md font-semibold mb-3">افزودن ترسیم جدید</h2>
-        <form @submit.prevent="savePin">
-          <label class="block mb-2 text-sm font-medium">نام</label>
-          <input
-            v-model="formData.name"
-            type="text"
-            class="w-full border rounded-lg p-2 mb-3"
-            required
-          />
-          <label class="block mb-2 text-sm font-medium">توضیحات</label>
-          <textarea
-            v-model="formData.description"
-            class="w-full border rounded-lg p-2 mb-3"
-            rows="3"
-          ></textarea>
-          <label class="block mb-2 text-sm font-medium">فایل ضمیمه</label>
-          <input
-            type="file"
-            @change="onFileChange"
-            class="w-full border rounded-lg p-2 mb-4"
-          />
-          <div class="flex justify-end gap-2">
-            <button
-              type="button"
-              @click="cancelForm"
-              class="px-4 py-2 bg-gray-300 rounded-lg"
-            >
-              لغو
-            </button>
-            <button
-              type="button"
-              @click="savePin"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              ذخیره
-            </button>
+      <div class="bg-white rounded-lg shadow-2xl w-80 overflow-hidden pointer-events-auto">
+        <!-- هدر نارنجی -->
+        <div class="bg-orange-500 text-white px-4 py-2 flex justify-between items-center">
+          <button @click="cancelForm" class="hover:text-gray-200 text-lg">✕</button>
+          <h3 class="font-bold text-sm">{{ getDrawTypeName() }}</h3>
+        </div>
+
+        <!-- تب‌ها -->
+        <div class="flex border-b bg-gray-50">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            @click="activeTab = tab.key"
+            :class="[
+              'flex-1 py-1.5 text-xs transition-colors',
+              activeTab === tab.key
+                ? 'border-b-2 border-orange-500 text-orange-600 bg-white font-medium'
+                : 'text-gray-500 hover:text-gray-700'
+            ]"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <!-- محتوای تب‌ها -->
+        <div class="p-3 max-h-72 overflow-y-auto text-sm">
+          <!-- تب توضیحات -->
+          <div v-if="activeTab === 'info'" class="space-y-2">
+            <div>
+              <label class="block text-xs mb-1 text-gray-600">نام ترسیم</label>
+              <input 
+                v-model="formData.name" 
+                placeholder="نام ترسیم را وارد کنید" 
+                class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none" 
+              />
+            </div>
+            <div>
+              <label class="block text-xs mb-1 text-gray-600">توضیحات</label>
+              <textarea 
+                v-model="formData.description" 
+                placeholder="توضیحات اضافی..." 
+                rows="2" 
+                class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-xs mb-1 text-gray-600">فایل ضمیمه</label>
+              <input type="file" @change="onFileChange" class="w-full text-xs" />
+              <p v-if="attch_file" class="mt-1 text-xs text-green-600">
+                {{ attch_file.name }} انتخاب شد
+              </p>
+            </div>
           </div>
-        </form>
+
+          <!-- تب استایل -->
+          <div v-if="activeTab === 'style'" class="space-y-3">
+            <div v-if="shape">
+              <label class="block text-xs mb-1 text-gray-600">رنگ</label>
+              <div class="flex gap-1 items-center">
+                <input type="color" v-model="shape.color" class="w-8 h-8 border rounded cursor-pointer" />
+                <input 
+                  v-model="shape.color" 
+                  class="flex-1 border rounded p-1 text-xs font-mono focus:border-orange-500 outline-none" 
+                  placeholder="#ff0000"
+                />
+              </div>
+            </div>
+            
+            <div v-if="shape">
+              <label class="block text-xs mb-1 text-gray-600">
+                شفافیت: {{ Math.round(shape.opacity * 100) }}%
+              </label>
+              <input 
+                type="range" 
+                v-model="shape.opacity" 
+                min="0" 
+                max="1" 
+                step="0.1" 
+                class="w-full accent-orange-500" 
+              />
+            </div>
+
+            <div v-if="shape && shape.type !== 'circle' && shape.type !== 'multi_point'">
+              <label class="block text-xs mb-1 text-gray-600">ضخامت خط</label>
+              <input 
+                type="number" 
+                v-model="shape.width" 
+                min="1" 
+                max="10" 
+                class="w-24 border rounded p-1 text-xs focus:border-orange-500 outline-none" 
+              />
+            </div>
+
+            <div 
+              v-if="shape"
+              class="w-full h-16 rounded border-2 flex items-center justify-center text-xs"
+              :style="{ 
+                backgroundColor: shape.color + '30',
+                borderColor: shape.color 
+              }"
+            >
+              <span :style="{ color: shape.color }">پیش‌نمایش رنگ</span>
+            </div>
+            
+            <div v-if="!shape" class="text-center py-4 text-gray-400 text-xs">
+              <p>پس از اتمام ترسیم، استایل قابل تغییر است</p>
+            </div>
+          </div>
+
+          <!-- تب تصویر -->
+          <div v-if="activeTab === 'image'">
+            <div v-if="!shape">
+              <div class="text-center py-6">
+                <div class="border-2 border-dashed border-gray-300 rounded p-4">
+                  <p class="text-xs text-gray-400">پس از اتمام ترسیم می‌توانید تصویر اضافه کنید</p>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="!shape.backgroundImage">
+              <div class="text-center py-6">
+                <div class="border-2 border-dashed border-gray-300 rounded p-4">
+                  <p class="text-xs text-gray-400 mb-2">تصویری انتخاب نشده</p>
+                  <label class="cursor-pointer inline-block">
+                    <span class="px-3 py-1 bg-orange-500 text-white rounded text-xs hover:bg-orange-600">
+                      انتخاب تصویر
+                    </span>
+                    <input 
+                      type="file" 
+                      @change="onBackgroundImageChange" 
+                      accept="image/*" 
+                      class="hidden" 
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div v-else class="space-y-2">
+              <div class="relative group">
+                <img :src="shape.backgroundImage" class="w-full rounded border" />
+                <button 
+                  @click="shape.backgroundImage = null" 
+                  class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition"
+                  title="حذف تصویر"
+                >
+                  ✕
+                </button>
+              </div>
+              <p class="text-xs text-green-600">تصویر با موفقیت بارگذاری شد</p>
+            </div>
+          </div>
+
+          <!-- تب اندازه‌ها -->
+          <div v-if="activeTab === 'measurements'" class="space-y-3">
+            <div class="bg-orange-50 rounded p-2 text-xs space-y-1.5">
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">تعداد نقاط:</span>
+                <span class="font-bold text-orange-600">{{ livePointCount }}</span>
+              </div>
+              
+              <div 
+                v-if="drawMode === 'polyline' || drawMode === 'polygon' || shape?.type === 'polyline' || shape?.type === 'polygon'"
+                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+              >
+                <span class="text-gray-600">طول کل:</span>
+                <span class="font-bold text-orange-600">{{ liveTotalLength }}</span>
+              </div>
+              
+              <div 
+                v-if="drawMode === 'polygon' || shape?.type === 'polygon'"
+                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+              >
+                <span class="text-gray-600">مساحت:</span>
+                <span class="font-bold text-green-600">{{ liveArea }}</span>
+              </div>
+              
+              <div 
+                v-if="drawMode === 'circle' || shape?.type === 'circle'"
+                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+              >
+                <span class="text-gray-600">شعاع:</span>
+                <span class="font-bold text-purple-600">{{ liveRadius }}</span>
+              </div>
+            </div>
+
+            <!-- مختصات نقاط -->
+            <div>
+              <h4 class="text-xs font-medium mb-2 text-gray-700">مختصات نقاط:</h4>
+              <div class="space-y-1 max-h-32 overflow-y-auto">
+                <div 
+                  v-for="(point, index) in livePoints" 
+                  :key="index" 
+                  class="bg-gray-50 rounded p-1.5 text-xs flex justify-between items-center hover:bg-orange-50 transition group"
+                >
+                  <span class="text-gray-600">نقطه {{ index + 1 }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs">
+                      {{ point.lat.toFixed(6) }}, {{ point.lon.toFixed(6) }}
+                    </span>
+                    <button 
+                      @click="copyCoordinates(point)" 
+                      class="text-gray-400 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition"
+                      title="کپی مختصات"
+                    >
+                      <i class="fas fa-copy text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div v-if="livePoints.length === 0" class="text-center py-4 text-gray-400 text-xs">
+                <p>در حال ترسیم روی نقشه کلیک کنید</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- دکمه‌های پایین -->
+        <div class="px-3 py-2 bg-gray-50 border-t flex justify-between items-center">
+          <button 
+            @click="cancelForm" 
+            class="px-3 py-1.5 text-gray-600 hover:text-red-600 text-xs transition"
+          >
+            انصراف
+          </button>
+          <button 
+            @click="savePin" 
+            :disabled="!shape"
+            :class="[
+              'px-4 py-1.5 rounded text-xs transition shadow',
+              shape 
+                ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            ]"
+          >
+            ذخیره ترسیم
+          </button>
+        </div>
       </div>
     </div>
   </transition>
@@ -158,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, toRaw, onMounted, onUnmounted, inject } from "vue";
+import { ref, toRaw, computed, watch, onMounted, onUnmounted, inject } from "vue";
 import mapboxgl from "mapbox-gl";
 import axios from "axios";
 import proj4 from "proj4";
@@ -166,6 +358,7 @@ import Loading from "../Loading.vue";
 import MultiPointsList from "../MultiPointsList.vue";
 import { useAuthStore } from "../../stores/auth";
 import { useToast } from "vue-toast-notification";
+
 const SERVER = import.meta.env.VITE_SERVER;
 const authStore = useAuthStore();
 const $toast = useToast();
@@ -176,32 +369,122 @@ const props = defineProps({
   pins: { type: Object, required: true },
 });
 
+const emit = defineEmits(["disableFeatureInfo", "pickPoint"]);
+
+// State
 const loading = ref(false);
 const drawMode = ref("");
 const color = ref("#ff0000");
 const pickForForm = ref(false);
-const drawings = ref([]);
 const pointList = ref([]);
 const positions = [];
-let drawDataSourceId = "pins-draw-" + crypto.randomUUID();
-let tempSourceId = null;
-let tempLayerIds = [];
-const emit = defineEmits(["disableFeatureInfo", "pickPoint"]);
 const formData = ref({ name: "", description: "", file: null });
 const showForm = ref(false);
 const shape = ref(null);
 const attch_file = ref(null);
-let shape_id = "";
+const activeTab = ref('info');
 let radius = 0;
+let circleCenter = null;
+const tempCircle = ref(null);
 let measurePoints = [];
-let measureEntities = [];
 const measureActive = ref(false);
 
+// Event handlers
 let mouseMoveHandler = null;
 let clickHandler = null;
 let dblClickHandler = null;
 let rightClickHandler = null;
 let keyHandler = null;
+
+// Source IDs
+let drawDataSourceId = "pins-draw-" + crypto.randomUUID();
+let tempSourceId = null;
+let tempLayerIds = [];
+
+// Tabs
+const tabs = [
+  { key: 'info', label: 'توضیحات' },
+  { key: 'style', label: 'استایل' },
+  { key: 'image', label: 'تصویر' },
+  { key: 'measurements', label: 'اندازه‌ها' }
+];
+
+// Computed برای نمایش زنده نقاط
+const livePoints = computed(() => {
+  if (shape.value) {
+    return getAllPoints();
+  }
+  
+  if (drawMode.value === 'circle' && tempCircle.value) {
+    return [{ lat: tempCircle.value.center.lat, lon: tempCircle.value.center.lng }];
+  }
+  
+  if (positions.length > 0) {
+    return positions.map(p => ({ lat: p.lat, lon: p.lng }));
+  }
+  
+  return [];
+});
+
+const livePointCount = computed(() => {
+  if (shape.value) return getPointsCount();
+  if (drawMode.value === 'circle' && tempCircle.value) return 1;
+  return positions.length;
+});
+
+const liveTotalLength = computed(() => {
+  if (shape.value) return calculateTotalLength();
+  
+  const points = livePoints.value;
+  if (points.length < 2) return '0 m';
+  
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    total += measureDistance(
+      [points[i-1].lon, points[i-1].lat],
+      [points[i].lon, points[i].lat]
+    );
+  }
+  return formatDistance(total);
+});
+
+const liveArea = computed(() => {
+  if (shape.value) return calculateArea();
+  if (drawMode.value !== 'polygon') return '0 m²';
+  
+  const points = livePoints.value;
+  if (points.length < 3) return '0 m²';
+  
+  let area = 0;
+  const coords = points.map(p => {
+    const zone = Math.floor((p.lon + 180) / 6) + 1;
+    return proj4('EPSG:4326', `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [p.lon, p.lat]);
+  });
+  
+  for (let i = 0; i < coords.length; i++) {
+    const j = (i + 1) % coords.length;
+    area += coords[i][0] * coords[j][1];
+    area -= coords[j][0] * coords[i][1];
+  }
+  area = Math.abs(area) / 2;
+  
+  return area > 1000000 
+    ? (area / 1000000).toFixed(2) + ' km²'
+    : area.toFixed(2) + ' m²';
+});
+
+const liveRadius = computed(() => {
+  if (shape.value && shape.value.type === 'circle') return formatDistance(shape.value.radius);
+  if (tempCircle.value) return formatDistance(tempCircle.value.radius);
+  return '0 m';
+});
+
+watch(shape, (newVal) => {
+  if (newVal && showForm.value) {
+    tempCircle.value = null;
+    circleCenter = null;
+  }
+}, { deep: true });
 
 onMounted(() => {
   if (!props.map.getSource(drawDataSourceId)) {
@@ -210,6 +493,11 @@ onMounted(() => {
       data: { type: "FeatureCollection", features: [] },
     });
   }
+});
+
+onUnmounted(() => {
+  cleanupHandlers();
+  clearTempLayers();
 });
 
 function clearTempLayers() {
@@ -279,15 +567,24 @@ function cancelPointPick() {
 function setDrawMode(mode) {
   emit("disableFeatureInfo");
   pickForForm.value = false;
-  if (drawMode.value !== "" && drawMode.value !== "measure") {
-    finishDrawingCurrent();
-    showForm.value = true;
-    return;
-  }
+  
+  if (drawMode.value === mode && showForm.value) return;
+  
   measureActive.value = false;
   cleanupHandlers();
   drawMode.value = mode;
-  startDrawing();
+  activeTab.value = 'info';
+  positions.length = 0;
+  shape.value = null;
+  pointList.value = [];
+  tempCircle.value = null;
+  circleCenter = null;
+  
+  showForm.value = true;
+  
+  setTimeout(() => {
+    startDrawing();
+  }, 100);
 }
 
 function startDrawing() {
@@ -345,7 +642,6 @@ function startDrawing() {
       if (positions.length < 1) return;
       cleanupHandlers();
       finishDrawing("multi_point", [...positions]);
-      showForm.value = true;
     };
 
     map.on("click", clickHandler);
@@ -399,7 +695,6 @@ function startDrawing() {
       if (positions.length > 1) positions.pop();
       cleanupHandlers();
       finishDrawing("polyline", [...positions]);
-      showForm.value = true;
     };
 
     keyHandler = (event) => {
@@ -470,7 +765,6 @@ function startDrawing() {
       if (positions.length > 0) positions.pop();
       cleanupHandlers();
       finishDrawing("polygon", [...positions]);
-      showForm.value = true;
     };
 
     keyHandler = (event) => {
@@ -487,7 +781,8 @@ function startDrawing() {
     map.on("contextmenu", rightClickHandler);
     map.on("dblclick", dblClickHandler);
   } else if (drawMode.value === "circle") {
-    let center = null;
+    circleCenter = null;
+    tempCircle.value = null;
     tempSourceId = "temp-" + crypto.randomUUID();
     map.addSource(tempSourceId, {
       type: "geojson",
@@ -507,34 +802,42 @@ function startDrawing() {
     });
 
     clickHandler = (e) => {
-      if (!center) {
-        center = [e.lngLat.lng, e.lngLat.lat];
+      if (!circleCenter) {
+        circleCenter = [e.lngLat.lng, e.lngLat.lat];
+        tempCircle.value = {
+          center: { lat: circleCenter[1], lng: circleCenter[0] },
+          radius: 0
+        };
       } else {
         cleanupHandlers();
         finishDrawing("circle", {
-          center: { lng: center[0], lat: center[1] },
+          center: { lng: circleCenter[0], lat: circleCenter[1] },
           radius,
         });
-        showForm.value = true;
       }
     };
 
     mouseMoveHandler = (e) => {
-      if (!center) return;
+      if (!circleCenter) return;
       const dx =
-        (e.lngLat.lng - center[0]) *
+        (e.lngLat.lng - circleCenter[0]) *
         111319.9 *
-        Math.cos((center[1] * Math.PI) / 180);
-      const dy = (e.lngLat.lat - center[1]) * 110540;
+        Math.cos((circleCenter[1] * Math.PI) / 180);
+      const dy = (e.lngLat.lat - circleCenter[1]) * 110540;
       radius = Math.sqrt(dx * dx + dy * dy);
+
+      tempCircle.value = {
+        center: { lat: circleCenter[1], lng: circleCenter[0] },
+        radius: radius
+      };
 
       const coords = [];
       for (let i = 0; i <= 64; i++) {
         const angle = (i / 64) * 2 * Math.PI;
-        const rLat = center[1] + (radius / 110540) * Math.sin(angle);
+        const rLat = circleCenter[1] + (radius / 110540) * Math.sin(angle);
         const rLng =
-          center[0] +
-          (radius / (111319.9 * Math.cos((center[1] * Math.PI) / 180))) *
+          circleCenter[0] +
+          (radius / (111319.9 * Math.cos((circleCenter[1] * Math.PI) / 180))) *
             Math.cos(angle);
         coords.push([rLng, rLat]);
       }
@@ -630,19 +933,12 @@ function updateTempGeoJSONWithPreview(pts) {
   src.setData({ type: "FeatureCollection", features });
 }
 
-function finishDrawingCurrent() {
-  if (drawMode.value === "multi_point") {
-    finishDrawing("multi_point", [...positions]);
-  } else if (drawMode.value === "polyline") {
-    finishDrawing("polyline", [...positions]);
-  } else if (drawMode.value === "polygon") {
-    finishDrawing("polygon", [...positions]);
-  }
-}
-
 function finishDrawing(draw, pos) {
   cleanupHandlers();
   props.map.getCanvas().style.cursor = "default";
+
+  const defaultOpacity = 0.7;
+  const defaultWidth = 3;
 
   if (draw === "circle") {
     shape.value = {
@@ -650,8 +946,13 @@ function finishDrawing(draw, pos) {
       center: pos.center,
       radius,
       color: color.value,
+      opacity: defaultOpacity,
+      width: defaultWidth,
+      backgroundImage: null,
       show: true,
     };
+    tempCircle.value = null;
+    circleCenter = null;
   } else if (draw === "multi_point") {
     shape.value = {
       type: "multi_point",
@@ -661,16 +962,20 @@ function finishDrawing(draw, pos) {
         height: 0,
         color: p.color,
       })),
-      width: 5,
       color: color.value,
+      opacity: defaultOpacity,
+      width: 5,
+      backgroundImage: null,
       show: true,
     };
   } else if (draw === "polyline") {
     shape.value = {
       type: draw,
       positions: pos.map((p) => ({ lon: p.lng, lat: p.lat, height: 0 })),
-      width: 3,
       color: color.value,
+      opacity: defaultOpacity,
+      width: 3,
+      backgroundImage: null,
       show: true,
     };
   } else if (draw === "polygon") {
@@ -681,6 +986,9 @@ function finishDrawing(draw, pos) {
       positions: coords,
       color: color.value,
       outlineColor: color.value,
+      opacity: defaultOpacity,
+      width: defaultWidth,
+      backgroundImage: null,
       show: true,
     };
   }
@@ -741,7 +1049,6 @@ function startMeasure() {
   });
 
   tempSourceId = tempId;
-  measureEntities = [tempId + "-line", tempId + "-points", tempId + "-labels"];
 
   clickHandler = (e) => {
     measurePoints.push([e.lngLat.lng, e.lngLat.lat]);
@@ -807,10 +1114,33 @@ function stopMeasure() {
 }
 
 const cancelForm = () => {
+  // پاک کردن shape ذخیره نشده
+  shape.value = null;
+  
+  // پاک کردن temp layer ها
+  clearTempLayers();
+  
+  // پاک کردن handlers
+  cleanupHandlers();
+  
+  // ریست کردن state
   showForm.value = false;
   drawMode.value = "";
+  formData.value = { name: "", description: "", file: null };
+  attch_file.value = null;
+  tempCircle.value = null;
+  circleCenter = null;
   positions.length = 0;
-  clearTempLayers();
+  pointList.value = [];
+  
+  // پاک کردن source داده‌های draw
+  if (props.map.getSource(drawDataSourceId)) {
+    props.map.getSource(drawDataSourceId).setData({
+      type: "FeatureCollection",
+      features: []
+    });
+  }
+  
   props.map.getCanvas().style.cursor = "default";
 };
 
@@ -819,19 +1149,26 @@ const onFileChange = (e) => {
 };
 
 const savePin = async () => {
+  if (!formData.value.name.trim()) {
+    alert("لطفاً نام ترسیم را وارد کنید");
+    return;
+  }
+  
   let pin = {
     id: crypto.randomUUID(),
     name: formData.value.name,
     descr: formData.value.description,
-    shape: shape.value,
+    shape: toRaw(shape.value),
     date: new Date(),
     save: -1,
     type: "draw",
   };
+  
   if (attch_file.value) {
     pin.filename = attch_file.value.name;
     pin.file = attch_file.value;
   }
+  
   if (SelectGroup.value !== null) {
     pin.parent_id = props.pins[SelectGroup.value].save ?? -1;
     props.pins[SelectGroup.value].children.push(pin);
@@ -843,11 +1180,16 @@ const savePin = async () => {
   drawMode.value = "";
   showForm.value = false;
   formData.value = { name: "", description: "", file: null };
+  attch_file.value = null;
+  tempCircle.value = null;
+  circleCenter = null;
+  
   await saveOneWorks(pin);
 };
 
 const saveOneWorks = async (item) => {
   if (!authStore.user) return;
+  loading.value = true;
   try {
     const fd = new FormData();
     fd.append("type", item.type);
@@ -856,22 +1198,140 @@ const saveOneWorks = async (item) => {
     fd.append("parent_id", item.parent_id);
     if (item.type === "file") fd.append("file", item.file);
     else fd.append("content", JSON.stringify(toRaw(item.shape)));
+    
     const response = await axios.post(SERVER + "/api/Save/myWork/" + authStore.user?.id, fd, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    if (response.data?.id) item.save = response.data.id; // مهم: برای ویرایش‌های بعدی لازم است
+    
+    if (response.data?.id) item.save = response.data.id;
   } catch (err) {
-    console.error(err);
+    console.error("خطا در ذخیره‌سازی:", err);
+  } finally {
+    loading.value = false;
   }
 };
 
+// Helper functions
+function getDrawTypeName() {
+  const names = {
+    'circle': 'دایره',
+    'polygon': 'چندضلعی',
+    'polyline': 'خط',
+    'multi_point': 'چند نقطه'
+  };
+  return names[shape.value?.type] || 'ترسیم جدید';
+}
+
+function getPointsCount() {
+  if (!shape.value) return 0;
+  if (shape.value.type === 'circle') return 1;
+  if (shape.value.type === 'multi_point') return shape.value.positions?.length || 0;
+  const positions = shape.value.positions || [];
+  return positions.length > 0 ? positions.length - 1 : 0;
+}
+
+function getAllPoints() {
+  if (!shape.value) return [];
+  if (shape.value.type === 'circle') {
+    return [{ lat: shape.value.center.lat, lon: shape.value.center.lng }];
+  }
+  const positions = shape.value.positions || [];
+  if (shape.value.type === 'polygon' && positions.length > 1) {
+    return positions.slice(0, -1);
+  }
+  return positions;
+}
+
+function calculateTotalLength() {
+  const points = getAllPoints();
+  if (points.length < 2) return '0 m';
+  
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    total += measureDistance(
+      [points[i-1].lon, points[i-1].lat],
+      [points[i].lon, points[i].lat]
+    );
+  }
+  return formatDistance(total);
+}
+
+function calculateArea() {
+  if (!shape.value || shape.value.type !== 'polygon') return '0 m²';
+  const points = getAllPoints();
+  if (points.length < 3) return '0 m²';
+  
+  let area = 0;
+  const coords = points.map(p => {
+    const zone = Math.floor((p.lon + 180) / 6) + 1;
+    return proj4('EPSG:4326', `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [p.lon, p.lat]);
+  });
+  
+  for (let i = 0; i < coords.length; i++) {
+    const j = (i + 1) % coords.length;
+    area += coords[i][0] * coords[j][1];
+    area -= coords[j][0] * coords[i][1];
+  }
+  area = Math.abs(area) / 2;
+  
+  return area > 1000000 
+    ? (area / 1000000).toFixed(2) + ' km²'
+    : area.toFixed(2) + ' m²';
+}
+
+function formatDistance(meters) {
+  if (meters > 1000) {
+    return (meters / 1000).toFixed(2) + ' km';
+  }
+  return meters.toFixed(0) + ' m';
+}
+
+function copyCoordinates(point) {
+  const text = `${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}`;
+  navigator.clipboard.writeText(text).then(() => {
+    if ($toast) $toast.success("مختصات کپی شد");
+  }).catch(() => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    if ($toast) $toast.success("مختصات کپی شد");
+  });
+}
+
+function onBackgroundImageChange(e) {
+  const file = e.target.files[0];
+  if (file && shape.value) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      shape.value.backgroundImage = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
 function inactiveDrawing() {
-  showForm.value = false;
+  shape.value = null;
+  clearTempLayers();
   cleanupHandlers();
+  showForm.value = false;
   drawMode.value = "";
   measureActive.value = false;
   positions.length = 0;
-  clearTempLayers();
+  tempCircle.value = null;
+  circleCenter = null;
+  pointList.value = [];
+  
+  if (props.map.getSource(drawDataSourceId)) {
+    props.map.getSource(drawDataSourceId).setData({
+      type: "FeatureCollection",
+      features: []
+    });
+  }
+  
+  props.map.getCanvas().style.cursor = "default";
 }
 
 defineExpose({ inactiveDrawing });
@@ -880,10 +1340,29 @@ defineExpose({ inactiveDrawing });
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
 }
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+  transform: scale(0.95);
+}
+
+.max-h-72::-webkit-scrollbar,
+.max-h-32::-webkit-scrollbar {
+  width: 4px;
+}
+.max-h-72::-webkit-scrollbar-track,
+.max-h-32::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.max-h-72::-webkit-scrollbar-thumb,
+.max-h-32::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+.max-h-72::-webkit-scrollbar-thumb:hover,
+.max-h-32::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 </style>

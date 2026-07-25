@@ -350,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, toRaw, computed, watch, onMounted, onUnmounted, inject } from "vue";
+import { ref, reactive, toRaw, computed, watch, onMounted, onUnmounted, inject } from "vue";
 import mapboxgl from "mapbox-gl";
 import axios from "axios";
 import proj4 from "proj4";
@@ -377,7 +377,8 @@ const drawMode = ref("");
 const color = ref("#ff0000");
 const pickForForm = ref(false);
 const pointList = ref([]);
-const positions = [];
+// Fix: reactive array for positions
+const positions = reactive([]);
 const formData = ref({ name: "", description: "", file: null });
 const showForm = ref(false);
 const shape = ref(null);
@@ -501,10 +502,12 @@ onUnmounted(() => {
 });
 
 function clearTempLayers() {
+  // Remove layers first
   tempLayerIds.forEach((id) => {
     if (props.map.getLayer(id)) props.map.removeLayer(id);
   });
   tempLayerIds = [];
+  // Then remove source
   if (tempSourceId && props.map.getSource(tempSourceId)) {
     props.map.removeSource(tempSourceId);
     tempSourceId = null;
@@ -597,8 +600,9 @@ function startDrawing() {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
+    const pointsLayerId = tempSourceId + "-points";
     map.addLayer({
-      id: tempSourceId + "-points",
+      id: pointsLayerId,
       type: "circle",
       source: tempSourceId,
       paint: {
@@ -608,6 +612,7 @@ function startDrawing() {
         "circle-stroke-width": 1,
       },
     });
+    tempLayerIds.push(pointsLayerId);
 
     clickHandler = (e) => {
       const { lng, lat } = e.lngLat;
@@ -652,14 +657,16 @@ function startDrawing() {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
+    const lineLayerId = tempSourceId + "-line";
+    const pointsLayerId = tempSourceId + "-points";
     map.addLayer({
-      id: tempSourceId + "-line",
+      id: lineLayerId,
       type: "line",
       source: tempSourceId,
       paint: { "line-color": color.value, "line-width": 3 },
     });
     map.addLayer({
-      id: tempSourceId + "-points",
+      id: pointsLayerId,
       type: "circle",
       source: tempSourceId,
       filter: ["==", "$type", "Point"],
@@ -670,6 +677,7 @@ function startDrawing() {
         "circle-stroke-width": 2,
       },
     });
+    tempLayerIds.push(lineLayerId, pointsLayerId);
 
     clickHandler = (e) => {
       positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
@@ -716,20 +724,23 @@ function startDrawing() {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
+    const fillLayerId = tempSourceId + "-fill";
+    const outlineLayerId = tempSourceId + "-outline";
+    const pointsLayerId = tempSourceId + "-points";
     map.addLayer({
-      id: tempSourceId + "-fill",
+      id: fillLayerId,
       type: "fill",
       source: tempSourceId,
       paint: { "fill-color": color.value, "fill-opacity": 0.4 },
     });
     map.addLayer({
-      id: tempSourceId + "-outline",
+      id: outlineLayerId,
       type: "line",
       source: tempSourceId,
       paint: { "line-color": color.value, "line-width": 3 },
     });
     map.addLayer({
-      id: tempSourceId + "-points",
+      id: pointsLayerId,
       type: "circle",
       source: tempSourceId,
       filter: ["==", "$type", "Point"],
@@ -740,6 +751,7 @@ function startDrawing() {
         "circle-stroke-width": 2,
       },
     });
+    tempLayerIds.push(fillLayerId, outlineLayerId, pointsLayerId);
 
     clickHandler = (e) => {
       positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
@@ -788,18 +800,21 @@ function startDrawing() {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
+    const fillLayerId = tempSourceId + "-fill";
+    const outlineLayerId = tempSourceId + "-outline";
     map.addLayer({
-      id: tempSourceId + "-fill",
+      id: fillLayerId,
       type: "fill",
       source: tempSourceId,
       paint: { "fill-color": color.value, "fill-opacity": 0.5 },
     });
     map.addLayer({
-      id: tempSourceId + "-outline",
+      id: outlineLayerId,
       type: "line",
       source: tempSourceId,
       paint: { "line-color": color.value, "line-width": 2 },
     });
+    tempLayerIds.push(fillLayerId, outlineLayerId);
 
     clickHandler = (e) => {
       if (!circleCenter) {
@@ -1018,21 +1033,24 @@ function startMeasure() {
     type: "geojson",
     data: { type: "FeatureCollection", features: [] },
   });
+  const lineLayerId = tempId + "-line";
+  const pointsLayerId = tempId + "-points";
+  const labelsLayerId = tempId + "-labels";
   map.addLayer({
-    id: tempId + "-line",
+    id: lineLayerId,
     type: "line",
     source: tempId,
     paint: { "line-color": "#00ff00", "line-width": 3 },
   });
   map.addLayer({
-    id: tempId + "-points",
+    id: pointsLayerId,
     type: "circle",
     source: tempId,
     filter: ["==", "$type", "Point"],
     paint: { "circle-radius": 8, "circle-color": "#ff0000" },
   });
   map.addLayer({
-    id: tempId + "-labels",
+    id: labelsLayerId,
     type: "symbol",
     source: tempId,
     filter: ["has", "distance"],
@@ -1049,6 +1067,7 @@ function startMeasure() {
   });
 
   tempSourceId = tempId;
+  tempLayerIds.push(lineLayerId, pointsLayerId, labelsLayerId);
 
   clickHandler = (e) => {
     measurePoints.push([e.lngLat.lng, e.lngLat.lat]);
@@ -1111,6 +1130,7 @@ function stopMeasure() {
   cleanupHandlers();
   measurePoints = [];
   measureActive.value = false;
+  clearTempLayers();
 }
 
 const cancelForm = () => {

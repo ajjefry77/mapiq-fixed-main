@@ -1,9 +1,16 @@
 <template>
   <ul class="list-none m-0 p-0">
-    <li v-for="(item, idx) in items" :key="item.id" class="border-t border-gray-300">
+    <li v-for="(item, idx) in items" :key="item.id"
+        class="border-t border-gray-300"
+        draggable="true"
+        @dragstart.stop="onItemDragStart($event, item)"
+        @dragover.prevent="onItemDragOver($event, idx)"
+        @dragleave="dragOverIdx = null"
+        @drop.stop="onReorderDrop($event, idx)"
+        :class="{ 'border-t-2 border-blue-500': dragOverIdx === idx }">
       <div v-if="item.type === 'group'" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
            :style="{ ['paddingRight']: `${depth * 8}px` }" @click.stop="handleSelectGroup(item, idx)"
-           :class="{ 'bg-blue-100': selectedGroup === item }" @dragover.prevent @drop="onDrop($event, item)">
+           :class="{ 'bg-blue-100': selectedGroup === item }" @dragover.prevent.stop @drop.stop="onDrop($event, item)">
         <div>
           <i @click.stop="toggleGroup(item)" class="text-sm"
              :class="item.expanded ? 'fas fa-caret-down text-black' : 'fas fa-caret-left text-black'"></i>
@@ -43,6 +50,7 @@ const $toast = useToast();
 const SERVER = import.meta.env.VITE_SERVER;
 const SelectGroup = inject('SelectGroup');
 const activeItem = ref(null);
+const dragOverIdx = ref(null);
 
 const props = defineProps({
   items: Array,
@@ -117,6 +125,33 @@ function removeLayer(id) {
       continue;
     }
   }
+}
+
+function onItemDragStart(event, item) {
+  event.dataTransfer.setData("layerId", item.id);
+  event.dataTransfer.effectAllowed = "move";
+}
+
+function onItemDragOver(event, idx) {
+  dragOverIdx.value = idx;
+}
+
+async function onReorderDrop(event, targetIdx) {
+  dragOverIdx.value = null;
+
+  const layerId = event.dataTransfer.getData("layerId");
+  if (!layerId) return;
+
+  const items = props.items;
+  const fromIdx = items.findIndex(i => i.id == layerId);
+  if (fromIdx === -1 || fromIdx === targetIdx) return;
+
+  const [moved] = items.splice(fromIdx, 1);
+  const insertAt = fromIdx < targetIdx ? targetIdx - 1 : targetIdx;
+  items.splice(insertAt + 1, 0, moved);
+
+  // اگه بک‌اند اندپوینت ذخیره ترتیب داره، اینجا صداش بزن، مثلا:
+  // await axios.post(SERVER + '/api/reorder', { order: items.map(i => i.save) });
 }
 
 async function onDrop(event, targetGroup) {

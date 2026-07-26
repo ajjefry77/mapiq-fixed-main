@@ -638,6 +638,7 @@ function setDrawMode(mode) {
   
   measureActive.value = false;
   cleanupHandlers();
+  clearTempLayers();
   drawMode.value = mode;
   activeTab.value = 'info';
   positions.length = 0;
@@ -826,7 +827,6 @@ function finishDrawing(draw, pos) {
   }
 
   positions.length = 0;
-  clearTempLayers();
 }
 
 function toggleMeasure() {
@@ -956,6 +956,7 @@ const savePin = async () => {
   attch_file.value = null;
   tempCircle.value = null;
   circleCenter = null;
+  clearTempLayers();
   
   await saveOneWorks(pin);
 };

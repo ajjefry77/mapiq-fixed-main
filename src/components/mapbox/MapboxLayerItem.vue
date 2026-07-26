@@ -1,8 +1,7 @@
 <template>
   <div class="grid grid-cols-[1fr_auto] items-center w-full pr-2 px-1 py-0 cursor-pointer"
        :class="{ 'bg-blue-200': isActiveLayer, 'hover:bg-gray-300': !isActiveLayer }"
-       :style="{ ['paddingRight']: `${depth * 20}px` }"
-       draggable="true" @dragstart="onDragStart">
+       :style="{ ['paddingRight']: `${depth * 20}px` }">
 
     <div class="flex items-center gap-1" @click.stop="zoomOnPin">
       <i v-if="isGroup" class="fas fa-folder text-yellow-500"></i>
@@ -75,10 +74,6 @@ const Pin = ref(null);
 const pointList = ref([]);
 const showPoint = ref(false);
 const isActiveLayer = computed(() => false);
-
-function onDragStart(event) {
-  event.dataTransfer.setData("layerId", props.id);
-}
 
 const send = async (data) => {
   if (!Pin.value) return;

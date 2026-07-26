@@ -91,18 +91,6 @@
     <i class="fas fa-location m-1"></i>
   </button>
 
-  <div v-if="contextMenu.visible" class="absolute bg-white border rounded shadow-lg py-2 z-50 text-xs px-2"
-       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
-    <div class="flex justify-between items-center border-b-2 border-gray-400 font-bold mt-1 pb-2 px-2">
-      <span>ترتیب نمایش لایه ها در نقشه</span>
-      <button @click="hideContextMenu" class="text-lg leading-none hover:text-red-600">&times;</button>
-    </div>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200 mt-2" @click="changeOrder(contextMenu.item, 'lower')">یک لایه به پایین</button>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200" @click="changeOrder(contextMenu.item, 'raise')">یک لایه به بالا</button>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200" @click="changeOrder(contextMenu.item, 'raiseToTop')">بعنوان بالاترین لایه</button>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right" @click="changeOrder(contextMenu.item, 'lowerToBottom')">بعنوان پایین ترین لایه</button>
-  </div>
-
   <LocationPickerPanel v-model:visible="showPickerPanel" :lat="pickedPoint.lat" :lng="pickedPoint.lng" @close="closePickerPanel" @savePoint="savePickedPoint"/>
 </template>
 
@@ -175,43 +163,10 @@ const activeOpacityLayer = ref(null);
 
 const mapContainerRef = ref(null);
 
-const contextMenu = ref({ visible: false, x: 0, y: 0, item: null });
-
 provide('Pins', Pins);
 
 function clearPins() { Pins.splice(0, Pins.length); }
 function openMyDialog() { openDialog.value = true; }
-
-function changeOrder(layerName, tab) {
-  const style = map.getStyle();
-  const layers = style.layers;
-  const idx = layers.findIndex(l => l.id === layerName);
-  if (idx === -1) return;
-
-  const layer = layers.splice(idx, 1)[0];
-  const aboveIdx = layers.findIndex(l => l['source-layer'] && l.id !== layerName);
-
-  switch (tab) {
-    case 'lower':
-      layers.splice(Math.max(0, idx - 1), 0, layer);
-      break;
-    case 'raise':
-      layers.splice(Math.min(layers.length, idx + 1), 0, layer);
-      break;
-    case 'raiseToTop':
-      layers.push(layer);
-      break;
-    case 'lowerToBottom':
-      layers.unshift(layer);
-      break;
-  }
-
-  style.layers = layers;
-  map.setStyle(style);
-  hideContextMenu();
-}
-
-function hideContextMenu() { contextMenu.value.visible = false; }
 
 function setBaseLayer(basemap) {
   if (!map) return;
@@ -364,13 +319,6 @@ function initMap() {
   map.on('zoom', () => { updateScale(); });
   map.on('move', () => { updateScale(); });
 
-  map.on('contextmenu', (e) => {
-    contextMenu.value.visible = true;
-    contextMenu.value.x = e.originalEvent.pageX;
-    contextMenu.value.y = e.originalEvent.pageY;
-    contextMenu.value.item = 'satellite';
-  });
-
   map.on('load', () => {
     mapReady.value = true;
   });
@@ -428,11 +376,9 @@ function toggleLayer(layerName) {
 onMounted(async () => {
   await nextTick();
   initMap();
-  document.addEventListener('click', hideContextMenu);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', hideContextMenu);
   if (map) { map.remove(); map = null; }
 });
 </script>

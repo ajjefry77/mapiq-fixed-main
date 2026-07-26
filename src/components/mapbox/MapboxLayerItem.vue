@@ -112,10 +112,14 @@ const zoomOnPin = () => {
   if (!shape) return;
 
   if (shape.positions && shape.positions.length > 0) {
-    const coords = shape.positions.map(p => [p.lon, p.lat]);
-    const bounds = new mapboxgl.LngLatBounds();
-    coords.forEach(c => bounds.extend(c));
-    props.map.fitBounds(bounds, { padding: 50, duration: 1500 });
+    const coords = shape.positions
+      .map(p => [p.lon, p.lat])
+      .filter(c => c[0] != null && c[1] != null);
+    if (coords.length > 0) {
+      const bounds = new mapboxgl.LngLatBounds();
+      coords.forEach(c => bounds.extend(c));
+      props.map.fitBounds(bounds, { padding: 50, duration: 1500 });
+    }
   } else if (shape.center) {
     props.map.flyTo({ center: [shape.center.lng || shape.center.lon, shape.center.lat], zoom: 14, duration: 1500 });
   } else if (shape.lon !== undefined && shape.lat !== undefined) {

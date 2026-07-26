@@ -93,7 +93,7 @@
 
         <div>
           <h4 class="text-xs font-medium mb-2 text-gray-700">
-            {{ drawMode === 'multi_point' || shape?.type === 'multi_point' ? 'نقاط' : 'مختصات نقاط' }}:
+            {{ drawMode === 'multi_point' || shape?.type === 'multi_point' ? 'نقاط' : drawMode === 'measure' ? 'اندازه‌گیری' : 'مختصات نقاط' }}:
           </h4>
           <div class="space-y-1 max-h-32 overflow-y-auto">
             <div

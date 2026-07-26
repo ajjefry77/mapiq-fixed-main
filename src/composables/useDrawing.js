@@ -25,7 +25,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   let radius = 0;
   let circleCenter = null;
   const tempCircle = ref(null);
-  let measurePoints = [];
+  const measurePoints = reactive([]);
   const measureActive = ref(false);
   const coordinateSystem = ref('latlon');
 
@@ -44,8 +44,12 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   // Tabs
   const tabs = computed(() => {
     const isMultiPoint = drawMode.value === 'multi_point' || shape.value?.type === 'multi_point';
+    const isMeasure = drawMode.value === 'measure' || measureActive.value;
     return [
-      { key: 'measurements', label: isMultiPoint ? 'نقاط' : 'اندازه‌ها' },
+      {
+        key: 'measurements',
+        label: isMultiPoint ? 'نقاط' : isMeasure ? 'اندازه‌گیری' : 'اندازه‌ها'
+      },
       { key: 'style', label: 'استایل' },
       { key: 'info', label: 'ذخیره' }
     ];
@@ -60,6 +64,17 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   });
 
   const displayPoints = computed(() => {
+    if (measureActive.value) {
+      return measurePoints.map((p, i) => {
+        if (coordinateSystem.value === 'utm') {
+          const zone = Math.floor((p[0] + 180) / 6) + 1;
+          const [x, y] = proj4('EPSG:4326', `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [p[0], p[1]]);
+          return { lat: p[1], lon: p[0], displayX: x, displayY: y, zone, system: 'utm', index: i };
+        } else {
+          return { lat: p[1], lon: p[0], displayX: p[0], displayY: p[1], system: 'latlon', index: i };
+        }
+      });
+    }
     return livePoints.value.map(p => {
       if (coordinateSystem.value === 'utm') {
         const zone = Math.floor((p.lon + 180) / 6) + 1;
@@ -74,11 +89,20 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   const livePointCount = computed(() => {
     if (shape.value) return getPointsCount();
     if (drawMode.value === 'circle' && tempCircle.value) return 1;
+    if (measureActive.value) return measurePoints.length;
     return positions.length;
   });
 
   const liveTotalLength = computed(() => {
     if (shape.value) return calculateTotalLength();
+    if (measureActive.value) {
+      if (measurePoints.length < 2) return '0 m';
+      let total = 0;
+      for (let i = 1; i < measurePoints.length; i++) {
+        total += measureDistance(measurePoints[i - 1], measurePoints[i]);
+      }
+      return formatDistance(total);
+    }
     const points = livePoints.value;
     if (points.length < 2) return '0 m';
     let total = 0;
@@ -246,10 +270,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         type: "circle",
         source: tempSourceId,
         paint: {
-          "circle-radius": 6,
+          "circle-radius": 7,
           "circle-color": color.value,
           "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 1.5
+          "circle-stroke-width": 2,
+          "circle-opacity": 0.9
         },
       });
       tempLayerIds.push(pointsLayerId);
@@ -285,8 +310,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       m.addSource(tempSourceId, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       const lineLayerId = tempSourceId + "-line";
       const pointsLayerId = tempSourceId + "-points";
-      m.addLayer({ id: lineLayerId, type: "line", source: tempSourceId, paint: { "line-color": color.value, "line-width": 3 } });
-      m.addLayer({ id: pointsLayerId, type: "circle", source: tempSourceId, filter: ["==", "$type", "Point"], paint: { "circle-radius": 5, "circle-color": "#ffff00", "circle-stroke-color": "#000000", "circle-stroke-width": 2 } });
+      m.addLayer({ id: lineLayerId, type: "line", source: tempSourceId, paint: { "line-color": color.value, "line-width": 3, "line-opacity": 0.85 } });
+      m.addLayer({ id: pointsLayerId, type: "circle", source: tempSourceId, filter: ["==", "$type", "Point"], paint: { "circle-radius": 6, "circle-color": "#ffffff", "circle-stroke-color": color.value, "circle-stroke-width": 3, "circle-opacity": 0.9 } });
       tempLayerIds.push(lineLayerId, pointsLayerId);
 
       clickHandler = (e) => { positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat }); updateTempGeoJSON(); };
@@ -302,12 +327,12 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     } else if (drawMode.value === "polygon") {
       tempSourceId = "temp-" + crypto.randomUUID();
       m.addSource(tempSourceId, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      const fillLayerId = tempSourceId + "-fill";
+       const fillLayerId = tempSourceId + "-fill";
       const outlineLayerId = tempSourceId + "-outline";
       const pointsLayerId = tempSourceId + "-points";
-      m.addLayer({ id: fillLayerId, type: "fill", source: tempSourceId, paint: { "fill-color": color.value, "fill-opacity": 0.4 } });
-      m.addLayer({ id: outlineLayerId, type: "line", source: tempSourceId, paint: { "line-color": color.value, "line-width": 3 } });
-      m.addLayer({ id: pointsLayerId, type: "circle", source: tempSourceId, filter: ["==", "$type", "Point"], paint: { "circle-radius": 6, "circle-color": "#ffff00", "circle-stroke-color": "#000000", "circle-stroke-width": 2 } });
+      m.addLayer({ id: fillLayerId, type: "fill", source: tempSourceId, paint: { "fill-color": color.value, "fill-opacity": 0.35 } });
+      m.addLayer({ id: outlineLayerId, type: "line", source: tempSourceId, paint: { "line-color": color.value, "line-width": 2.5, "line-opacity": 0.9 } });
+      m.addLayer({ id: pointsLayerId, type: "circle", source: tempSourceId, filter: ["==", "$type", "Point"], paint: { "circle-radius": 5, "circle-color": "#ffffff", "circle-stroke-color": color.value, "circle-stroke-width": 2.5, "circle-opacity": 0.9 } });
       tempLayerIds.push(fillLayerId, outlineLayerId, pointsLayerId);
 
       clickHandler = (e) => { positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat }); updateTempGeoJSON(); };
@@ -325,10 +350,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       tempCircle.value = null;
       tempSourceId = "temp-" + crypto.randomUUID();
       m.addSource(tempSourceId, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      const fillLayerId = tempSourceId + "-fill";
+       const fillLayerId = tempSourceId + "-fill";
       const outlineLayerId = tempSourceId + "-outline";
-      m.addLayer({ id: fillLayerId, type: "fill", source: tempSourceId, paint: { "fill-color": color.value, "fill-opacity": 0.5 } });
-      m.addLayer({ id: outlineLayerId, type: "line", source: tempSourceId, paint: { "line-color": color.value, "line-width": 2 } });
+      m.addLayer({ id: fillLayerId, type: "fill", source: tempSourceId, paint: { "fill-color": color.value, "fill-opacity": 0.4 } });
+      m.addLayer({ id: outlineLayerId, type: "line", source: tempSourceId, paint: { "line-color": color.value, "line-width": 2, "line-opacity": 0.9 } });
       tempLayerIds.push(fillLayerId, outlineLayerId);
 
       clickHandler = (e) => {
@@ -438,46 +463,153 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   }
 
   function startMeasure() {
-    const m = map;
-    measurePoints = [];
-    const tempId = "measure-temp-" + crypto.randomUUID();
+  const m = map;
+  measurePoints.length = 0;
+  const tempId = "measure-temp-" + crypto.randomUUID();
 
-    m.addSource(tempId, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    const lineLayerId = tempId + "-line";
-    const pointsLayerId = tempId + "-points";
-    const labelsLayerId = tempId + "-labels";
-    m.addLayer({ id: lineLayerId, type: "line", source: tempId, paint: { "line-color": "#00ff00", "line-width": 3 } });
-    m.addLayer({ id: pointsLayerId, type: "circle", source: tempId, filter: ["==", "$type", "Point"], paint: { "circle-radius": 8, "circle-color": "#ff0000" } });
-    m.addLayer({ id: labelsLayerId, type: "symbol", source: tempId, filter: ["has", "distance"], layout: { "text-field": ["get", "distance"], "text-size": 14, "text-offset": [0, -1.5] }, paint: { "text-color": "#000000", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
+  m.addSource(tempId, {
+    type: "geojson",
+    data: { type: "FeatureCollection", features: [] }
+  });
 
-    tempSourceId = tempId;
-    tempLayerIds.push(lineLayerId, pointsLayerId, labelsLayerId);
+  // 🔶 خط نارنجی با ظاهری نرم
+  m.addLayer({
+    id: tempId + "-line",
+    type: "line",
+    source: tempId,
+    paint: {
+      "line-color": "#f97316",
+      "line-width": 4,
+      "line-dasharray": [8, 6],
+      "line-opacity": 0.85
+    }
+  });
 
-    clickHandler = (e) => {
-      measurePoints.push([e.lngLat.lng, e.lngLat.lat]);
-      const features = [];
-      measurePoints.forEach(p => features.push({ type: "Feature", geometry: { type: "Point", coordinates: p }, properties: {} }));
-      if (measurePoints.length >= 2) {
-        features.push({ type: "Feature", geometry: { type: "LineString", coordinates: measurePoints }, properties: {} });
-        let totalDist = 0;
-        for (let i = 1; i < measurePoints.length; i++) totalDist += measureDistance(measurePoints[i - 1], measurePoints[i]);
-        const lastPt = measurePoints[measurePoints.length - 1];
-        const label = totalDist > 1000 ? (totalDist / 1000).toFixed(2) + " km" : totalDist.toFixed(0) + " m";
-        features.push({ type: "Feature", geometry: { type: "Point", coordinates: lastPt }, properties: { distance: label } });
+  // 🔶 نقاط نارنجی با حاشیه سفید
+  m.addLayer({
+    id: tempId + "-points",
+    type: "circle",
+    source: tempId,
+    filter: ["==", "$type", "Point"],
+    paint: {
+      "circle-radius": 8,
+      "circle-color": "#f97316",
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 3,
+      "circle-opacity": 0.9
+    }
+  });
+
+  // 🏷️ برچسب مسافت (لایو) - با تنظیمات اطمینان از نمایش
+  m.addLayer({
+    id: tempId + "-labels",
+    type: "symbol",
+    source: tempId,
+    filter: ["has", "distance"],
+    layout: {
+      "text-field": ["get", "distance"],
+      "text-size": 14,
+      "text-offset": [0, -1.5],
+      "text-anchor": "top",
+      "text-allow-overlap": true,       // اجازه هم‌پوشانی
+      "text-ignore-placement": true,    // نادیده گرفتن جای‌گذاری
+      "text-font": ["Droid Sans", "Arial Unicode MS Bold"]
+    },
+    paint: {
+      "text-color": "#1e293b",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 3,
+      "text-halo-blur": 2
+    }
+  });
+
+  tempSourceId = tempId;
+  tempLayerIds.push(tempId + "-line", tempId + "-points", tempId + "-labels");
+
+  // ===== کلیک =====
+  clickHandler = (e) => {
+    measurePoints.push([e.lngLat.lng, e.lngLat.lat]);
+    const features = [];
+    measurePoints.forEach(p => features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: p },
+      properties: {}
+    }));
+
+    if (measurePoints.length >= 2) {
+      features.push({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: measurePoints },
+        properties: {}
+      });
+
+      let totalDist = 0;
+      for (let i = 1; i < measurePoints.length; i++) {
+        totalDist += measureDistance(measurePoints[i - 1], measurePoints[i]);
       }
-      const src = m.getSource(tempId);
-      if (src) src.setData({ type: "FeatureCollection", features });
-    };
+      const label = totalDist > 1000
+        ? (totalDist / 1000).toFixed(2) + " km"
+        : totalDist.toFixed(1) + " m";
 
-    rightClickHandler = (e) => {
-      e.preventDefault();
-      measurePoints = [];
-      const src = m.getSource(tempId);
-      if (src) src.setData({ type: "FeatureCollection", features: [] });
-    };
+      features.push({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: measurePoints[measurePoints.length - 1] },
+        properties: { distance: label }
+      });
+    }
 
-    m.on("click", clickHandler);
-    m.on("contextmenu", rightClickHandler);
+    const src = m.getSource(tempId);
+    if (src) src.setData({ type: "FeatureCollection", features });
+  };
+
+  // ===== حرکت موس (لایو) =====
+  mouseMoveHandler = (e) => {
+    if (measurePoints.length === 0) return;
+
+    const features = [];
+    measurePoints.forEach(p => features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: p },
+      properties: {}
+    }));
+
+    const allPoints = [...measurePoints, [e.lngLat.lng, e.lngLat.lat]];
+    features.push({
+      type: "Feature",
+      geometry: { type: "LineString", coordinates: allPoints },
+      properties: {}
+    });
+
+    let totalDist = 0;
+    for (let i = 1; i < allPoints.length; i++) {
+      totalDist += measureDistance(allPoints[i - 1], allPoints[i]);
+    }
+    const label = totalDist > 1000
+      ? (totalDist / 1000).toFixed(2) + " km"
+      : totalDist.toFixed(1) + " m";
+
+    // برچسب روی نقطه انتهایی (موقعیت ماوس)
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [e.lngLat.lng, e.lngLat.lat] },
+      properties: { distance: label }
+    });
+
+    const src = m.getSource(tempId);
+    if (src) src.setData({ type: "FeatureCollection", features });
+  };
+
+  // ===== کلیک راست (ریست) =====
+  rightClickHandler = (e) => {
+    e.preventDefault();
+    measurePoints.length = 0;
+    const src = m.getSource(tempId);
+    if (src) src.setData({ type: "FeatureCollection", features: [] });
+  };
+
+  m.on("click", clickHandler);
+  m.on("mousemove", mouseMoveHandler);
+  m.on("contextmenu", rightClickHandler);
   }
 
   function measureDistance([lng1, lat1], [lng2, lat2]) {
@@ -490,12 +622,12 @@ export function useDrawing(map, pins, emit, SelectGroup) {
 
   function stopMeasure() {
     cleanupHandlers();
-    measurePoints = [];
+    measurePoints.length = 0;
     measureActive.value = false;
     clearTempLayers();
   }
 
-  const cancelForm = () => {
+   const cancelForm = () => {
     shape.value = null;
     clearTempLayers();
     cleanupHandlers();
@@ -507,6 +639,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     circleCenter = null;
     positions.length = 0;
     pointList.value = [];
+    measurePoints.length = 0;
+    measureActive.value = false;
 
     if (map.getSource(drawDataSourceId)) {
       map.getSource(drawDataSourceId).setData({ type: "FeatureCollection", features: [] });
@@ -694,17 +828,18 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     });
   }
 
-  function inactiveDrawing() {
-    shape.value = null;
-    clearTempLayers();
-    cleanupHandlers();
-    showForm.value = false;
-    drawMode.value = "";
-    measureActive.value = false;
-    positions.length = 0;
-    tempCircle.value = null;
-    circleCenter = null;
-    pointList.value = [];
+   function inactiveDrawing() {
+     shape.value = null;
+     clearTempLayers();
+     cleanupHandlers();
+     showForm.value = false;
+     drawMode.value = "";
+     measureActive.value = false;
+     measurePoints.length = 0;
+     positions.length = 0;
+     tempCircle.value = null;
+     circleCenter = null;
+     pointList.value = [];
 
     if (map.getSource(drawDataSourceId)) {
       map.getSource(drawDataSourceId).setData({ type: "FeatureCollection", features: [] });

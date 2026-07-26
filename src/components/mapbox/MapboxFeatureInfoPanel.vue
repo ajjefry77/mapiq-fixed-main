@@ -230,7 +230,8 @@ function activate() {
   if (!props.map) return;
   emit("disableDrawing");
   isActive.value = true;
-  props.map.getCanvas().style.cursor = 'crosshair';
+  const canvas = props.map.getCanvas();
+  if (canvas) canvas.style.cursor = 'crosshair';
   clickHandler = (e) => onMapClick(e);
   props.map.on('click', clickHandler);
 }

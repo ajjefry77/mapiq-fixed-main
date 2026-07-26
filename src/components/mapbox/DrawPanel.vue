@@ -128,9 +128,13 @@
           <input
             :value="formData.name"
             @input="$emit('update:formData', { ...formData, name: $event.target.value })"
+            :class="[
+              'w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none',
+              nameError ? 'border-red-500' : ''
+            ]"
             placeholder="نام ترسیم را وارد کنید"
-            class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
           />
+          <p v-if="nameError" class="text-red-500 text-xs mt-1">نام اجباری است</p>
         </div>
         <div>
           <label class="block text-xs mb-1 text-gray-600">توضیحات</label>
@@ -229,7 +233,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const panelEl = ref(null);
 
@@ -250,6 +254,7 @@ defineProps({
   displayPoints: { type: Array, default: () => [] },
   formData: { type: Object, default: () => ({ name: '', description: '' }) },
   attchFileName: { type: String, default: '' },
+  nameError: { type: Boolean, default: false },
   isSaveEnabled: { type: Boolean, default: false },
   formatCoordinate: { type: Function, default: () => '' },
 });

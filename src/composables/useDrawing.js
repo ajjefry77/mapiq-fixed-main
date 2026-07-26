@@ -128,6 +128,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     }
   }, { deep: true });
 
+  watch(() => formData.value.name, () => {
+    nameError.value = false;
+  });
+
   // Lifecycle
   onMounted(() => {
     if (!map.getSource(drawDataSourceId)) {
@@ -529,9 +533,12 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     }
   };
 
+  const nameError = ref(false);
+
   const savePin = async () => {
     if (!formData.value.name.trim()) {
-      alert("لطفاً نام ترسیم را وارد کنید");
+      activeTab.value = 'info';
+      nameError.value = true;
       return;
     }
 
@@ -721,6 +728,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     tempCircle,
     measureActive,
     coordinateSystem,
+    nameError,
 
     // Computed
     tabs,

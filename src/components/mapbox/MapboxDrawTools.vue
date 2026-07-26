@@ -34,6 +34,7 @@
         :displayPoints="displayPoints"
         :formData="formData"
         :attchFileName="attch_file?.name || ''"
+        :nameError="nameError"
         :isSaveEnabled="isSaveEnabled"
         :formatCoordinate="formatCoordinate"
         @startDrag="startDrag"
@@ -83,6 +84,7 @@ const {
   formData,
   shape,
   attch_file,
+  nameError,
   activeTab,
   coordinateSystem,
   tabs,

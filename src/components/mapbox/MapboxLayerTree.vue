@@ -1,13 +1,21 @@
 <template>
   <ul class="list-none m-0 p-0">
-    <li v-for="(item, idx) in items" :key="item.id"
-        class="border-t border-gray-300"
-        draggable="true"
-        @dragstart.stop="onItemDragStart($event, item)"
-        @dragover.prevent="onItemDragOver($event, idx)"
-        @dragleave="dragOverIdx = null"
-        @drop.stop="onReorderDrop($event, idx)"
-        :class="{ 'border-t-2 border-blue-500': dragOverIdx === idx }">
+    <li
+      v-for="(item, idx) in items"
+      :key="item.id"
+      class="border-t border-gray-300"
+      draggable="true"
+      @dragstart.stop="onItemDragStart($event, item)"
+      @dragover.prevent="onItemDragOver($event, idx)"
+      @dragleave="onDragLeave(idx)"
+      @drop.stop="onReorderDrop($event, idx)"
+      @dragend="onDragEnd"
+      :class="{
+        'opacity-50': draggedItemId === item.id,
+        'drop-before': dragOverIdx === idx && dropSide === 'before',
+        'drop-after': dragOverIdx === idx && dropSide === 'after',
+      }"
+    >
       <div v-if="item.type === 'group'" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
            :style="{ ['paddingRight']: `${depth * 8}px` }" @click.stop="handleSelectGroup(item, idx)"
            :class="{ 'bg-blue-100': selectedGroup === item }" @dragover.prevent.stop @drop.stop="onDrop($event, item)">
@@ -51,6 +59,8 @@ const SERVER = import.meta.env.VITE_SERVER;
 const SelectGroup = inject('SelectGroup');
 const activeItem = ref(null);
 const dragOverIdx = ref(null);
+const dropSide = ref('before');
+const draggedItemId = ref(null);
 
 const props = defineProps({
   items: Array,
@@ -127,17 +137,42 @@ function removeLayer(id) {
   }
 }
 
+// ----- درگ و رها کردن -----
+
 function onItemDragStart(event, item) {
+  draggedItemId.value = item.id;
   event.dataTransfer.setData("layerId", item.id);
   event.dataTransfer.effectAllowed = "move";
 }
 
 function onItemDragOver(event, idx) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const y = event.clientY - rect.top;
+  const middle = rect.height / 2;
   dragOverIdx.value = idx;
+  dropSide.value = y < middle ? 'before' : 'after';
 }
 
-async function onReorderDrop(event, targetIdx) {
+function onDragLeave(idx) {
+  // فقط وقتی موس از آیتم کاملاً خارج شود پاک می‌کنیم،
+  // اما در صورت ورود به آیتم دیگر مقدار به‌روز می‌شود.
+  if (dragOverIdx.value === idx) {
+    dragOverIdx.value = null;
+  }
+}
+
+function onDragEnd() {
+  draggedItemId.value = null;
   dragOverIdx.value = null;
+  dropSide.value = 'before';
+}
+
+function onReorderDrop(event, targetIdx) {
+  event.preventDefault();
+  const side = dropSide.value;
+  // پاک‌سازی نشانگرها
+  dragOverIdx.value = null;
+  draggedItemId.value = null;
 
   const layerId = event.dataTransfer.getData("layerId");
   if (!layerId) return;
@@ -147,10 +182,25 @@ async function onReorderDrop(event, targetIdx) {
   if (fromIdx === -1 || fromIdx === targetIdx) return;
 
   const [moved] = items.splice(fromIdx, 1);
-  const insertAt = fromIdx < targetIdx ? targetIdx - 1 : targetIdx;
-  items.splice(insertAt + 1, 0, moved);
 
-  // اگه بک‌اند اندپوینت ذخیره ترتیب داره، اینجا صداش بزن، مثلا:
+  let insertAt = targetIdx;
+  if (side === 'after') insertAt = targetIdx + 1;
+
+  // اصلاح اندیس پس از حذف آیتم جابه‌جا شده
+  if (fromIdx < targetIdx) {
+    if (side === 'before') {
+      insertAt = targetIdx - 1;
+    } else {
+      insertAt = targetIdx;  // after
+    }
+  } else if (fromIdx > targetIdx) {
+    // حذف از بالا، تأثیری روی targetIdx ندارد
+    // insertAt از قبل درست است
+  }
+
+  items.splice(insertAt, 0, moved);
+
+  // در صورت نیاز ذخیره ترتیب در سرور:
   // await axios.post(SERVER + '/api/reorder', { order: items.map(i => i.save) });
 }
 
@@ -179,3 +229,17 @@ function showMessage(msg, type) {
   $toast.open({ message: msg, type: type, duration: 4000 });
 }
 </script>
+
+<style scoped>
+/* نشانگر خط آبی برای محل رها شدن */
+.drop-before {
+  border-top: 2px solid #3b82f6 !important; /* blue-500 */
+}
+.drop-after {
+  border-bottom: 2px solid #3b82f6 !important;
+}
+/* آیتم کشیده شده نیمه‌شفاف */
+.opacity-50 {
+  opacity: 0.5;
+}
+</style>

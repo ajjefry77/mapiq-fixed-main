@@ -105,7 +105,6 @@
       class="absolute inset-0 z-50 pointer-events-none"
       @contextmenu.prevent
     >
-      <!-- پنل قابل جابه‌جایی -->
       <div
         ref="panelRef"
         v-show="panelReady"
@@ -116,16 +115,15 @@
           top: panelTranslate.y + 'px',
         }"
       >
-        <!-- هدر نارنجی (قابل کشیدن) -->
         <div
-          class="bg-orange-500 text-white px-4 py-2 flex justify-between items-center cursor-move"
+          class="bg-black text-white px-4 py-2 flex justify-between items-center cursor-move"
           @mousedown="startDrag"
         >
           <button @click="cancelForm" class="hover:text-gray-200 text-lg">✕</button>
           <h3 class="font-bold text-sm">{{ getDrawTypeName() }}</h3>
         </div>
 
-        <!-- تب‌ها -->
+        <!-- تب‌ها با ترتیب جدید: اندازه‌ها → توضیحات → استایل -->
         <div class="flex border-b bg-gray-50">
           <button
             v-for="tab in tabs"
@@ -142,9 +140,100 @@
           </button>
         </div>
 
-        <!-- محتوای تب‌ها -->
         <div class="p-3 max-h-72 overflow-y-auto text-sm">
-          <!-- تب توضیحات -->
+          <!-- تب اندازه‌ها / نقاط (اول) -->
+          <div v-if="activeTab === 'measurements'" class="space-y-3">
+            <div class="flex items-center justify-between bg-gray-50 rounded p-2">
+              <span class="text-xs text-gray-600">سیستم مختصات:</span>
+              <div class="flex gap-1">
+                <button
+                  @click="coordinateSystem = 'latlon'"
+                  :class="[
+                    'px-2 py-0.5 text-xs rounded transition',
+                    coordinateSystem === 'latlon'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ]"
+                >
+                  Lat/Long
+                </button>
+                <button
+                  @click="coordinateSystem = 'utm'"
+                  :class="[
+                    'px-2 py-0.5 text-xs rounded transition',
+                    coordinateSystem === 'utm'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ]"
+                >
+                  UTM
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-gray-900 rounded p-2 text-xs space-y-1.5">
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">تعداد نقاط:</span>
+                <span class="font-bold text-orange-600">{{ livePointCount }}</span>
+              </div>
+              
+              <div 
+                v-if="drawMode === 'polyline' || drawMode === 'polygon' || shape?.type === 'polyline' || shape?.type === 'polygon'"
+                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+              >
+                <span class="text-gray-600">طول کل:</span>
+                <span class="font-bold text-orange-600">{{ liveTotalLength }}</span>
+              </div>
+              
+              <div 
+                v-if="drawMode === 'polygon' || shape?.type === 'polygon'"
+                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+              >
+                <span class="text-gray-600">مساحت:</span>
+                <span class="font-bold text-green-600">{{ liveArea }}</span>
+              </div>
+              
+              <div 
+                v-if="drawMode === 'circle' || shape?.type === 'circle'"
+                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+              >
+                <span class="text-gray-600">شعاع:</span>
+                <span class="font-bold text-purple-600">{{ liveRadius }}</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-medium mb-2 text-gray-700">
+                {{ drawMode === 'multi_point' || shape?.type === 'multi_point' ? 'نقاط' : 'مختصات نقاط' }}:
+              </h4>
+              <div class="space-y-1 max-h-32 overflow-y-auto">
+                <div 
+                  v-for="(point, index) in displayPoints" 
+                  :key="index" 
+                  class="bg-gray-50 rounded p-1.5 text-xs flex justify-between items-center hover:bg-orange-50 transition group"
+                >
+                  <span class="text-gray-600">نقطه {{ index + 1 }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs">
+                      {{ formatCoordinate(point) }}
+                    </span>
+                    <button 
+                      @click="copyCoordinates(point)" 
+                      class="text-gray-400 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition"
+                      title="کپی مختصات"
+                    >
+                      <i class="fas fa-copy text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div v-if="displayPoints.length === 0" class="text-center py-4 text-gray-400 text-xs">
+                <p>در حال ترسیم روی نقشه کلیک کنید</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- تب توضیحات (دوم) -->
           <div v-if="activeTab === 'info'" class="space-y-2">
             <div>
               <label class="block text-xs mb-1 text-gray-600">نام ترسیم</label>
@@ -163,7 +252,7 @@
                 class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
               ></textarea>
             </div>
-            <div>
+            <div v-if="drawMode === 'circle' || shape?.type === 'circle'">
               <label class="block text-xs mb-1 text-gray-600">فایل ضمیمه</label>
               <input type="file" @change="onFileChange" class="w-full text-xs" />
               <p v-if="attch_file" class="mt-1 text-xs text-green-600">
@@ -172,7 +261,7 @@
             </div>
           </div>
 
-          <!-- تب استایل -->
+          <!-- تب استایل (سوم/آخر) -->
           <div v-if="activeTab === 'style'" class="space-y-3">
             <div v-if="shape">
               <label class="block text-xs mb-1 text-gray-600">رنگ</label>
@@ -226,114 +315,8 @@
               <p>پس از اتمام ترسیم، استایل قابل تغییر است</p>
             </div>
           </div>
-
-          <!-- تب تصویر -->
-          <div v-if="activeTab === 'image'">
-            <div v-if="!shape">
-              <div class="text-center py-6">
-                <div class="border-2 border-dashed border-gray-300 rounded p-4">
-                  <p class="text-xs text-gray-400">پس از اتمام ترسیم می‌توانید تصویر اضافه کنید</p>
-                </div>
-              </div>
-            </div>
-            <div v-else-if="!shape.backgroundImage">
-              <div class="text-center py-6">
-                <div class="border-2 border-dashed border-gray-300 rounded p-4">
-                  <p class="text-xs text-gray-400 mb-2">تصویری انتخاب نشده</p>
-                  <label class="cursor-pointer inline-block">
-                    <span class="px-3 py-1 bg-orange-500 text-white rounded text-xs hover:bg-orange-600">
-                      انتخاب تصویر
-                    </span>
-                    <input 
-                      type="file" 
-                      @change="onBackgroundImageChange" 
-                      accept="image/*" 
-                      class="hidden" 
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div v-else class="space-y-2">
-              <div class="relative group">
-                <img :src="shape.backgroundImage" class="w-full rounded border" />
-                <button 
-                  @click="shape.backgroundImage = null" 
-                  class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition"
-                  title="حذف تصویر"
-                >
-                  ✕
-                </button>
-              </div>
-              <p class="text-xs text-green-600">تصویر با موفقیت بارگذاری شد</p>
-            </div>
-          </div>
-
-          <!-- تب اندازه‌ها -->
-          <div v-if="activeTab === 'measurements'" class="space-y-3">
-            <div class="bg-orange-50 rounded p-2 text-xs space-y-1.5">
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600">تعداد نقاط:</span>
-                <span class="font-bold text-orange-600">{{ livePointCount }}</span>
-              </div>
-              
-              <div 
-                v-if="drawMode === 'polyline' || drawMode === 'polygon' || shape?.type === 'polyline' || shape?.type === 'polygon'"
-                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
-              >
-                <span class="text-gray-600">طول کل:</span>
-                <span class="font-bold text-orange-600">{{ liveTotalLength }}</span>
-              </div>
-              
-              <div 
-                v-if="drawMode === 'polygon' || shape?.type === 'polygon'"
-                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
-              >
-                <span class="text-gray-600">مساحت:</span>
-                <span class="font-bold text-green-600">{{ liveArea }}</span>
-              </div>
-              
-              <div 
-                v-if="drawMode === 'circle' || shape?.type === 'circle'"
-                class="flex justify-between items-center border-t border-orange-200 pt-1.5"
-              >
-                <span class="text-gray-600">شعاع:</span>
-                <span class="font-bold text-purple-600">{{ liveRadius }}</span>
-              </div>
-            </div>
-
-            <!-- مختصات نقاط -->
-            <div>
-              <h4 class="text-xs font-medium mb-2 text-gray-700">مختصات نقاط:</h4>
-              <div class="space-y-1 max-h-32 overflow-y-auto">
-                <div 
-                  v-for="(point, index) in livePoints" 
-                  :key="index" 
-                  class="bg-gray-50 rounded p-1.5 text-xs flex justify-between items-center hover:bg-orange-50 transition group"
-                >
-                  <span class="text-gray-600">نقطه {{ index + 1 }}</span>
-                  <div class="flex items-center gap-2">
-                    <span class="font-mono text-xs">
-                      {{ point.lat.toFixed(6) }}, {{ point.lon.toFixed(6) }}
-                    </span>
-                    <button 
-                      @click="copyCoordinates(point)" 
-                      class="text-gray-400 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition"
-                      title="کپی مختصات"
-                    >
-                      <i class="fas fa-copy text-xs"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div v-if="livePoints.length === 0" class="text-center py-4 text-gray-400 text-xs">
-                <p>در حال ترسیم روی نقشه کلیک کنید</p>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <!-- دکمه‌های پایین -->
         <div class="px-3 py-2 bg-gray-50 border-t flex justify-between items-center">
           <button 
             @click="cancelForm" 
@@ -342,11 +325,11 @@
             انصراف
           </button>
           <button 
-            @click="savePin" 
-            :disabled="!shape"
+            @click="handleSave" 
+            :disabled="!isSaveEnabled"
             :class="[
               'px-4 py-1.5 rounded text-xs transition shadow',
-              shape 
+              isSaveEnabled
                 ? 'bg-orange-500 text-white hover:bg-orange-600' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             ]"
@@ -358,7 +341,6 @@
     </div>
   </transition>
 
-  <MultiPointsList v-if="drawMode === 'multi_point'" :pointList="pointList" />
   <Loading :active="loading" />
 </template>
 
@@ -368,7 +350,6 @@ import mapboxgl from "mapbox-gl";
 import axios from "axios";
 import proj4 from "proj4";
 import Loading from "../Loading.vue";
-import MultiPointsList from "../MultiPointsList.vue";
 import { useAuthStore } from "../../stores/auth";
 import { useToast } from "vue-toast-notification";
 
@@ -395,14 +376,15 @@ const formData = ref({ name: "", description: "", file: null });
 const showForm = ref(false);
 const shape = ref(null);
 const attch_file = ref(null);
-const activeTab = ref('info');
+const activeTab = ref('measurements'); // تب پیش‌فرض اندازه‌ها
 let radius = 0;
 let circleCenter = null;
 const tempCircle = ref(null);
 let measurePoints = [];
 const measureActive = ref(false);
+const coordinateSystem = ref('latlon');
 
-// ====== Draggable panel state ======
+// ====== Draggable panel ======
 const toolbarRef = ref(null);
 const panelRef = ref(null);
 const panelReady = ref(false);
@@ -411,41 +393,29 @@ const isDragging = ref(false);
 const panelTranslate = reactive({ x: 0, y: 0 });
 const dragStart = reactive({ x: 0, y: 0 });
 
-// موقعیت‌دهی پیش‌فرض بغل نوار ابزار (اولویت سمت راست چون تولبار چپه)
 const positionPanelBesideToolbar = () => {
   if (!panelRef.value || !toolbarRef.value) return;
-
   const toolbarRect = toolbarRef.value.getBoundingClientRect();
   const panelRect = panelRef.value.getBoundingClientRect();
   const gap = 12;
-
-  // همیشه اول سمت راست تولبار
   let x = toolbarRect.right + gap;
   let y = toolbarRect.top;
-
-  // اگر از سمت راست صفحه بیرون زد → سمت چپ تولبار
   if (x + panelRect.width > window.innerWidth - gap) {
     x = toolbarRect.left - panelRect.width - gap;
   }
-
-  // اگر باز هم بیرون زد → به لبه راست صفحه بچسبون
   if (x < gap) {
     x = window.innerWidth - panelRect.width - gap;
   }
-
-  // کنترل بالا و پایین
   if (y + panelRect.height > window.innerHeight - gap) {
     y = window.innerHeight - panelRect.height - gap;
   }
   if (y < gap) {
     y = gap;
   }
-
   panelTranslate.x = x;
   panelTranslate.y = y;
 };
 
-// درگ کردن
 const startDrag = (e) => {
   isDragging.value = true;
   dragStart.x = e.clientX - panelTranslate.x;
@@ -479,13 +449,18 @@ let drawDataSourceId = "pins-draw-" + crypto.randomUUID();
 let tempSourceId = null;
 let tempLayerIds = [];
 
-// Tabs
-const tabs = [
-  { key: 'info', label: 'توضیحات' },
-  { key: 'style', label: 'استایل' },
-  { key: 'image', label: 'تصویر' },
-  { key: 'measurements', label: 'اندازه‌ها' }
-];
+// Tabs با ترتیب جدید: اندازه‌ها → توضیحات → استایل
+const tabs = computed(() => {
+  const isMultiPoint = drawMode.value === 'multi_point' || shape.value?.type === 'multi_point';
+  return [
+    {
+      key: 'measurements',
+      label: isMultiPoint ? 'نقاط' : 'اندازه‌ها'
+    },
+    { key: 'style', label: 'استایل' },
+    { key: 'info', label: 'ذخیره' }
+  ];
+});
 
 // Computed
 const livePoints = computed(() => {
@@ -494,11 +469,25 @@ const livePoints = computed(() => {
   if (positions.length > 0) return positions.map(p => ({ lat: p.lat, lon: p.lng }));
   return [];
 });
+
+const displayPoints = computed(() => {
+  return livePoints.value.map(p => {
+    if (coordinateSystem.value === 'utm') {
+      const zone = Math.floor((p.lon + 180) / 6) + 1;
+      const [x, y] = proj4('EPSG:4326', `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [p.lon, p.lat]);
+      return { ...p, displayX: x, displayY: y, zone, system: 'utm' };
+    } else {
+      return { ...p, displayX: p.lon, displayY: p.lat, system: 'latlon' };
+    }
+  });
+});
+
 const livePointCount = computed(() => {
   if (shape.value) return getPointsCount();
   if (drawMode.value === 'circle' && tempCircle.value) return 1;
   return positions.length;
 });
+
 const liveTotalLength = computed(() => {
   if (shape.value) return calculateTotalLength();
   const points = livePoints.value;
@@ -509,6 +498,7 @@ const liveTotalLength = computed(() => {
   }
   return formatDistance(total);
 });
+
 const liveArea = computed(() => {
   if (shape.value) return calculateArea();
   if (drawMode.value !== 'polygon') return '0 m²';
@@ -527,10 +517,18 @@ const liveArea = computed(() => {
   area = Math.abs(area) / 2;
   return area > 1000000 ? (area / 1000000).toFixed(2) + ' km²' : area.toFixed(2) + ' m²';
 });
+
 const liveRadius = computed(() => {
   if (shape.value && shape.value.type === 'circle') return formatDistance(shape.value.radius);
   if (tempCircle.value) return formatDistance(tempCircle.value.radius);
   return '0 m';
+});
+
+const isSaveEnabled = computed(() => {
+  if (drawMode.value === 'multi_point') {
+    return positions.length > 0;
+  }
+  return !!shape.value;
 });
 
 watch(shape, (newVal) => {
@@ -640,7 +638,7 @@ function setDrawMode(mode) {
   cleanupHandlers();
   clearTempLayers();
   drawMode.value = mode;
-  activeTab.value = 'info';
+  activeTab.value = 'measurements';
   positions.length = 0;
   shape.value = null;
   pointList.value = [];
@@ -666,24 +664,34 @@ function startDrawing() {
       id: pointsLayerId,
       type: "circle",
       source: tempSourceId,
-      paint: { "circle-radius": 5, "circle-color": color.value, "circle-stroke-color": "#ffffff", "circle-stroke-width": 1 },
+      paint: { 
+        "circle-radius": 6, 
+        "circle-color": color.value, 
+        "circle-stroke-color": "#ffffff", 
+        "circle-stroke-width": 1.5 
+      },
     });
     tempLayerIds.push(pointsLayerId);
 
-    clickHandler = (e) => {
-      const { lng, lat } = e.lngLat;
+    const updateMultiPointSource = () => {
       const src = map.getSource(tempSourceId);
       if (!src) return;
-      const data = src._data ? JSON.parse(JSON.stringify(src._data)) : { type: "FeatureCollection", features: [] };
-      data.features.push({ type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] }, properties: { color: color.value } });
-      src.setData(data);
-      positions.push({ lng, lat, color: color.value });
-      const zone = Math.floor((lng + 180) / 6) + 1;
-      const [x, y] = proj4("EPSG:4326", `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [lng, lat]);
-      pointList.value.push({ id: crypto.randomUUID(), row: pointList.value.length + 1, x: Number(x).toFixed(3), y: Number(y).toFixed(3) });
+      const features = positions.map(p => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+        properties: { color: p.color || color.value }
+      }));
+      src.setData({ type: "FeatureCollection", features });
     };
 
-    rightClickHandler = () => {
+    clickHandler = (e) => {
+      const { lng, lat } = e.lngLat;
+      positions.push({ lng, lat, color: color.value });
+      updateMultiPointSource();
+    };
+
+    rightClickHandler = (e) => {
+      e.preventDefault();
       if (positions.length < 1) return;
       cleanupHandlers();
       finishDrawing("multi_point", [...positions]);
@@ -702,7 +710,7 @@ function startDrawing() {
 
     clickHandler = (e) => { positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat }); updateTempGeoJSON(); };
     mouseMoveHandler = (e) => { if (positions.length === 0) return; const pts = [...positions, { lng: e.lngLat.lng, lat: e.lngLat.lat }]; updateTempGeoJSONWithPreview(pts); };
-    rightClickHandler = () => { if (positions.length > 0) { positions.pop(); updateTempGeoJSON(); if (positions.length < 2) cleanupHandlers(); } };
+    rightClickHandler = (e) => { e.preventDefault(); if (positions.length > 0) { positions.pop(); updateTempGeoJSON(); if (positions.length < 2) cleanupHandlers(); } };
     dblClickHandler = () => { if (positions.length < 2) return; if (positions.length > 1) positions.pop(); cleanupHandlers(); finishDrawing("polyline", [...positions]); };
     keyHandler = (event) => { if (event.key === "Delete" && positions.length > 0) { positions.pop(); updateTempGeoJSON(); if (positions.length < 2) cleanupHandlers(); } };
     window.addEventListener("keydown", keyHandler);
@@ -723,7 +731,7 @@ function startDrawing() {
 
     clickHandler = (e) => { positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat }); updateTempGeoJSON(); };
     mouseMoveHandler = (e) => { if (positions.length === 0) return; const pts = [...positions, { lng: e.lngLat.lng, lat: e.lngLat.lat }]; updateTempGeoJSONWithPreview(pts); };
-    rightClickHandler = () => { if (positions.length > 0) { positions.pop(); updateTempGeoJSON(); if (positions.length < 3) cleanupHandlers(); } };
+    rightClickHandler = (e) => { e.preventDefault(); if (positions.length > 0) { positions.pop(); updateTempGeoJSON(); if (positions.length < 3) cleanupHandlers(); } };
     dblClickHandler = () => { if (positions.length < 3) return; if (positions.length > 0) positions.pop(); cleanupHandlers(); finishDrawing("polygon", [...positions]); };
     keyHandler = (event) => { if (event.key === "Delete" && positions.length > 0) { positions.pop(); updateTempGeoJSON(); if (positions.length < 3) cleanupHandlers(); } };
     window.addEventListener("keydown", keyHandler);
@@ -817,13 +825,20 @@ function finishDrawing(draw, pos) {
     tempCircle.value = null;
     circleCenter = null;
   } else if (draw === "multi_point") {
-    shape.value = { type: "multi_point", positions: pos.map(p => ({ lon: p.lng, lat: p.lat, height: 0, color: p.color })), color: color.value, opacity: defaultOpacity, width: 5, backgroundImage: null, show: true };
+    shape.value = { 
+      type: "multi_point", 
+      positions: pos.map(p => ({ lon: p.lng, lat: p.lat, height: 0, color: p.color || color.value })), 
+      color: color.value, 
+      opacity: defaultOpacity, 
+      width: 5, 
+      show: true 
+    };
   } else if (draw === "polyline") {
-    shape.value = { type: draw, positions: pos.map(p => ({ lon: p.lng, lat: p.lat, height: 0 })), color: color.value, opacity: defaultOpacity, width: 3, backgroundImage: null, show: true };
+    shape.value = { type: draw, positions: pos.map(p => ({ lon: p.lng, lat: p.lat, height: 0 })), color: color.value, opacity: defaultOpacity, width: 3, show: true };
   } else if (draw === "polygon") {
     const coords = pos.map(p => ({ lon: p.lng, lat: p.lat, height: 0 }));
     coords.push(coords[0]);
-    shape.value = { type: "polygon", positions: coords, color: color.value, outlineColor: color.value, opacity: defaultOpacity, width: defaultWidth, backgroundImage: null, show: true };
+    shape.value = { type: "polygon", positions: coords, color: color.value, outlineColor: color.value, opacity: defaultOpacity, width: defaultWidth, show: true };
   }
 
   positions.length = 0;
@@ -873,7 +888,8 @@ function startMeasure() {
     if (src) src.setData({ type: "FeatureCollection", features });
   };
 
-  rightClickHandler = () => {
+  rightClickHandler = (e) => {
+    e.preventDefault();
     measurePoints = [];
     const src = map.getSource(tempId);
     if (src) src.setData({ type: "FeatureCollection", features: [] });
@@ -921,9 +937,29 @@ const onFileChange = (e) => {
   attch_file.value = e.target.files[0];
 };
 
+const handleSave = () => {
+  if (drawMode.value === 'multi_point' && !shape.value && positions.length > 0) {
+    finishDrawing("multi_point", [...positions]);
+    nextTick(() => {
+      if (shape.value) {
+        savePin();
+      } else {
+        alert("خطا در پایان ترسیم، لطفاً دوباره تلاش کنید");
+      }
+    });
+  } else {
+    savePin();
+  }
+};
+
 const savePin = async () => {
   if (!formData.value.name.trim()) {
     alert("لطفاً نام ترسیم را وارد کنید");
+    return;
+  }
+  
+  if (!shape.value) {
+    alert("ترسیم کامل نشده است");
     return;
   }
   
@@ -937,7 +973,7 @@ const savePin = async () => {
     type: "draw",
   };
   
-  if (attch_file.value) {
+  if (attch_file.value && (drawMode.value === 'circle' || shape.value?.type === 'circle')) {
     pin.filename = attch_file.value.name;
     pin.file = attch_file.value;
   }
@@ -987,13 +1023,14 @@ const saveOneWorks = async (item) => {
 
 // Helper functions
 function getDrawTypeName() {
+  const type = shape.value?.type || drawMode.value;
   const names = {
-    'circle': 'دایره',
-    'polygon': 'چندضلعی',
-    'polyline': 'خط',
-    'multi_point': 'چند نقطه'
+    'circle': 'ترسیم دایره جدید',
+    'polygon': 'ترسیم پلیگن جدید',
+    'polyline': 'ترسیم خط جدید',
+    'multi_point': 'ترسیم چند نقطه جدید'
   };
-  return names[shape.value?.type] || 'ترسیم جدید';
+  return names[type] || 'ترسیم جدید';
 }
 
 function getPointsCount() {
@@ -1045,8 +1082,21 @@ function formatDistance(meters) {
   return meters.toFixed(0) + ' m';
 }
 
+function formatCoordinate(point) {
+  if (point.system === 'utm') {
+    return `${point.displayX.toFixed(3)} E, ${point.displayY.toFixed(3)} N (منطقه ${point.zone})`;
+  } else {
+    return `${point.displayX.toFixed(6)}, ${point.displayY.toFixed(6)}`;
+  }
+}
+
 function copyCoordinates(point) {
-  const text = `${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}`;
+  let text;
+  if (point.system === 'utm') {
+    text = `${point.displayX.toFixed(3)} E, ${point.displayY.toFixed(3)} N (منطقه ${point.zone})`;
+  } else {
+    text = `${point.displayX.toFixed(6)}, ${point.displayY.toFixed(6)}`;
+  }
   navigator.clipboard.writeText(text).then(() => {
     if ($toast) $toast.success("مختصات کپی شد");
   }).catch(() => {
@@ -1058,17 +1108,6 @@ function copyCoordinates(point) {
     document.body.removeChild(textarea);
     if ($toast) $toast.success("مختصات کپی شد");
   });
-}
-
-function onBackgroundImageChange(e) {
-  const file = e.target.files[0];
-  if (file && shape.value) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      shape.value.backgroundImage = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
 }
 
 function inactiveDrawing() {

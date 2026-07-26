@@ -22,7 +22,7 @@
         ]"
         title="نقطه (انتخاب برای فرم)"
       >
-        <i class="fas fa-location-pin"></i>
+        <i class="fas fa-location-dot"></i>
       </button>
       <button
         @click="setDrawMode('multi_point')"
@@ -34,7 +34,7 @@
         ]"
         title="چند نقطه"
       >
-        <i class="fas fa-braille"></i>
+        <i class="fas fa-map-pin"></i>
       </button>
       <button
         @click="setDrawMode('polyline')"
@@ -86,7 +86,7 @@
         ]"
         title="دایره"
       >
-        <i class="fa fa-circle"></i>
+        <i class="fas fa-circle-dot"></i>
       </button>
       <label
         class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer"

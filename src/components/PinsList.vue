@@ -39,17 +39,17 @@
           <i :class="isShow ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
         </button>-->
         <button class="text-gray-500 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
-          <i class="fas fa-file-export"></i>
+          <i class="fas fa-download"></i>
         </button>
         <!--<button class="bg-[var(--primary-color)] text-white w-8 py-1 rounded" @click="openSaveDialog" title="ذخیره فضای کاری ">
           <i class="fas fa-save"></i>
-        </button>-->
+        </button>
         <!--<button class="bg-[var(&#45;&#45;primary-color)] text-white w-8 py-1 rounded" title="افزودن لایه">-->
         <!--  <i class="fas fa-layer-group"></i>-->
         <!--  <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.zip"/>-->
         <!--</button>-->
           <label class="text-gray-500  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
-            <i class="fas fa-folder-open"></i>
+            <i class="fas fa-file-import"></i>
             <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.kmz"/>
           </label>
         <!--<button @click="saveWorks">ذخیره</button>-->
@@ -107,17 +107,17 @@
     <div class="flex items-center justify-between mt-0 mb-2">
       <div class="flex gap-1 text-sm">
         <button class="text-gray-500 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
-          <i class="fas fa-file-export"></i>
+          <i class="fas fa-download"></i>
         </button>
         <label class="text-gray-500  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
-          <i class="fas fa-folder-open"></i>
+          <i class="fas fa-file-import"></i>
           <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.kmz,.csv,.txt"/>
         </label>
         <button class="text-gray-500 w-8 py-1 rounded" @click="createFolderDialog = true" title="ایجاد گروه">
-          <i class="fas fa-folder-plus"></i>
+          <i class="fas fa-folder-tree"></i>
         </button>
         <button class="text-gray-500 w-8 py-1 rounded" @click="ArchiveDesktop" title="بایگانی میز کار">
-          <i class="fas fa-file"></i>
+          <i class="fas fa-clock-rotate-left"></i>
         </button>
       </div>
     </div>

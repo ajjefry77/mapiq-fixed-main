@@ -21,13 +21,13 @@
       <button @click="togglePointPick" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
               pickForForm ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="نقطه (انتخاب برای فرم)">
 
-        <i class="fas fa-location-pin"></i>
+        <i class="fas fa-location-dot"></i>
       </button>
 
       <button @click="setDrawMode('multi_point')" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
               drawMode === 'multi_point' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="چند نقطه">
 
-        <i class="fas fa-braille "></i>
+        <i class="fas fa-map-pin"></i>
       </button>
 
       <!-- line -->
@@ -49,7 +49,7 @@
       <!-- circle -->
       <button @click="setDrawMode('circle')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
               drawMode === 'circle' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="دایره">
-        <i class="fa fa-circle"></i>
+        <i class="fas fa-circle-dot"></i>
       </button>
 
       <!-- color -->

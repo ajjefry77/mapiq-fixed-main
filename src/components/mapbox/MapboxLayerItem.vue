@@ -210,14 +210,14 @@ function findPinById(items, id) {
 function selectIcon(item) {
   if (item.type == 'draw') {
     switch (item.shape?.type) {
-      case 'multi_point': return 'fas fa-braille';
-      case 'point': return 'fas fa-location-pin';
-      case 'polyline': return 'fas fa-draw-polygon';
-      case 'polygon': return 'fas fa-bookmark';
-      case 'circle': return 'fas fa-circle';
+      case 'multi_point': return 'fas fa-map-pin';
+      case 'point': return 'fas fa-location-dot';
+      case 'polyline': return 'fas fa-bezier-curve';
+      case 'polygon': return 'fas fa-draw-polygon';
+      case 'circle': return 'fas fa-circle-dot';
     }
   }
-  return 'fa fa-file';
+  return 'fas fa-file';
 }
 
 function showMessage(msg, type) {

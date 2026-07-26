@@ -289,18 +289,18 @@ function selectIcon(item) {
   if (item.type == 'draw') {
   switch (item.shape.type) {
     case 'multi_point' :
-      return 'fas fa-braille';
+      return 'fas fa-map-pin';
     case 'point' :
-      return 'fas fa-location-pin';
+      return 'fas fa-location-dot';
     case 'polyline' :
-      return 'fas fa-draw-polygon';
+      return 'fas fa-bezier-curve';
     case 'polygon' :
-      return 'fas fa-bookmark';
+      return 'fas fa-draw-polygon';
     case 'circle' :
-      return 'fas fa-circle';
+      return 'fas fa-circle-dot';
     }
   } else
-    return 'fa fa-file';
+    return 'fas fa-file';
 }
 
 // 🔹 پیام Toast

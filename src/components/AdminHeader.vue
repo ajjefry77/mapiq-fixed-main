@@ -20,7 +20,7 @@
         <router-link to="/mapbox" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقشه</router-link>
         <router-link v-if="authStore.isAdmin" :to="authStore.isMapboxMode ? '/map' : '/mapbox'" class="nav-link" @click="switchMapEngine" :title="authStore.isMapboxMode ? 'رفتن به Cesium' : 'رفتن به Mapbox'">
           <i :class="authStore.isMapboxMode ? 'fas fa-globe' : 'fas fa-map'" class="mr-1"></i>
-          {{ authStore.isMapboxMode ? 'Cesium' : 'Mapbox' }}
+          {{ authStore.isMapboxMode ? '2D' : '3D' }}
         </router-link>
         <router-link v-if="authStore.isAdmin || authStore.isGroupManager" to="/dashboard" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">داشبورد</router-link>
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_users')" to="/users" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">کاربران</router-link>

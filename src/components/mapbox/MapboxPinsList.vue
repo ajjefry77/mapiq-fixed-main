@@ -675,6 +675,9 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 1,
       },
+      layout: {
+        visibility: visible ? "visible" : shape.show ? "visible" : "none",
+      },
     });
     pin.shape._sourceIds = [sourceId];
   } else if (shape.type === "circle") {

@@ -1,13 +1,14 @@
 <template>
   <DrawToolbar
     ref="toolbarComponent"
+    :map="map"
     :drawMode="drawMode"
     :pickForForm="pickForForm"
-    :color="color"
+    :baseMaps="baseMaps"
     @toggleMeasure="toggleMeasure"
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
-    @update:color="color = $event"
+    @setBaseLayer="$emit('setBaseLayer', $event)"
   />
 
   <transition name="fade">
@@ -66,9 +67,10 @@ import { useDragPanel } from "../../composables/useDragPanel";
 const props = defineProps({
   map: { type: Object, required: true },
   pins: { type: Object, required: true },
+  baseMaps: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["disableFeatureInfo", "pickPoint"]);
+const emit = defineEmits(["pickPoint", "setBaseLayer"]);
 
 const SelectGroup = inject("SelectGroup", null);
 
@@ -78,7 +80,6 @@ const panelComponent = ref(null);
 const {
   loading,
   drawMode,
-  color,
   pickForForm,
   showForm,
   formData,

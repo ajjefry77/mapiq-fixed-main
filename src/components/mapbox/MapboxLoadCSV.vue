@@ -75,15 +75,12 @@
       </div>
     </div>
   </div>
-  <MultiPointsList v-if="showPoint" :pointList="pointList" @close="showPoint = false"/>
   <Loading :active="loading"/>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, inject, onMounted } from 'vue';
 import Loading from '../Loading.vue';
-import MultiPointsList from '../MultiPointsList.vue';
-import proj4 from "proj4";
 
 const props = defineProps({
   rows: { type: Array, required: true },
@@ -97,8 +94,6 @@ const pinName = ref('');
 const loading = ref(false);
 const validate = ref(false);
 const progress = ref(0);
-const pointList = ref([]);
-const showPoint = ref(false);
 
 const SelectGroup = inject('SelectGroup', null);
 
@@ -169,17 +164,6 @@ async function renderPoints() {
     const lat = Number(row[mapping.lat]);
     const lng = Number(row[mapping.lng]);
     if (isNaN(lat) || isNaN(lng)) return;
-
-    const zone = Math.floor((lng + 180) / 6) + 1;
-    const [x, y] = proj4("EPSG:4326", `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [lng, lat]);
-
-    pointList.value.push({
-      id: crypto.randomUUID(),
-      row: pointList.value.length + 1,
-      x: Number(x).toFixed(3),
-      y: Number(y).toFixed(3),
-      valid: result.valid
-    });
 
     features.push({
       type: 'Feature',

@@ -37,27 +37,6 @@
           <button @click="ShowForLogin = false" class="text-xl tp-2">&times;</button>
         </div>
 
-        <div class="absolute bottom-36 md:bottom-16 left-[8px] ml-1 z-50 flex flex-col gap-2">
-          <button @click="expanded = !expanded" class="w-12 h-12 bg-gray-700 text-white rounded flex flex-col items-center justify-center shadow-md" title="نقشه پایه">
-            <i class="fas fa-layer-group text-xl"></i>
-            <span class="text-xs">نقشه</span>
-          </button>
-          <button @click="zoomIn" class="w-12 h-12 bg-gray-700 text-white rounded flex items-center justify-center shadow-md text-xl font-bold" title="بزرگنمایی">+</button>
-          <button @click="zoomOut" class="w-12 h-12 bg-gray-700 text-white rounded flex items-center justify-center shadow-md text-xl font-bold" title="کوچکنمایی">−</button>
-          <div v-show="expanded" @click.stop
-               class="absolute md:top-0 md:left-full md:ml-2 bottom-full left-0 mb-2 w-[300px] max-w-[calc(100vw-24px)] md:w-max p-2 bg-white border border-gray-300 rounded shadow-md flex flex-col">
-            <div class="overflow-x-auto overflow-y-hidden md:overflow-visible flex gap-2 flex-nowrap">
-              <div v-for="basemap in baseMaps" :key="basemap.name"
-                   @click="setBaseLayer(basemap)"
-                   class="w-20 h-20 rounded border cursor-pointer overflow-hidden shadow hover:shadow-lg relative shrink-0"
-                   :title="basemap.name">
-                <img :src="basemap.thumbnail" class="w-full h-full object-cover"/>
-                <span class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1">{{ basemap.name }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="absolute bottom-8 md:bottom-3 left-3 px-2 py-2 rounded-md font-mono text-sm" style="background: rgba(26,29,39,.85); color: var(--text-muted);">
           <div class="float-left mr-4">
             <ToggleSwitch class="inline-block" v-model="latlon" left='UTM' right='GCS'/>
@@ -76,8 +55,7 @@
       <MapboxSearchAddress v-if="mapReady" :map="map"/>
       <MapboxNorthIcon v-if="mapReady" :map="map"/>
       <MapboxFlyPosition v-if="mapReady" :map="map" :latlon="latlon"/>
-      <MapboxDrawTools ref="drawing" v-if="mapReady" :map="map" :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
-      <MapboxFeatureInfoPanel ref="featurePanel" v-if="mapReady" :map="map" :pins="Pins" @disableDrawing="() => drawing?.inactiveDrawing()"/>
+      <MapboxDrawTools ref="drawing" v-if="mapReady" :map="map" :pins="Pins" :baseMaps="baseMaps" @setBaseLayer="setBaseLayer" @pickPoint="onMapPointPicked"/>
 
     </div>
   </div>
@@ -102,7 +80,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import MapboxNorthIcon from '../components/mapbox/MapboxNorthIcon.vue';
 import MapboxFlyPosition from '../components/mapbox/MapboxFlyPosition.vue';
 import MapboxDrawTools from '../components/mapbox/MapboxDrawTools.vue';
-import MapboxFeatureInfoPanel from '../components/mapbox/MapboxFeatureInfoPanel.vue';
 import MapboxPinsList from "../components/mapbox/MapboxPinsList.vue";
 import MapboxSearchAddress from '../components/mapbox/MapboxSearchAddress.vue';
 
@@ -127,7 +104,6 @@ const baseMaps = [
   { name: "Satellite(داخلی)", thumbnail: "smap.jpg", tiles: "https://sat.neshanmap.ir/v1.0/{z}/{x}/{y}" },
 ];
 
-const expanded = ref(false);
 const router = useRouter();
 const authStore = useAuthStore();
 const isMobileUA = ref(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
@@ -149,7 +125,6 @@ const Lat = ref("--");
 const zone = ref("--");
 const scale = ref("--");
 
-const featurePanel = ref(null);
 const drawing = ref(null);
 const loading = ref(false);
 
@@ -188,6 +163,7 @@ function setBaseLayer(basemap) {
   } else if (basemap.style === "satellite") {
     const satelliteLayer = {
       version: 8,
+      glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
       sources: {
         'satellite': { type: 'raster', tiles: ['https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}'], tileSize: 256 }
       },
@@ -197,7 +173,6 @@ function setBaseLayer(basemap) {
   } else {
     map.setStyle(basemap.style);
   }
-  expanded.value = false;
 }
 
 const ShowTile = () => {
@@ -291,6 +266,7 @@ function initMap() {
     container: mapDiv,
     style: {
       version: 8,
+      glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
       sources: {
         'satellite': { type: 'raster', tiles: ['https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}'], tileSize: 256 }
       },
@@ -340,16 +316,6 @@ function updateScale() {
     const s = metersPerPixel / 0.00028;
     scale.value = "1:" + Math.round(s).toLocaleString();
   }
-}
-
-function zoomIn() {
-  if (!map) return;
-  map.zoomIn({ duration: 200 });
-}
-
-function zoomOut() {
-  if (!map) return;
-  map.zoomOut({ duration: 200 });
 }
 
 function toggleLayer(layerName) {

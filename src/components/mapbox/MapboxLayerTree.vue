@@ -35,8 +35,7 @@
 
       <div v-else>
         <MapboxLayerItem v-if="map" :name="item.name" :id="item.id" :depth="depth" :items="items" :item="item" :map="map"
-                        :parentGroup="parentGroup" :setSelectedGroup="selectGroup" :idx="idx" :Icons="Icons"
-                        :activeItem="activeItem" @change-active="activeItem = $event"/>
+                        :parentGroup="parentGroup" :setSelectedGroup="selectGroup" :idx="idx" :Icons="Icons"/>
       </div>
 
       <MapboxLayerTree v-if="item.type === 'group' && item.expanded && item.children"
@@ -57,7 +56,6 @@ const { toggleExtended, toggleVisible } = useSharedArray();
 const $toast = useToast();
 const SERVER = import.meta.env.VITE_SERVER;
 const SelectGroup = inject('SelectGroup');
-const activeItem = ref(null);
 const dragOverIdx = ref(null);
 const dropSide = ref('before');
 const draggedItemId = ref(null);

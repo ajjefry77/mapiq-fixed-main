@@ -30,7 +30,6 @@
     </div>
   </div>
   <SendDialog :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
-  <MultiPointsList v-if="showPoint && activeItem == item.id" :pointList="pointList" @close="showPoint = false"/>
 </template>
 
 <script setup>
@@ -39,9 +38,7 @@ import { useToast } from "vue-toast-notification";
 import axios from "axios";
 import { useAuthStore } from '../../stores/auth';
 import SendDialog from '../SendDialog.vue';
-import MultiPointsList from '../MultiPointsList.vue';
 import { useSharedArray } from '../../stores/app';
-import proj4 from "proj4";
 
 const authStore = useAuthStore();
 const { toggleVisible } = useSharedArray();
@@ -63,16 +60,11 @@ const props = defineProps({
   parentGroup: Object,
   setSelectedGroup: Function,
   Icons: Array,
-  activeItem: [String, Number]
 });
-
-const emit = defineEmits(['change-active']);
 
 const map = inject("map");
 const OpenSend = ref(false);
 const Pin = ref(null);
-const pointList = ref([]);
-const showPoint = ref(false);
 const isActiveLayer = computed(() => false);
 
 const send = async (data) => {
@@ -95,18 +87,6 @@ const send = async (data) => {
 };
 
 const zoomOnPin = () => {
-  pointList.value = [];
-  if (props.item.shape?.type === 'multi_point') {
-    props.item.shape.positions.forEach((row) => {
-      const zone = Math.floor((row.lon + 180) / 6) + 1;
-      const [x, y] = proj4("EPSG:4326", `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [row.lon, row.lat]);
-      pointList.value.push({ id: crypto.randomUUID(), row: pointList.value.length + 1, x: Number(x).toFixed(3), y: Number(y).toFixed(3) });
-    });
-    showPoint.value = true;
-    emit('change-active', props.item.id);
-    return;
-  }
-
   const item = props.item;
   const shape = item.shape;
   if (!shape) return;

@@ -10,6 +10,7 @@ import {
 } from "vue";
 import axios from "axios";
 import proj4 from "proj4";
+import * as turf from "@turf/turf";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "vue-toast-notification";
 import { registerDrawLayer, bringDrawingsToFront } from "../utils/layerOrder";
@@ -1688,6 +1689,283 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     }
     map.getCanvas().style.cursor = "default";
   }
+    // برش پلی‌لاین
+  function splitPolyline(pin, cutLine) {
+    const coords = pin.shape.positions.map((p) => [p.lon, p.lat]);
+    const lineFeature = turf.lineString(coords, { originalId: pin.id });
+    
+    const split = turf.lineSplit(lineFeature, cutLine);
+    
+    if (split.features.length > 1) {
+      return split.features.map((feat, index) => {
+        const newPositions = feat.geometry.coordinates.map(([lon, lat]) => ({
+          lon,
+          lat,
+          height: 0,
+        }));
+        return {
+          ...pin,
+          id: crypto.randomUUID(),
+          name: `${pin.name} (بخش ${index + 1})`,
+          shape: {
+            ...pin.shape,
+            type: "polyline",
+            positions: newPositions,
+          },
+          save: -1, // باید دوباره ذخیره شود
+        };
+      });
+    }
+    return [pin]; // اگر برشی رخ نداد، همان قبلی را برمی‌گرداند
+  }
+
+  // برش پلی‌گان
+  function splitPolygon(pin, cutLine) {
+    // تبدیل پلی‌گان به یک خط بسته (Ring)
+    const coords = [pin.shape.positions.map((p) => [p.lon, p.lat])];
+    const polygonFeature = turf.polygon(coords, { originalId: pin.id });
+    const ringLine = turf.polygonToLine(polygonFeature);
+    
+    // برش خط محیطی پلی‌گان با خط برش
+    const split = turf.lineSplit(ringLine, cutLine);
+    
+    if (split.features.length >= 2) {
+      return split.features.map((feat, index) => {
+        let newCoords = feat.geometry.coordinates;
+        // اطمینان از بسته بودن حلقه پلی‌گان جدید
+        const first = newCoords[0];
+        const last = newCoords[newCoords.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          newCoords.push([...first]);
+        }
+        
+        const newPositions = newCoords.map(([lon, lat]) => ({
+          lon,
+          lat,
+          height: 0,
+        }));
+
+        return {
+          ...pin,
+          id: crypto.randomUUID(),
+          name: `${pin.name} (بخش ${index + 1})`,
+          shape: {
+            ...pin.shape,
+            type: "polygon",
+            positions: newPositions,
+          },
+          save: -1, // باید دوباره ذخیره شود
+        };
+      });
+    }
+    return [pin];
+  }
+
+  // پردازش نهایی برش و به‌روزرسانی آرایه pins
+  function processCut(cutPositions) {
+    const cutCoords = cutPositions.map((p) => [p.lng, p.lat]);
+    const cutLine = turf.lineString(cutCoords);
+    
+    let hasCut = false;
+    const newPins = [];
+
+    // پیمایش تمام پین‌ها برای پیدا کردن تقاطع
+    // نکته: اگر pins یک Ref است، باید با pins.value کار کنید. 
+    // در اینجا فرض بر این است که pins یک آرایه reactive یا ref است که می‌توان روی آن iterat کرد.
+    const pinsList = Array.isArray(pins) ? pins : pins.value || [];
+
+    pinsList.forEach((pin) => {
+      if (pin.shape && (pin.shape.type === "polyline" || pin.shape.type === "polygon")) {
+        const coords = pin.shape.type === "polygon" 
+          ? [pin.shape.positions.map((p) => [p.lon, p.lat])]
+          : pin.shape.positions.map((p) => [p.lon, p.lat]);
+          
+        const feature = pin.shape.type === "polygon" ? turf.polygon(coords) : turf.lineString(coords);
+        
+        // بررسی تقاطع
+        if (turf.booleanIntersects(feature, cutLine)) {
+          hasCut = true;
+          if (pin.shape.type === "polyline") {
+            newPins.push(...splitPolyline(pin, cutLine));
+          } else {
+            newPins.push(...splitPolygon(pin, cutLine));
+          }
+        } else {
+          newPins.push(pin);
+        }
+      } else {
+        newPins.push(pin);
+      }
+    });
+
+    if (hasCut) {
+      // به‌روزرسانی آرایه pins با حفظ reactivity
+      if (Array.isArray(pins)) {
+        pins.splice(0, pins.length, ...newPins);
+      } else if (pins.value) {
+        pins.value = newPins;
+      }
+      
+      // اطلاع‌رسانی به کامپوننت والد (اختیاری)
+      emit("pinsUpdated", newPins);
+      $toast.success("شکل با موفقیت برش داده شد");
+    } else {
+      $toast.warning("خط برش با هیچ شکلی تقاطع نداشت");
+    }
+
+    // پاکسازی حالت برش
+    inactiveDrawing();
+  }
+
+  // --- CUT FEATURE: شروع حالت برش ---
+  function startCutMode() {
+    if (editingPin.value) {
+      renderUpdatedShape(editingPin.value);
+      disableVertexEditing();
+    }
+    editingPin.value = null;
+    cleanupHandlers();
+    clearTempLayers();
+    
+    drawMode.value = "cut";
+    activeTab.value = "measurements";
+    positions.length = 0;
+    shape.value = null;
+    showForm.value = true; // نمایش فرم برای کنترل‌های حین برش (مثل دکمه لغو)
+    
+    setTimeout(() => {
+      startDrawingCutLine();
+    }, 100);
+  }
+
+  // رسم خط برش (مشابه polyline اما با منطق پایان متفاوت)
+  function startDrawingCutLine() {
+    const m = map;
+    m.getCanvas().style.cursor = "crosshair";
+    
+    tempSourceId = "temp-cut-" + crypto.randomUUID();
+    m.addSource(tempSourceId, {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    
+    const lineLayerId = tempSourceId + "-line";
+    const pointsLayerId = tempSourceId + "-points";
+    
+    m.addLayer({
+      id: lineLayerId,
+      type: "line",
+      source: tempSourceId,
+      paint: {
+        "line-color": "#ef4444", // قرمز برای تمایز حالت برش
+        "line-width": 4,
+        "line-dasharray": [6, 4],
+        "line-opacity": 0.9,
+      },
+    });
+    
+    m.addLayer({
+      id: pointsLayerId,
+      type: "circle",
+      source: tempSourceId,
+      filter: ["==", "$type", "Point"],
+      paint: {
+        "circle-radius": 6,
+        "circle-color": "#ffffff",
+        "circle-stroke-color": "#ef4444",
+        "circle-stroke-width": 3,
+      },
+    });
+    
+    tempLayerIds.push(lineLayerId, pointsLayerId);
+
+    const updateCutGeoJSON = () => {
+      const src = m.getSource(tempSourceId);
+      if (!src) return;
+      const lineCoords = positions.map((p) => [p.lng, p.lat]);
+      const pointFeatures = positions.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+        properties: {},
+      }));
+      
+      const features = [...pointFeatures];
+      if (lineCoords.length >= 2) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: lineCoords },
+          properties: {},
+        });
+      }
+      src.setData({ type: "FeatureCollection", features });
+    };
+
+    clickHandler = (e) => {
+      positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+      updateCutGeoJSON();
+    };
+
+    mouseMoveHandler = (e) => {
+      if (positions.length === 0) return;
+      const src = m.getSource(tempSourceId);
+      if (!src) return;
+      const pts = [...positions, { lng: e.lngLat.lng, lat: e.lngLat.lat }];
+      const lineCoords = pts.map((p) => [p.lng, p.lat]);
+      const pointFeatures = pts.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+        properties: {},
+      }));
+      const features = [...pointFeatures];
+      if (lineCoords.length >= 2) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: lineCoords },
+          properties: {},
+        });
+      }
+      src.setData({ type: "FeatureCollection", features });
+    };
+
+    // پایان برش با دابل‌کلیک یا کلیک راست
+    const finishCut = () => {
+      if (positions.length < 2) {
+        cleanupHandlers();
+        clearTempLayers();
+        drawMode.value = "";
+        showForm.value = false;
+        return;
+      }
+      cleanupHandlers();
+      map.getCanvas().style.cursor = "default";
+      processCut([...positions]);
+    };
+
+    rightClickHandler = (e) => {
+      e.preventDefault();
+      finishCut();
+    };
+
+    dblClickHandler = () => {
+      finishCut();
+    };
+
+    keyHandler = (event) => {
+      if (event.key === "Escape") {
+        cleanupHandlers();
+        clearTempLayers();
+        drawMode.value = "";
+        showForm.value = false;
+        positions.length = 0;
+      }
+    };
+
+    window.addEventListener("keydown", keyHandler);
+    m.on("click", clickHandler);
+    m.on("mousemove", mouseMoveHandler);
+    m.on("contextmenu", rightClickHandler);
+    m.on("dblclick", dblClickHandler);
+  }
   return {
     // State
     loading,
@@ -1720,6 +1998,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     setDrawMode,
     toggleMeasure,
     cancelForm,
+    startCutMode,
     handleSave,
     onFileChange,
     formatCoordinate,

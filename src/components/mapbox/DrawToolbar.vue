@@ -1,19 +1,17 @@
 <template>
   <div ref="toolbarEl" class="absolute top-[calc(var(--top)+150px)] left-1 z-50">
     <div @click.stop class="flex flex-col rounded shadow-md p-2 gap-2">
+      <!-- اندازه‌گیری -->
       <button
         @click="$emit('toggleMeasure')"
-        title="اندازه گیری"
-        style="margin: 0"
+        title="اندازه‌گیری"
         class="w-8 h-8 rounded flex items-center justify-center shadow-md"
-        :class="
-          drawMode === 'measure'
-            ? 'text-white bg-blue-500'
-            : 'text-black bg-gray-200'
-        "
+        :class="drawMode === 'measure' ? 'text-white bg-blue-500' : 'text-black bg-gray-200'"
       >
         <i class="fas fa-ruler m-1"></i>
       </button>
+
+      <!-- انتخاب نقطه -->
       <button
         @click="$emit('togglePointPick')"
         :class="[
@@ -24,70 +22,71 @@
       >
         <i class="fas fa-location-pin"></i>
       </button>
+
+      <!-- چند نقطه -->
       <button
         @click="$emit('setDrawMode', 'multi_point')"
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
-          drawMode === 'multi_point'
-            ? 'text-white bg-blue-500'
-            : 'text-black bg-gray-200',
+          drawMode === 'multi_point' ? 'text-white bg-blue-500' : 'text-black bg-gray-200',
         ]"
         title="چند نقطه"
       >
         <i class="fas fa-braille"></i>
       </button>
+
+      <!-- خط -->
       <button
         @click="$emit('setDrawMode', 'polyline')"
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
-          drawMode === 'polyline'
-            ? 'text-white bg-blue-500'
-            : 'text-black bg-gray-200',
+          drawMode === 'polyline' ? 'text-white bg-blue-500' : 'text-black bg-gray-200',
         ]"
         title="خط"
       >
-        <svg
-          width="35"
-          height="35"
-          viewBox="0 0 100 100"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <line
-            x1="25"
-            y1="75"
-            x2="75"
-            y2="25"
-            stroke-width="6"
-            stroke="currentColor"
-          />
+        <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <line x1="25" y1="75" x2="75" y2="25" stroke-width="6" stroke="currentColor" />
           <circle cx="25" cy="75" r="6" fill="currentColor" />
           <circle cx="75" cy="25" r="6" fill="currentColor" />
         </svg>
       </button>
+
+      <!-- پلی‌گان -->
       <button
         @click="$emit('setDrawMode', 'polygon')"
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
-          drawMode === 'polygon'
-            ? 'text-white bg-blue-500'
-            : 'text-black bg-gray-200',
+          drawMode === 'polygon' ? 'text-white bg-blue-500' : 'text-black bg-gray-200',
         ]"
-        title="پلیگون"
+        title="پلی‌گان"
       >
         <i class="fas fa-draw-polygon"></i>
       </button>
+
+      <!-- دایره -->
       <button
         @click="$emit('setDrawMode', 'circle')"
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
-          drawMode === 'circle'
-            ? 'text-white bg-blue-500'
-            : 'text-black bg-gray-200',
+          drawMode === 'circle' ? 'text-white bg-blue-500' : 'text-black bg-gray-200',
         ]"
         title="دایره"
       >
         <i class="fa fa-circle"></i>
       </button>
+
+      <!-- === دکمه جدید: برش (Cut) === -->
+      <button
+        @click="$emit('startCutMode')"
+        :class="[
+          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          drawMode === 'cut' ? 'text-white bg-red-500' : 'text-black bg-gray-200',
+        ]"
+        title="برش پلی‌گان یا خط"
+      >
+        <i class="fas fa-scissors"></i>
+      </button>
+      <!-- ================================= -->
 
       <div class="relative">
         <button
@@ -120,6 +119,7 @@
         </div>
       </div>
 
+      <!-- زوم -->
       <button
         @click="map?.zoomIn({ duration: 200 })"
         class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200 font-bold"
@@ -151,7 +151,8 @@ defineProps({
   baseMaps: { type: Array, default: () => [] },
 });
 
-defineEmits(['toggleMeasure', 'togglePointPick', 'setDrawMode', 'setBaseLayer']);
+// اضافه کردن startCutMode به لیست emitها
+defineEmits(['toggleMeasure', 'togglePointPick', 'setDrawMode', 'setBaseLayer', 'startCutMode']);
 
 defineExpose({ toolbarEl });
 </script>

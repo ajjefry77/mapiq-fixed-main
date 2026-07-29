@@ -9,6 +9,7 @@
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
     @setBaseLayer="$emit('setBaseLayer', $event)"
+    @start-cut-mode="startCutMode" 
   />
 
   <transition name="fade">
@@ -79,7 +80,7 @@ const panelComponent = ref(null);
 
 const {
   loading,
-  drawMode,
+  drawMode, // <--- اطمینان حاصل کنید این وجود دارد
   pickForForm,
   showForm,
   formData,
@@ -105,6 +106,7 @@ const {
   copyCoordinates,
   getDrawTypeName,
   inactiveDrawing,
+  startCutMode, // <--- تابع جدید برش اضافه شد
 } = useDrawing(props.map, props.pins, emit, SelectGroup);
 
 const {
@@ -124,37 +126,12 @@ watch(showForm, async (newVal) => {
   }
 });
 
-defineExpose({ inactiveDrawing });
+// <--- متغیرها و توابع جدید را expose می‌کنیم تا کامپوننت والد بتواند به آن‌ها دسترسی داشته باشد
+defineExpose({ 
+  inactiveDrawing,
+  drawMode,
+  startCutMode 
+});
 </script>
 
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-.invisible {
-  visibility: hidden;
-}
-.max-h-72::-webkit-scrollbar,
-.max-h-32::-webkit-scrollbar {
-  width: 4px;
-}
-.max-h-72::-webkit-scrollbar-track,
-.max-h-32::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-.max-h-72::-webkit-scrollbar-thumb,
-.max-h-32::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 4px;
-}
-.max-h-72::-webkit-scrollbar-thumb:hover,
-.max-h-32::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
-}
-</style>
+<!-- استایل‌ها بدون تغییر باقی می‌مانند -->

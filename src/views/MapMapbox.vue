@@ -32,6 +32,20 @@
       <div class="relative h-full">
         <div ref="mapContainerRef" id="mapboxRoot" style="width:100%; height:100%;"></div>
 
+        <!-- ========================================== -->
+        <!-- بنر راهنمای حالت برش (Cut Mode Indicator) -->
+        <!-- ========================================== -->
+        <div 
+          v-if="drawing?.drawMode === 'cut'" 
+          class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded shadow-lg z-[600] flex items-center gap-2 pointer-events-none"
+        >
+          <i class="fas fa-scissors animate-pulse"></i>
+          <span class="text-sm font-medium whitespace-nowrap">
+            در حال ترسیم خط برش... (برای اتمام: دابل‌کلیک یا کلیک راست | برای لغو: کلید Esc)
+          </span>
+        </div>
+        <!-- ========================================== -->
+
         <div v-if="!authStore.user && ShowForLogin" class="absolute h-8 bottom-3 right-1 md:right-[350px] bg-red-800/90 text-white px-4 rounded-md font-mono text-sm z-50">
           <span> برای استفاده بهتر از امکانات سیستم <a style="text-decoration: underline;" href="/login">ثبت نام</a> نمایید </span>
           <button @click="ShowForLogin = false" class="text-xl tp-2">&times;</button>
@@ -126,7 +140,8 @@ const Lat = ref("--");
 const zone = ref("--");
 const scale = ref("--");
 
-const drawing = ref(null);
+// این ref برای دسترسی به کامپوننت MapboxDrawTools و خواندن drawMode استفاده می‌شود
+const drawing = ref(null); 
 const loading = ref(false);
 
 const pickMarker = ref(null);
@@ -158,10 +173,8 @@ function setBaseLayer(basemap) {
     }
 
     map.addSource(sourceId, { type: 'raster', tiles: [basemap.tiles], tileSize: 256, attribution: '' });
-    // بیس‌مپ همیشه باید زیرترین لایه باشد؛ آن را قبل از پایین‌ترین لایه‌ی فعلی درج می‌کنیم
     const bottomLayerId = map.getStyle()?.layers?.[0]?.id;
     map.addLayer({ id: layerId, type: 'raster', source: sourceId }, bottomLayerId);
-    // و برای اطمینان کامل، تمام لایه‌های ترسیم/پین ثبت‌شده را دوباره بالا می‌بریم
     bringDrawingsToFront(map);
   } else if (basemap.style === "satellite") {
     const satelliteLayer = {

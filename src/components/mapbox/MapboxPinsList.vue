@@ -233,6 +233,7 @@ import {
 } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
+import mapboxgl from "mapbox-gl";
 import moment from "moment-jalaali";
 import Papa from "papaparse";
 import { useAuthStore } from "../../stores/auth";
@@ -244,6 +245,10 @@ import MapboxLayerTree from "./MapboxLayerTree.vue";
 import MapboxLoadCSV from "./MapboxLoadCSV.vue";
 import { useToast } from "vue-toast-notification";
 import { useSharedArray } from "../../stores/app";
+import {
+  registerLayersForSource,
+  bringDrawingsToFront,
+} from "../../utils/layerOrder";
 
 const {
   getExtendedIds,
@@ -294,6 +299,9 @@ function selectGroup(group) {
 const route = useRoute();
 
 onMounted(async () => {
+  if (props.map) {
+    props.map.on("style.load", onBaseStyleReloaded);
+  }
   if (authStore.user) {
     await getExtendedIds();
     await getVisibleIds();
@@ -309,7 +317,24 @@ onMounted(async () => {
   }
 });
 
-onUnmounted(() => clearInterval(intervalId));
+onUnmounted(() => {
+  clearInterval(intervalId);
+  if (props.map) props.map.off("style.load", onBaseStyleReloaded);
+});
+
+let redrawScheduled = false;
+async function onBaseStyleReloaded() {
+  // setStyle یک style کاملا جدید را جایگزین می‌کند و تمام sourceها/layerهای دستی
+  // (پین‌ها/ترسیم‌ها) از بین می‌روند؛ اینجا دوباره‌شان می‌سازیم و بالای بیس‌مپ می‌بریم.
+  if (redrawScheduled) return;
+  redrawScheduled = true;
+  try {
+    await drawPins();
+    bringDrawingsToFront(props.map);
+  } finally {
+    redrawScheduled = false;
+  }
+}
 
 watch(
   () => authStore.isLogin,
@@ -546,7 +571,7 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
   const sourceId = "draw-pin-" + pin.id;
 
   if (shape.type === "polyline") {
-    const coords = shape.positions.map((p) => [p.lon, p.lat]);
+    const coords = shape.positions.map((p) => [(p.lon ?? p.lng), p.lat]).filter(c => Number.isFinite(c[0]) && Number.isFinite(c[1]));
     if (!map.getSource(sourceId))
       map.addSource(sourceId, {
         type: "geojson",
@@ -735,6 +760,10 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
     });
     pin.shape._sourceIds = [sourceId];
   }
+
+  (pin.shape._sourceIds || []).forEach((sid) =>
+    registerLayersForSource(map, sid),
+  );
 }
 
 async function drawKML(pin, visible = false) {
@@ -747,6 +776,14 @@ async function drawKML(pin, visible = false) {
     const geojson = kmlToGeoJSON(doc);
 
     const sourceId = "kml-" + pin.id;
+    if (props.map.getSource(sourceId)) {
+      props.map.getSource(sourceId).setData(geojson);
+      pin.shape = { show: visible, _sourceIds: [sourceId] };
+      pin.shape.show = visible || isVisible(pin.id);
+      pin.loaded = true;
+      registerLayersForSource(props.map, sourceId);
+      return;
+    }
     props.map.addSource(sourceId, { type: "geojson", data: geojson });
     props.map.addLayer({
       id: sourceId + "-fill",
@@ -773,6 +810,7 @@ async function drawKML(pin, visible = false) {
     pin.shape = { show: visible, _sourceIds: [sourceId] };
     pin.shape.show = visible || isVisible(pin.id);
     pin.loaded = true;
+    registerLayersForSource(props.map, sourceId);
   } catch (err) {
     console.error("خطا در خواندن KML:", pin.name, err);
   }
@@ -836,6 +874,7 @@ const drawPins = async () => {
     if (pin.type == "draw") drawShape(pin);
     else if (pin.type == "file") await drawKML(pin);
   }
+  bringDrawingsToFront(props.map);
 };
 
 const drawPin = async (pin, visible = false) => {
@@ -992,6 +1031,7 @@ const handleFileUpload = async (event) => {
         paint: { "circle-radius": 6, "circle-color": "#ff0000" },
         filter: ["==", "$type", "Point"],
       });
+      registerLayersForSource(props.map, sourceId);
 
       const bounds = new mapboxgl.LngLatBounds();
       const addCoords = (coords) => {
@@ -1053,6 +1093,7 @@ const handleFileUpload = async (event) => {
           paint: { "circle-radius": 6, "circle-color": "#ff0000" },
           filter: ["==", "$type", "Point"],
         });
+        registerLayersForSource(props.map, sourceId);
 
         const bounds = new mapboxgl.LngLatBounds();
         const addCoords = (coords) => {
@@ -1149,7 +1190,7 @@ function Export(filename, exportType) {
   }
 }
 
-defineExpose({ fetchPins: loadWorks });
+defineExpose({ fetchPins: loadWorks, redrawPins: drawPins });
 </script>
 
 <style scoped>

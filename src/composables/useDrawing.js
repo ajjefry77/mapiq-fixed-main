@@ -12,6 +12,7 @@ import axios from "axios";
 import proj4 from "proj4";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "vue-toast-notification";
+import { registerDrawLayer, bringDrawingsToFront } from "../utils/layerOrder";
 
 const SERVER = import.meta.env.VITE_SERVER;
 
@@ -36,7 +37,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   const tempCircle = ref(null);
   const measurePoints = reactive([]);
   const measureActive = ref(false);
-  const coordinateSystem = ref("latlon");
+  const coordinateSystem = ref("utm");
 
   // Edit mode state (same dialog is reused for editing an existing feature)
   const editingPin = ref(null);
@@ -48,6 +49,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   let rightClickHandler = null;
   let keyHandler = null;
   let featureClickHandler = null;
+  let styleLoadHandler = null;
 
   // Vertex-drag editing (edit mode only)
   let editHandlesSourceId = null;
@@ -187,9 +189,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       area -= coords[j][0] * coords[i][1];
     }
     area = Math.abs(area) / 2;
-    return area > 1000000
-      ? (area / 1000000).toFixed(2) + " km²"
-      : area.toFixed(2) + " m²";
+    return formatArea(area);
   });
 
   const liveRadius = computed(() => {
@@ -239,6 +239,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     // drawing/measuring/picking a point or while the dialog is already open.
     featureClickHandler = (e) => onExistingFeatureClick(e);
     map.on("click", featureClickHandler);
+
+    // وقتی سبک نقشه (بیس‌مپ) عوض می‌شود، لایه‌های در حال ترسیم را دوباره بالا بیاور
+    styleLoadHandler = () => reassertDrawingOrder();
+    map.on("style.load", styleLoadHandler);
   });
 
   onUnmounted(() => {
@@ -249,9 +253,19 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       map.off("click", featureClickHandler);
       featureClickHandler = null;
     }
+    if (styleLoadHandler) {
+      map.off("style.load", styleLoadHandler);
+      styleLoadHandler = null;
+    }
   });
 
   // Helper functions
+  function reassertDrawingOrder() {
+    tempLayerIds.forEach((id) => registerDrawLayer(id));
+    if (editHandlesSourceId) registerDrawLayer(editHandlesSourceId + "-points");
+    bringDrawingsToFront(map);
+  }
+
   function clearTempLayers() {
     tempLayerIds.forEach((id) => {
       if (map.getLayer(id)) map.removeLayer(id);
@@ -843,7 +857,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         geometry: { type: "Point", coordinates: [p.lng, p.lat] },
         properties: {
           kind: "vertex",
-          label: `${p.lng.toFixed(6)}, ${p.lat.toFixed(6)}`,
+          label: formatVertexLabel(p.lng, p.lat),
         },
       });
     });
@@ -1385,10 +1399,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         for (let i = 1; i < measurePoints.length; i++) {
           totalDist += measureDistance(measurePoints[i - 1], measurePoints[i]);
         }
-        const label =
-          totalDist > 1000
-            ? (totalDist / 1000).toFixed(2) + " km"
-            : totalDist.toFixed(1) + " m";
+        const label = formatDistance(totalDist);
 
         features.push({
           type: "Feature",
@@ -1428,10 +1439,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       for (let i = 1; i < allPoints.length; i++) {
         totalDist += measureDistance(allPoints[i - 1], allPoints[i]);
       }
-      const label =
-        totalDist > 1000
-          ? (totalDist / 1000).toFixed(2) + " km"
-          : totalDist.toFixed(1) + " m";
+      const label = formatDistance(totalDist);
 
       // برچسب روی نقطه انتهایی (موقعیت ماوس)
       features.push({
@@ -1696,14 +1704,35 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       area -= coords[j][0] * coords[i][1];
     }
     area = Math.abs(area) / 2;
-    return area > 1000000
-      ? (area / 1000000).toFixed(2) + " km²"
-      : area.toFixed(2) + " m²";
+    return formatArea(area);
+  }
+
+  // طول: زیر 1 متر -> سانتی‌متر، بین 1 تا 1000 متر -> متر، بالای 1000 متر -> کیلومتر
+  // برچسب مختصات هر ورتکس روی نقشه: بر اساس coordinateSystem (پیش‌فرض UTM)
+  function formatVertexLabel(lng, lat) {
+    if (coordinateSystem.value === "utm") {
+      const zone = Math.floor((lng + 180) / 6) + 1;
+      const hemisphere = lat >= 0 ? "" : " +south";
+      const [x, y] = proj4(
+        "EPSG:4326",
+        `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs${hemisphere}`,
+        [lng, lat],
+      );
+      return `${x.toFixed(2)}, ${y.toFixed(2)} (Z${zone})`;
+    }
+    return `${lng.toFixed(6)}, ${lat.toFixed(6)}`;
   }
 
   function formatDistance(meters) {
-    if (meters > 1000) return (meters / 1000).toFixed(2) + " km";
-    return meters.toFixed(0) + " m";
+    if (meters < 1) return (meters * 100).toFixed(0) + " cm";
+    if (meters >= 1000) return (meters / 1000).toFixed(2) + " km";
+    return meters.toFixed(2) + " m";
+  }
+
+  // مساحت: زیر 1000 متر مربع -> متر مربع، بالای 1000 متر مربع -> هکتار
+  function formatArea(squareMeters) {
+    if (squareMeters >= 1000) return (squareMeters / 10000).toFixed(2) + " هکتار";
+    return squareMeters.toFixed(2) + " m²";
   }
 
   function formatCoordinate(point) {

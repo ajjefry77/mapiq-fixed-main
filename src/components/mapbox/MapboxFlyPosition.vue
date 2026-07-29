@@ -54,7 +54,7 @@ function goToLocation() {
 
   let lat, lng;
 
-  if (props.latlon.value === true) {
+  if (props.latlon === true) {
     lat = Number(lat_x.value);
     lng = Number(lng_y.value);
   } else {

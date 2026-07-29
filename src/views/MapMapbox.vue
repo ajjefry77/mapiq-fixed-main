@@ -93,6 +93,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import axios from "axios";
 import proj4 from "proj4";
+import { bringDrawingsToFront } from "../utils/layerOrder";
 
 const GEOSERVER = import.meta.env.VITE_GEOSERVER;
 const SERVER = import.meta.env.VITE_SERVER;
@@ -157,9 +158,11 @@ function setBaseLayer(basemap) {
     }
 
     map.addSource(sourceId, { type: 'raster', tiles: [basemap.tiles], tileSize: 256, attribution: '' });
-    const layers = map.getStyle().layers;
-    const firstSymbolId = layers.find(l => l.type === 'symbol')?.id;
-    map.addLayer({ id: layerId, type: 'raster', source: sourceId }, firstSymbolId);
+    // بیس‌مپ همیشه باید زیرترین لایه باشد؛ آن را قبل از پایین‌ترین لایه‌ی فعلی درج می‌کنیم
+    const bottomLayerId = map.getStyle()?.layers?.[0]?.id;
+    map.addLayer({ id: layerId, type: 'raster', source: sourceId }, bottomLayerId);
+    // و برای اطمینان کامل، تمام لایه‌های ترسیم/پین ثبت‌شده را دوباره بالا می‌بریم
+    bringDrawingsToFront(map);
   } else if (basemap.style === "satellite") {
     const satelliteLayer = {
       version: 8,
@@ -185,6 +188,7 @@ const ShowTile = () => {
     map.addSource(sourceId, { type: 'raster', tiles: ['tile/data/Ax_1340/{z}/{x}/{y}.png'], tileSize: 256 });
     map.addLayer({ id: sourceId + '-layer', type: 'raster', source: sourceId, paint: { 'raster-opacity': 1 } });
   }
+  bringDrawingsToFront(map);
 };
 
 function getUTMZone(latDeg, lonDeg) {
@@ -337,6 +341,7 @@ function toggleLayer(layerName) {
     layersLoaded.push({ name: layerName, active: true, sourceId });
     layerOpacity[layerName] = 1.0;
   }
+  bringDrawingsToFront(map);
 }
 
 onMounted(async () => {

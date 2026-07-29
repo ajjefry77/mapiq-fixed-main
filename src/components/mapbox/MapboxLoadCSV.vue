@@ -80,6 +80,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, inject, onMounted } from 'vue';
+import mapboxgl from 'mapbox-gl';
 import Loading from '../Loading.vue';
 
 const props = defineProps({

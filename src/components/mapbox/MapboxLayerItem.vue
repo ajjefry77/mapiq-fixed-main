@@ -34,6 +34,7 @@
 
 <script setup>
 import { ref, inject, computed } from 'vue';
+import mapboxgl from 'mapbox-gl';
 import { useToast } from "vue-toast-notification";
 import axios from "axios";
 import { useAuthStore } from '../../stores/auth';

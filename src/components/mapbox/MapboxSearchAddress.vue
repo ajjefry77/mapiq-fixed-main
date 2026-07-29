@@ -154,6 +154,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import mapboxgl from 'mapbox-gl';
 
 const props = defineProps({
   map: { type: Object, required: true }

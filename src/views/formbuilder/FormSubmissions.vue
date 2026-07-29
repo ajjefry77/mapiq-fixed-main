@@ -198,6 +198,7 @@
 import { ref, reactive, computed, onMounted, nextTick, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useForms } from "../../composables/fb/useForms";
+import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 mapboxgl.setRTLTextPlugin(

@@ -4,6 +4,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import mapboxgl from 'mapbox-gl';
 import Loading from '../Loading.vue';
 import shp from 'shpjs';
 

@@ -36,6 +36,14 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   const measurePoints = reactive([]);
   const measureActive = ref(false);
   const coordinateSystem = ref("utm");
+  const cutPieceColors = [
+    "#3b82f6",
+    "#10b981",
+    "#f97316",
+    "#a855f7",
+    "#ec4899",
+    "#eab308",
+  ];
   // Edit mode state (same dialog is reused for editing an existing feature)
   const editingPin = ref(null);
   // Event handlers
@@ -1063,9 +1071,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   function disableVertexEditing() {
     if (editHandlesSourceId) {
       const handlesLayerId = editHandlesSourceId + "-points";
-      if (onEditMouseDown) map.off("mousedown", handlesLayerId, onEditMouseDown);
+      if (onEditMouseDown)
+        map.off("mousedown", handlesLayerId, onEditMouseDown);
       if (map.getLayer(handlesLayerId)) map.removeLayer(handlesLayerId);
-      if (map.getSource(editHandlesSourceId)) map.removeSource(editHandlesSourceId);
+      if (map.getSource(editHandlesSourceId))
+        map.removeSource(editHandlesSourceId);
       editHandlesSourceId = null;
     }
     if (onEditMouseMove) map.off("mousemove", onEditMouseMove);
@@ -1127,7 +1137,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         ],
       });
       if (map.getLayer(sourceId + "-line")) {
-        map.setPaintProperty(sourceId + "-line", "line-color", s.color || "#ff0000");
+        map.setPaintProperty(
+          sourceId + "-line",
+          "line-color",
+          s.color || "#ff0000",
+        );
         map.setPaintProperty(sourceId + "-line", "line-width", s.width || 3);
       }
     } else if (s.type === "polygon") {
@@ -1146,7 +1160,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         ],
       });
       if (map.getLayer(sourceId + "-fill")) {
-        map.setPaintProperty(sourceId + "-fill", "fill-color", s.color || "#ff0000");
+        map.setPaintProperty(
+          sourceId + "-fill",
+          "fill-color",
+          s.color || "#ff0000",
+        );
       }
       if (map.getLayer(sourceId + "-line")) {
         map.setPaintProperty(
@@ -1216,7 +1234,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         ],
       });
       if (map.getLayer(sourceId + "-point")) {
-        map.setPaintProperty(sourceId + "-point", "circle-color", s.color || "#ff0000");
+        map.setPaintProperty(
+          sourceId + "-point",
+          "circle-color",
+          s.color || "#ff0000",
+        );
       }
     }
   }
@@ -1638,7 +1660,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   }
   // مساحت: زیر 1000 متر مربع -> متر مربع، بالای 1000 متر مربع -> هکتار
   function formatArea(squareMeters) {
-    if (squareMeters >= 1000) return (squareMeters / 10000).toFixed(2) + " هکتار";
+    if (squareMeters >= 1000)
+      return (squareMeters / 10000).toFixed(2) + " هکتار";
     return squareMeters.toFixed(2) + " m²";
   }
   function formatCoordinate(point) {
@@ -1689,13 +1712,13 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     }
     map.getCanvas().style.cursor = "default";
   }
-    // برش پلی‌لاین
+  // برش پلی‌لاین
   function splitPolyline(pin, cutLine) {
     const coords = pin.shape.positions.map((p) => [p.lon, p.lat]);
     const lineFeature = turf.lineString(coords, { originalId: pin.id });
-    
+
     const split = turf.lineSplit(lineFeature, cutLine);
-    
+
     if (split.features.length > 1) {
       return split.features.map((feat, index) => {
         const newPositions = feat.geometry.coordinates.map(([lon, lat]) => ({
@@ -1721,75 +1744,172 @@ export function useDrawing(map, pins, emit, SelectGroup) {
 
   // برش پلی‌گان
   function splitPolygon(pin, cutLine) {
-    // تبدیل پلی‌گان به یک خط بسته (Ring)
     const coords = [pin.shape.positions.map((p) => [p.lon, p.lat])];
-    const polygonFeature = turf.polygon(coords, { originalId: pin.id });
-    const ringLine = turf.polygonToLine(polygonFeature);
-    
-    // برش خط محیطی پلی‌گان با خط برش
-    const split = turf.lineSplit(ringLine, cutLine);
-    
-    if (split.features.length >= 2) {
-      return split.features.map((feat, index) => {
-        let newCoords = feat.geometry.coordinates;
-        // اطمینان از بسته بودن حلقه پلی‌گان جدید
-        const first = newCoords[0];
-        const last = newCoords[newCoords.length - 1];
-        if (first[0] !== last[0] || first[1] !== last[1]) {
-          newCoords.push([...first]);
-        }
-        
-        const newPositions = newCoords.map(([lon, lat]) => ({
-          lon,
-          lat,
-          height: 0,
-        }));
-
-        return {
-          ...pin,
-          id: crypto.randomUUID(),
-          name: `${pin.name} (بخش ${index + 1})`,
-          shape: {
-            ...pin.shape,
-            type: "polygon",
-            positions: newPositions,
-          },
-          save: -1, // باید دوباره ذخیره شود
-        };
-      });
+    const firstPt = coords[0][0];
+    const lastPt = coords[0][coords[0].length - 1];
+    if (firstPt[0] !== lastPt[0] || firstPt[1] !== lastPt[1]) {
+      coords[0].push([...firstPt]);
     }
-    return [pin];
+    const polygonFeature = turf.polygon(coords, { originalId: pin.id });
+
+    // خط برش را کمی ضخیم می‌کنیم و به‌جای برش حلقه (که باعث تولید یک تکه‌ی
+    // اضافه از نقطه‌ی شروع رینگ می‌شد)، با تفاضل (difference) پلیگان را دقیقا
+    // به همان تعداد تکه‌ی واقعی تقسیم می‌کنیم
+    const cutBuffer = turf.buffer(cutLine, 0.03, { units: "meters" });
+    const diff = turf.difference(
+      turf.featureCollection([polygonFeature, cutBuffer]),
+    );
+
+    if (!diff) return [pin];
+
+    const pieces =
+      diff.geometry.type === "Polygon"
+        ? [diff.geometry.coordinates]
+        : diff.geometry.coordinates; // MultiPolygon
+
+    if (pieces.length < 2) return [pin];
+
+    return pieces.map((piece, index) => {
+      const ring = piece[0];
+      const newPositions = ring.map(([lon, lat]) => ({ lon, lat, height: 0 }));
+      const newColor = cutPieceColors[index % cutPieceColors.length];
+      return {
+        ...pin,
+        id: crypto.randomUUID(),
+        name: `${pin.name} (بخش ${index + 1})`,
+        color: newColor,
+        shape: {
+          ...pin.shape,
+          type: "polygon",
+          positions: newPositions,
+          color: newColor,
+          outlineColor: newColor,
+        },
+        save: -1,
+      };
+    });
   }
+
+  // ساخت لایه‌ی واقعی روی نقشه برای یک تکه‌ی تازه‌ساخته‌شده (بدون نیاز به خاموش/روشن کردن pinlist)
+function renderCutPiece(pin) {
+  if (!pin.shape || !map) return;
+  const sourceId = "draw-pin-" + pin.id;
+  if (map.getSource(sourceId)) return;
+
+  // وضعیت روشن/خاموش بودن را از شکل اصلی که این تکه از آن جدا شده حفظ می‌کنیم
+  const visibility = pin.shape.show ? "visible" : "none";
+
+  if (pin.shape.type === "polygon") {
+    const coords = pin.shape.positions.map((p) => [p.lon, p.lat]);
+    map.addSource(sourceId, {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          geometry: { type: "Polygon", coordinates: [coords] },
+          properties: { name: pin.name },
+        }],
+      },
+    });
+    map.addLayer({
+      id: sourceId + "-fill",
+      type: "fill",
+      source: sourceId,
+      paint: { "fill-color": pin.shape.color || "#ff0000", "fill-opacity": 0.5 },
+      layout: { visibility },
+    });
+    map.addLayer({
+      id: sourceId + "-line",
+      type: "line",
+      source: sourceId,
+      paint: {
+        "line-color": pin.shape.outlineColor || pin.shape.color || "#ff0000",
+        "line-width": pin.shape.outlineWidth || 2,
+      },
+      layout: { visibility },
+    });
+    pin.shape._sourceIds = [sourceId];
+  } else if (pin.shape.type === "polyline") {
+    const coords = pin.shape.positions.map((p) => [p.lon, p.lat]);
+    map.addSource(sourceId, {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: coords },
+          properties: { name: pin.name },
+        }],
+      },
+    });
+    map.addLayer({
+      id: sourceId + "-line",
+      type: "line",
+      source: sourceId,
+      paint: {
+        "line-color": pin.shape.color || "#ff0000",
+        "line-width": pin.shape.width || 3,
+      },
+      layout: { visibility },
+    });
+    pin.shape._sourceIds = [sourceId];
+  }
+
+  registerDrawLayer(sourceId + "-fill");
+  registerDrawLayer(sourceId + "-line");
+}
+
+// حذف لایه‌ی شکل اصلی (قبل از برش) از روی نقشه، تا شبحش زیر تکه‌های جدید نمونه
+function removeCutOriginalLayers(pin) {
+  if (!map) return;
+  const sourceId = "draw-pin-" + pin.id;
+  const style = map.getStyle();
+  if (!style || !style.layers) return;
+  style.layers
+    .filter((l) => l.id.startsWith(sourceId))
+    .forEach((l) => { if (map.getLayer(l.id)) map.removeLayer(l.id); });
+  if (map.getSource(sourceId)) map.removeSource(sourceId);
+}
 
   // پردازش نهایی برش و به‌روزرسانی آرایه pins
   function processCut(cutPositions) {
     const cutCoords = cutPositions.map((p) => [p.lng, p.lat]);
     const cutLine = turf.lineString(cutCoords);
-    
+
     let hasCut = false;
     const newPins = [];
 
     // پیمایش تمام پین‌ها برای پیدا کردن تقاطع
-    // نکته: اگر pins یک Ref است، باید با pins.value کار کنید. 
+    // نکته: اگر pins یک Ref است، باید با pins.value کار کنید.
     // در اینجا فرض بر این است که pins یک آرایه reactive یا ref است که می‌توان روی آن iterat کرد.
     const pinsList = Array.isArray(pins) ? pins : pins.value || [];
 
     pinsList.forEach((pin) => {
-      if (pin.shape && (pin.shape.type === "polyline" || pin.shape.type === "polygon")) {
-        const coords = pin.shape.type === "polygon" 
-          ? [pin.shape.positions.map((p) => [p.lon, p.lat])]
-          : pin.shape.positions.map((p) => [p.lon, p.lat]);
-          
-        const feature = pin.shape.type === "polygon" ? turf.polygon(coords) : turf.lineString(coords);
-        
+      if (
+        pin.shape &&
+        (pin.shape.type === "polyline" || pin.shape.type === "polygon")
+      ) {
+        const coords =
+          pin.shape.type === "polygon"
+            ? [pin.shape.positions.map((p) => [p.lon, p.lat])]
+            : pin.shape.positions.map((p) => [p.lon, p.lat]);
+
+        const feature =
+          pin.shape.type === "polygon"
+            ? turf.polygon(coords)
+            : turf.lineString(coords);
+
         // بررسی تقاطع
         if (turf.booleanIntersects(feature, cutLine)) {
           hasCut = true;
-          if (pin.shape.type === "polyline") {
-            newPins.push(...splitPolyline(pin, cutLine));
-          } else {
-            newPins.push(...splitPolygon(pin, cutLine));
-          }
+          removeCutOriginalLayers(pin); // پاک کردن شکل اصلی از نقشه
+          const pieces =
+            pin.shape.type === "polyline"
+              ? splitPolyline(pin, cutLine)
+              : splitPolygon(pin, cutLine);
+          pieces.forEach(renderCutPiece); // رندر فوری هر تکه روی نقشه
+          newPins.push(...pieces);
         } else {
           newPins.push(pin);
         }
@@ -1805,7 +1925,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       } else if (pins.value) {
         pins.value = newPins;
       }
-      
+
       // اطلاع‌رسانی به کامپوننت والد (اختیاری)
       emit("pinsUpdated", newPins);
       $toast.success("شکل با موفقیت برش داده شد");
@@ -1826,13 +1946,13 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     editingPin.value = null;
     cleanupHandlers();
     clearTempLayers();
-    
+
     drawMode.value = "cut";
     activeTab.value = "measurements";
     positions.length = 0;
     shape.value = null;
-    showForm.value = true; // نمایش فرم برای کنترل‌های حین برش (مثل دکمه لغو)
-    
+    showForm.value = false; // نمایش فرم برای کنترل‌های حین برش (مثل دکمه لغو)
+
     setTimeout(() => {
       startDrawingCutLine();
     }, 100);
@@ -1842,16 +1962,16 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   function startDrawingCutLine() {
     const m = map;
     m.getCanvas().style.cursor = "crosshair";
-    
+
     tempSourceId = "temp-cut-" + crypto.randomUUID();
     m.addSource(tempSourceId, {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-    
+
     const lineLayerId = tempSourceId + "-line";
     const pointsLayerId = tempSourceId + "-points";
-    
+
     m.addLayer({
       id: lineLayerId,
       type: "line",
@@ -1863,7 +1983,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         "line-opacity": 0.9,
       },
     });
-    
+
     m.addLayer({
       id: pointsLayerId,
       type: "circle",
@@ -1876,7 +1996,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         "circle-stroke-width": 3,
       },
     });
-    
+
     tempLayerIds.push(lineLayerId, pointsLayerId);
 
     const updateCutGeoJSON = () => {
@@ -1888,7 +2008,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         geometry: { type: "Point", coordinates: [p.lng, p.lat] },
         properties: {},
       }));
-      
+
       const features = [...pointFeatures];
       if (lineCoords.length >= 2) {
         features.push({

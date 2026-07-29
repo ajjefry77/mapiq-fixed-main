@@ -41,7 +41,7 @@
         >
           <i class="fas fa-scissors animate-pulse"></i>
           <span class="text-sm font-medium whitespace-nowrap">
-            در حال ترسیم خط برش... (برای اتمام: دابل‌کلیک یا کلیک راست | برای لغو: کلید Esc)
+            در حال ترسیم خط برش... (برای اتمام: دابل‌کلیک | برای لغو: کلید Esc)
           </span>
         </div>
         <!-- ========================================== -->
@@ -162,20 +162,18 @@ function openMyDialog() { openDialog.value = true; }
 function setBaseLayer(basemap) {
   if (!map) return;
   if (basemap.tiles) {
-    const sourceId = 'basemap-custom';
-    const layerId = 'basemap-custom-layer';
-
-    if (map.getLayer(layerId)) {
-      map.removeLayer(layerId);
-    }
-    if (map.getSource(sourceId)) {
-      map.removeSource(sourceId);
-    }
-
-    map.addSource(sourceId, { type: 'raster', tiles: [basemap.tiles], tileSize: 256, attribution: '' });
-    const bottomLayerId = map.getStyle()?.layers?.[0]?.id;
-    map.addLayer({ id: layerId, type: 'raster', source: sourceId }, bottomLayerId);
-    bringDrawingsToFront(map);
+    // قبل از افزودن بیس‌مپ جدید، سبک قبلی نقشه (مثلا ست‌لایت یا OSM) را کامل پاک می‌کنیم
+    // وگرنه لایه‌ی جدید زیر لایه‌ی قبلی اضافه می‌شود و دیده نمی‌شود
+    map.setStyle({ version: 8, sources: {}, layers: [] });
+    map.once("style.load", () => {
+      const sourceId = 'basemap-custom';
+      const layerId = 'basemap-custom-layer';
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      map.addSource(sourceId, { type: 'raster', tiles: [basemap.tiles], tileSize: 256, attribution: '' });
+      map.addLayer({ id: layerId, type: 'raster', source: sourceId });
+      bringDrawingsToFront(map);
+    });
   } else if (basemap.style === "satellite") {
     const satelliteLayer = {
       version: 8,

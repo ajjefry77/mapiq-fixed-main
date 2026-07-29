@@ -65,58 +65,82 @@
 
         <div class="bg-gray-900 rounded p-2 text-xs space-y-1.5">
           <div class="flex justify-between items-center">
-            <span class="text-gray-600">تعداد نقاط:</span>
-            <span class="font-bold text-orange-600">{{ livePointCount }}</span>
+            <span class="text-gray-400">تعداد نقاط:</span>
+            <span class="font-bold text-orange-400">{{ livePointCount }}</span>
           </div>
           <div
             v-if="drawMode === 'polyline' || drawMode === 'polygon' || shape?.type === 'polyline' || shape?.type === 'polygon'"
-            class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+            class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
-            <span class="text-gray-600">طول کل:</span>
-            <span class="font-bold text-orange-600">{{ liveTotalLength }}</span>
+            <span class="text-gray-400">طول کل:</span>
+            <span class="font-bold text-orange-400">{{ liveTotalLength }}</span>
           </div>
           <div
             v-if="drawMode === 'polygon' || shape?.type === 'polygon'"
-            class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+            class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
-            <span class="text-gray-600">مساحت:</span>
-            <span class="font-bold text-green-600">{{ liveArea }}</span>
+            <span class="text-gray-400">مساحت:</span>
+            <span class="font-bold text-green-400">{{ liveArea }}</span>
           </div>
           <div
             v-if="drawMode === 'circle' || shape?.type === 'circle'"
-            class="flex justify-between items-center border-t border-orange-200 pt-1.5"
+            class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
-            <span class="text-gray-600">شعاع:</span>
-            <span class="font-bold text-purple-600">{{ liveRadius }}</span>
+            <span class="text-gray-400">شعاع:</span>
+            <span class="font-bold text-purple-400">{{ liveRadius }}</span>
           </div>
         </div>
-
+        
+        <!-- بخش جدول مختصات -->
         <div>
           <h4 class="text-xs font-medium mb-2 text-gray-700">
             {{ drawMode === 'multi_point' || shape?.type === 'multi_point' ? 'نقاط' : drawMode === 'measure' ? 'اندازه‌گیری' : 'مختصات نقاط' }}:
           </h4>
-          <div class="space-y-1 max-h-32 overflow-y-auto">
-            <div
-              v-for="(point, index) in displayPoints"
-              :key="index"
-              class="bg-gray-50 rounded p-1.5 text-xs flex justify-between items-center hover:bg-orange-50 transition group"
-            >
-              <span class="text-gray-600">نقطه {{ index + 1 }}</span>
-              <div class="flex items-center gap-2">
-                <span class="font-mono text-xs">
-                  {{ formatCoordinate(point) }}
-                </span>
-                <button
-                  @click="$emit('copyCoordinates', point)"
-                  class="text-gray-400 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition"
-                  title="کپی مختصات"
+          <div class="max-h-40 overflow-y-auto border rounded">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-100 text-gray-600 sticky top-0">
+                <tr>
+                  <th class="p-1.5 border-b text-center font-medium">id</th>
+                  <th class="p-1.5 border-b text-center font-medium">{{ coordinateSystem === 'utm' ? 'x' : 'lon' }}</th>
+                  <th class="p-1.5 border-b text-center font-medium">{{ coordinateSystem === 'utm' ? 'y' : 'lat' }}</th>
+                  <th v-if="coordinateSystem === 'utm'" class="p-1.5 border-b text-center font-medium">zone</th>
+                  <th class="p-1.5 border-b text-center w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(point, index) in displayPoints"
+                  :key="index"
+                  class="hover:bg-orange-50 transition group border-b last:border-b-0"
                 >
-                  <i class="fas fa-copy text-xs"></i>
-                </button>
-              </div>
-            </div>
+                  <td class="p-1.5 text-center text-gray-600">{{ point.id || index + 1 }}</td>
+                  
+                  <td class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
+                    {{ getCoordValue(point, coordinateSystem === 'utm' ? 'x' : 'lng') }}
+                  </td>
+                  
+                  <td class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
+                    {{ getCoordValue(point, coordinateSystem === 'utm' ? 'y' : 'lat') }}
+                  </td>
+                  
+                  <td v-if="coordinateSystem === 'utm'" class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
+                    {{ getCoordValue(point, 'zone') }}
+                  </td>
+                  
+                  <td class="p-1.5 text-center">
+                    <button
+                      @click="$emit('copyCoordinates', point)"
+                      class="text-gray-400 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition"
+                      title="کپی مختصات"
+                    >
+                      <i class="fas fa-copy text-xs"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div v-if="displayPoints.length === 0" class="text-center py-4 text-gray-400 text-xs">
+          <div v-if="displayPoints.length === 0" class="text-center py-4 text-gray-400 text-xs border rounded">
             <p>در حال ترسیم روی نقشه کلیک کنید</p>
           </div>
         </div>
@@ -233,9 +257,18 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 const panelEl = ref(null);
+
+// تابع کمکی برای استخراج هوشمند مختصات از ساختارهای مختلف آبجکت
+const getCoordValue = (point, type) => {
+  if (!point) return '-';
+  if (type === 'x') return point.x ?? point.easting ?? point.lng ?? point.lon ?? point[0] ?? '-';
+  if (type === 'y') return point.y ?? point.northing ?? point.lat ?? point[1] ?? '-';
+  if (type === 'zone') return point.zone ?? '-';
+  return '-';
+};
 
 defineProps({
   panelReady: { type: Boolean, default: false },

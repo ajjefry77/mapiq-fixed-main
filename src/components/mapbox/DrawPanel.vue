@@ -13,7 +13,9 @@
       class="bg-black text-white px-4 py-2 flex justify-between items-center cursor-move"
       @mousedown="$emit('startDrag', $event)"
     >
-      <button @click="$emit('cancel')" class="hover:text-gray-200 text-lg">✕</button>
+      <button @click="$emit('cancel')" class="hover:text-gray-200 text-lg">
+        ✕
+      </button>
       <h3 class="font-bold text-sm">{{ title }}</h3>
     </div>
 
@@ -26,7 +28,7 @@
           'flex-1 py-1.5 text-xs transition-colors',
           activeTab === tab.key
             ? 'border-b-2 border-orange-500 text-orange-600 bg-white font-medium'
-            : 'text-gray-500 hover:text-gray-700'
+            : 'text-gray-500 hover:text-gray-700',
         ]"
       >
         {{ tab.label }}
@@ -44,7 +46,7 @@
                 'px-2 py-0.5 text-xs rounded transition',
                 coordinateSystem === 'latlon'
                   ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
               ]"
             >
               Lat/Long
@@ -55,7 +57,7 @@
                 'px-2 py-0.5 text-xs rounded transition',
                 coordinateSystem === 'utm'
                   ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
               ]"
             >
               UTM
@@ -69,7 +71,12 @@
             <span class="font-bold text-orange-400">{{ livePointCount }}</span>
           </div>
           <div
-            v-if="drawMode === 'polyline' || drawMode === 'polygon' || shape?.type === 'polyline' || shape?.type === 'polygon'"
+            v-if="
+              drawMode === 'polyline' ||
+              drawMode === 'polygon' ||
+              shape?.type === 'polyline' ||
+              shape?.type === 'polygon'
+            "
             class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
             <span class="text-gray-400">طول کل:</span>
@@ -90,20 +97,35 @@
             <span class="font-bold text-purple-400">{{ liveRadius }}</span>
           </div>
         </div>
-        
+
         <!-- بخش جدول مختصات -->
         <div>
           <h4 class="text-xs font-medium mb-2 text-gray-700">
-            {{ drawMode === 'multi_point' || shape?.type === 'multi_point' ? 'نقاط' : drawMode === 'measure' ? 'اندازه‌گیری' : 'مختصات نقاط' }}:
+            {{
+              drawMode === "multi_point" || shape?.type === "multi_point"
+                ? "نقاط"
+                : drawMode === "measure"
+                  ? "اندازه‌گیری"
+                  : "مختصات نقاط"
+            }}:
           </h4>
           <div class="max-h-40 overflow-y-auto border rounded">
             <table class="w-full text-xs">
               <thead class="bg-gray-100 text-gray-600 sticky top-0">
                 <tr>
                   <th class="p-1.5 border-b text-center font-medium">id</th>
-                  <th class="p-1.5 border-b text-center font-medium">{{ coordinateSystem === 'utm' ? 'x' : 'lon' }}</th>
-                  <th class="p-1.5 border-b text-center font-medium">{{ coordinateSystem === 'utm' ? 'y' : 'lat' }}</th>
-                  <th v-if="coordinateSystem === 'utm'" class="p-1.5 border-b text-center font-medium">zone</th>
+                  <th class="p-1.5 border-b text-center font-medium">
+                    {{ coordinateSystem === "utm" ? "x" : "lon" }}
+                  </th>
+                  <th class="p-1.5 border-b text-center font-medium">
+                    {{ coordinateSystem === "utm" ? "y" : "lat" }}
+                  </th>
+                  <th
+                    v-if="coordinateSystem === 'utm'"
+                    class="p-1.5 border-b text-center font-medium"
+                  >
+                    zone
+                  </th>
                   <th class="p-1.5 border-b text-center w-8"></th>
                 </tr>
               </thead>
@@ -113,20 +135,36 @@
                   :key="index"
                   class="hover:bg-orange-50 transition group border-b last:border-b-0"
                 >
-                  <td class="p-1.5 text-center text-gray-600">{{ point.id || index + 1 }}</td>
-                  
+                  <td class="p-1.5 text-center text-gray-600">
+                    {{ point.id || index + 1 }}
+                  </td>
+
                   <td class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
-                    {{ getCoordValue(point, coordinateSystem === 'utm' ? 'x' : 'lng') }}
+                    {{
+                      getCoordValue(
+                        point,
+                        coordinateSystem === "utm" ? "x" : "lng",
+                      )
+                    }}
                   </td>
-                  
+
                   <td class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
-                    {{ getCoordValue(point, coordinateSystem === 'utm' ? 'y' : 'lat') }}
+                    {{
+                      getCoordValue(
+                        point,
+                        coordinateSystem === "utm" ? "y" : "lat",
+                      )
+                    }}
                   </td>
-                  
-                  <td v-if="coordinateSystem === 'utm'" class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
-                    {{ getCoordValue(point, 'zone') }}
+
+                  <td
+                    v-if="coordinateSystem === 'utm'"
+                    class="p-1.5 text-center font-mono text-[10px]"
+                    dir="ltr"
+                  >
+                    {{ getCoordValue(point, "zone") }}
                   </td>
-                  
+
                   <td class="p-1.5 text-center">
                     <button
                       @click="$emit('copyCoordinates', point)"
@@ -140,7 +178,10 @@
               </tbody>
             </table>
           </div>
-          <div v-if="displayPoints.length === 0" class="text-center py-4 text-gray-400 text-xs border rounded">
+          <div
+            v-if="displayPoints.length === 0"
+            class="text-center py-4 text-gray-400 text-xs border rounded"
+          >
             <p>در حال ترسیم روی نقشه کلیک کنید</p>
           </div>
         </div>
@@ -151,20 +192,32 @@
           <label class="block text-xs mb-1 text-gray-600">نام ترسیم</label>
           <input
             :value="formData.name"
-            @input="$emit('update:formData', { ...formData, name: $event.target.value })"
+            @input="
+              $emit('update:formData', {
+                ...formData,
+                name: $event.target.value,
+              })
+            "
             :class="[
               'w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none',
-              nameError ? 'border-red-500' : ''
+              nameError ? 'border-red-500' : '',
             ]"
             placeholder="نام ترسیم را وارد کنید"
           />
-          <p v-if="nameError" class="text-red-500 text-xs mt-1">نام اجباری است</p>
+          <p v-if="nameError" class="text-red-500 text-xs mt-1">
+            نام اجباری است
+          </p>
         </div>
         <div>
           <label class="block text-xs mb-1 text-gray-600">توضیحات</label>
           <textarea
             :value="formData.description"
-            @input="$emit('update:formData', { ...formData, description: $event.target.value })"
+            @input="
+              $emit('update:formData', {
+                ...formData,
+                description: $event.target.value,
+              })
+            "
             placeholder="توضیحات اضافی..."
             rows="2"
             class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
@@ -172,7 +225,11 @@
         </div>
         <div v-if="drawMode === 'circle' || shape?.type === 'circle'">
           <label class="block text-xs mb-1 text-gray-600">فایل ضمیمه</label>
-          <input type="file" @change="$emit('fileChange', $event)" class="w-full text-xs" />
+          <input
+            type="file"
+            @change="$emit('fileChange', $event)"
+            class="w-full text-xs"
+          />
           <p v-if="attchFileName" class="mt-1 text-xs text-green-600">
             {{ attchFileName }} انتخاب شد
           </p>
@@ -183,7 +240,12 @@
         <div v-if="shape">
           <label class="block text-xs mb-1 text-gray-600">رنگ</label>
           <div class="flex gap-1 items-center">
-            <input type="color" :value="shape.color" @input="$emit('update:shapeColor', $event.target.value)" class="w-8 h-8 border rounded cursor-pointer" />
+            <input
+              type="color"
+              :value="shape.color"
+              @input="$emit('update:shapeColor', $event.target.value)"
+              class="w-8 h-8 border rounded cursor-pointer"
+            />
             <input
               :value="shape.color"
               @input="$emit('update:shapeColor', $event.target.value)"
@@ -199,14 +261,20 @@
           <input
             type="range"
             :value="shape.opacity"
-            @input="$emit('update:shapeOpacity', parseFloat($event.target.value))"
+            @input="
+              $emit('update:shapeOpacity', parseFloat($event.target.value))
+            "
             min="0"
             max="1"
             step="0.1"
             class="w-full accent-orange-500"
           />
         </div>
-        <div v-if="shape && shape.type !== 'circle' && shape.type !== 'multi_point'">
+        <div
+          v-if="
+            shape && shape.type !== 'circle' && shape.type !== 'multi_point'
+          "
+        >
           <label class="block text-xs mb-1 text-gray-600">ضخامت خط</label>
           <input
             type="number"
@@ -222,7 +290,7 @@
           class="w-full h-16 rounded border-2 flex items-center justify-center text-xs"
           :style="{
             backgroundColor: shape.color + '30',
-            borderColor: shape.color
+            borderColor: shape.color,
           }"
         >
           <span :style="{ color: shape.color }">پیش‌نمایش رنگ</span>
@@ -233,7 +301,9 @@
       </div>
     </div>
 
-    <div class="px-3 py-2 bg-gray-50 border-t flex justify-between items-center">
+    <div
+      class="px-3 py-2 bg-gray-50 border-t flex justify-between items-center"
+    >
       <button
         @click="$emit('cancel')"
         class="px-3 py-1.5 text-gray-600 hover:text-red-600 text-xs transition"
@@ -247,7 +317,7 @@
           'px-4 py-1.5 rounded text-xs transition shadow',
           isSaveEnabled
             ? 'bg-orange-500 text-white hover:bg-orange-600'
-            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed',
         ]"
       >
         ذخیره ترسیم
@@ -257,53 +327,70 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from "vue";
 
 const panelEl = ref(null);
 
 // تابع کمکی برای استخراج هوشمند مختصات از ساختارهای مختلف آبجکت
 const getCoordValue = (point, type) => {
-  if (!point) return '-';
-  if (type === 'x') return point.x ?? point.easting ?? point.lng ?? point.lon ?? point[0] ?? '-';
-  if (type === 'y') return point.y ?? point.northing ?? point.lat ?? point[1] ?? '-';
-  if (type === 'zone') return point.zone ?? '-';
-  return '-';
+  if (!point) return "-";
+  if (type === "x")
+    return (
+      point.displayX ??
+      point.x ??
+      point.easting ??
+      point.lng ??
+      point.lon ??
+      point[0] ??
+      "-"
+    );
+  if (type === "y")
+    return (
+      point.displayY ??
+      point.y ??
+      point.northing ??
+      point.lat ??
+      point[1] ??
+      "-"
+    );
+  if (type === "zone") return point.zone ?? "-";
+  return "-";
 };
 
 defineProps({
   panelReady: { type: Boolean, default: false },
   panelPositioned: { type: Boolean, default: false },
   panelTranslate: { type: Object, default: () => ({ x: 0, y: 0 }) },
-  title: { type: String, default: 'ترسیم جدید' },
+  title: { type: String, default: "ترسیم جدید" },
   tabs: { type: Array, default: () => [] },
-  activeTab: { type: String, default: 'measurements' },
-  drawMode: { type: String, default: '' },
+  activeTab: { type: String, default: "measurements" },
+  drawMode: { type: String, default: "" },
   shape: { type: Object, default: null },
-  coordinateSystem: { type: String, default: 'latlon' },
+  coordinateSystem: { type: String, default: "latlon" },
   livePointCount: { type: Number, default: 0 },
-  liveTotalLength: { type: String, default: '0 m' },
-  liveArea: { type: String, default: '0 m²' },
-  liveRadius: { type: String, default: '0 m' },
+  liveTotalLength: { type: String, default: "0 m" },
+  liveArea: { type: String, default: "0 m²" },
+  liveRadius: { type: String, default: "0 m" },
   displayPoints: { type: Array, default: () => [] },
-  formData: { type: Object, default: () => ({ name: '', description: '' }) },
-  attchFileName: { type: String, default: '' },
+  formData: { type: Object, default: () => ({ name: "", description: "" }) },
+  attchFileName: { type: String, default: "" },
   nameError: { type: Boolean, default: false },
   isSaveEnabled: { type: Boolean, default: false },
-  formatCoordinate: { type: Function, default: () => '' },
+  formatCoordinate: { type: Function, default: () => "" },
 });
 
 defineEmits([
-  'startDrag',
-  'cancel',
-  'save',
-  'update:activeTab',
-  'update:coordinateSystem',
-  'update:formData',
-  'fileChange',
-  'update:shapeColor',
-  'update:shapeOpacity',
-  'update:shapeWidth',
-  'copyCoordinates',
+  "startDrag",
+  "cancel",
+  "save",
+  "update:activeTab",
+  "update:coordinateSystem",
+  "update:formData",
+  "fileChange",
+  "update:shapeColor",
+  "update:shapeOpacity",
+  "update:shapeWidth",
+  "copyCoordinates",
 ]);
 
 defineExpose({ panelEl });

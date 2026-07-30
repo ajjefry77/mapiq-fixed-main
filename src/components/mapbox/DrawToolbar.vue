@@ -104,7 +104,7 @@
           @click.stop
           class="absolute top-0 left-full ml-2 w-[260px] max-w-[calc(100vw-24px)] p-2 bg-white border border-gray-300 rounded shadow-md z-50"
         >
-          <div class="flex gap-2 flex-wrap">
+          <div class="flex gap-2 flex-wrap max-h-[180px] overflow-y-auto">
             <div
               v-for="basemap in baseMaps"
               :key="basemap.name"

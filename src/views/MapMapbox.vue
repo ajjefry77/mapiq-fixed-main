@@ -115,6 +115,7 @@ const SERVER = import.meta.env.VITE_SERVER;
 
 const baseMaps = [
   { name: "OSM", thumbnail: "https://a.tile.openstreetmap.org/0/0/0.png", style: "https://api.maptiler.com/maps/streets/style.json" },
+  { name: "Mapbox Dark 2D", thumbnail: "dark2D.jpg", style: "mapbox://styles/mapbox/dark-v11" },
   { name: "Satellite", thumbnail: "smap.jpg", style: "satellite" },
   { name: "Google Maps", thumbnail: "gmap.jpg", tiles: "https://mapiq.ir:3002/api/proxy/mapir/google/vt/lyrs=p&hl=fa&x={x}&y={y}&z={z}" },
   { name: "Satellite(داخلی)", thumbnail: "smap.jpg", tiles: "https://sat.neshanmap.ir/v1.0/{z}/{x}/{y}" },

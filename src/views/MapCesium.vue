@@ -63,9 +63,10 @@
 
         <div id="cesiumContainer" style="width:100%; height:100%;">
 
-          <div  v-if="!authStore.user && ShowForLogin" class="absolute h-8 bottom-3 right-1 md:right-[350px] bg-red-800/90 text-white px-4 rounded-md font-mono text-sm z-50" >
-            <span> برای استفاده بهتر از امکانات سیستم  <a style="text-decoration: underline;" href="/login">ثبت نام</a> نمایید </span>
-            <button @click="ShowForLogin = false" class="text-xl tp-2" >&times;</button>
+          <div v-if="!authStore.user && ShowForLogin" class="absolute top-3 right-1 md:right-[350px] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
+            <svg class="w-4 h-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>برای دسترسی به امکانات کامل، <a class="text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2" href="/login">وارد شوید</a></span>
+            <button @click="ShowForLogin = false" class="text-xl leading-none text-gray-400 hover:text-white transition-colors">&times;</button>
           </div>
 
 

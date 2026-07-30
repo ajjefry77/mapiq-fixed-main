@@ -10,7 +10,7 @@
       >
         میز کار
       </button>
-      <button
+      <button v-if="authStore.user"
         class="relative px-2 py-1 text-sm rounded"
         :class="
           activeTab === 'in' ? 'bg-blue-500 text-white' : 'bg-white border'
@@ -24,7 +24,7 @@
           >{{ unreadCount }}</span
         >
       </button>
-      <button
+      <button v-if="authStore.user"
         class="px-2 py-1 text-sm rounded"
         :class="
           activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'
@@ -111,7 +111,7 @@
       </div>
     </div>
 
-    <div v-if="activeTab === 'in'" class="text-xs flex flex-col h-full min-h-0">
+    <div v-if="activeTab === 'in' && authStore.user" class="text-xs flex flex-col h-full min-h-0">
       <div class="flex gap-1 mb-2">
         <button
           class="px-2 py-0.5 text-xs rounded"
@@ -198,7 +198,7 @@
     </div>
 
     <div
-      v-if="activeTab === 'out'"
+      v-if="activeTab === 'out' && authStore.user"
       class="text-xs flex flex-col h-full min-h-0"
     >
       <div class="overflow-y-auto">
@@ -337,12 +337,14 @@ async function onBaseStyleReloaded() {
 }
 
 watch(
-  () => authStore.isLogin,
-  async (isLogin) => {
-    if (isLogin && authStore.user) {
+  () => authStore.user,
+  async (newUser) => {
+    if (newUser) {
       await loadWorks();
       await loadInbox();
       for (let pin of props.pins) pin.check = false;
+    } else {
+      activeTab.value = "my2"
     }
   },
 );

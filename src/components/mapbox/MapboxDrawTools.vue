@@ -9,8 +9,11 @@
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
     @setBaseLayer="$emit('setBaseLayer', $event)"
-    @start-cut-mode="startCutMode" 
+    @start-cut-mode="startCutMode"
+    @openKroki="openKroki"
   />
+
+  <MapboxKrokiDialog ref="krokiDialogRef" :map="map" :pins="pins" />
 
   <transition name="fade">
     <div
@@ -62,6 +65,7 @@ import { ref, watch, inject, nextTick } from "vue";
 import Loading from "../Loading.vue";
 import DrawToolbar from "./DrawToolbar.vue";
 import DrawPanel from "./DrawPanel.vue";
+import MapboxKrokiDialog from "./MapboxKrokiDialog.vue";
 import { useDrawing } from "../../composables/useDrawing";
 import { useDragPanel } from "../../composables/useDragPanel";
 
@@ -77,6 +81,11 @@ const SelectGroup = inject("SelectGroup", null);
 
 const toolbarComponent = ref(null);
 const panelComponent = ref(null);
+const krokiDialogRef = ref(null);
+
+function openKroki() {
+  krokiDialogRef.value?.open();
+}
 
 const {
   loading,

@@ -88,6 +88,16 @@
       </button>
       <!-- ================================= -->
 
+      <!-- === دکمه جدید: کروکی (چاپ) === -->
+      <button
+        @click="$emit('openKroki')"
+        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200"
+        title="کروکی"
+      >
+        <i class="fas fa-print"></i>
+      </button>
+      <!-- ================================= -->
+
       <div class="relative">
         <button
           @click.stop="expanded = !expanded"
@@ -152,7 +162,7 @@ defineProps({
 });
 
 // اضافه کردن startCutMode به لیست emitها
-defineEmits(['toggleMeasure', 'togglePointPick', 'setDrawMode', 'setBaseLayer', 'startCutMode']);
+defineEmits(['toggleMeasure', 'togglePointPick', 'setDrawMode', 'setBaseLayer', 'startCutMode', 'openKroki']);
 
 defineExpose({ toolbarEl });
 </script>

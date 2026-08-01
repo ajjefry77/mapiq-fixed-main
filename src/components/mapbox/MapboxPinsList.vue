@@ -10,7 +10,8 @@
       >
         میز کار
       </button>
-      <button v-if="authStore.user"
+      <button
+        v-if="authStore.user"
         class="relative px-2 py-1 text-sm rounded"
         :class="
           activeTab === 'in' ? 'bg-blue-500 text-white' : 'bg-white border'
@@ -24,7 +25,8 @@
           >{{ unreadCount }}</span
         >
       </button>
-      <button v-if="authStore.user"
+      <button
+        v-if="authStore.user"
         class="px-2 py-1 text-sm rounded"
         :class="
           activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'
@@ -111,7 +113,10 @@
       </div>
     </div>
 
-    <div v-if="activeTab === 'in' && authStore.user" class="text-xs flex flex-col h-full min-h-0">
+    <div
+      v-if="activeTab === 'in' && authStore.user"
+      class="text-xs flex flex-col h-full min-h-0"
+    >
       <div class="flex gap-1 mb-2">
         <button
           class="px-2 py-0.5 text-xs rounded"
@@ -217,6 +222,12 @@
     <SaveDialog v-model="createFolderDialog" @confirm="createFolder" />
     <SendDialog :show="OpenSend" @submit="send" @cancel="OpenSend = false" />
     <MapboxLoadCSV ref="csvRef" :rows="csvRows" :map="map" :pins="props.pins" />
+    <MapboxImportPointsDialog
+      ref="importCsvRef"
+      :map="map"
+      :pins="props.pins"
+      @imported="onCsvImported"
+    />
     <Loading :active="loading" />
   </div>
 </template>
@@ -240,6 +251,7 @@ import { useAuthStore } from "../../stores/auth";
 import SaveDialog from "../SaveDialog.vue";
 import ExportDialog from "../ExportDialog.vue";
 import SendDialog from "../SendDialog.vue";
+import MapboxImportPointsDialog from "./MapboxImportPointsDialog.vue";
 import Loading from "../Loading.vue";
 import MapboxLayerTree from "./MapboxLayerTree.vue";
 import MapboxLoadCSV from "./MapboxLoadCSV.vue";
@@ -344,7 +356,7 @@ watch(
       await loadInbox();
       for (let pin of props.pins) pin.check = false;
     } else {
-      activeTab.value = "my2"
+      activeTab.value = "my2";
     }
   },
 );
@@ -573,7 +585,9 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
   const sourceId = "draw-pin-" + pin.id;
 
   if (shape.type === "polyline") {
-    const coords = shape.positions.map((p) => [(p.lon ?? p.lng), p.lat]).filter(c => Number.isFinite(c[0]) && Number.isFinite(c[1]));
+    const coords = shape.positions
+      .map((p) => [p.lon ?? p.lng, p.lat])
+      .filter((c) => Number.isFinite(c[0]) && Number.isFinite(c[1]));
     if (!map.getSource(sourceId))
       map.addSource(sourceId, {
         type: "geojson",
@@ -979,6 +993,11 @@ function showMessage(msg, type) {
   $toast.open({ message: msg, type, duration: 4000 });
 }
 
+const importCsvRef = ref(null);
+function onCsvImported({ count, skipped }) {
+  // اختیاری: نوتیفیکیشن موفقیت
+}
+
 const handleFileUpload = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -986,18 +1005,8 @@ const handleFileUpload = async (event) => {
   loading.value = true;
 
   if (fileName.endsWith(".csv") || fileName.endsWith(".txt")) {
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete(results) {
-        csvRows.value = results.data;
-      },
-      error(error) {
-        console.error(error);
-      },
-    });
     loading.value = false;
-    csvRef.value?.open(fileName);
+    importCsvRef.value?.open(file); // به‌جای Papa.parse + csvRef.value?.open(fileName)
     return;
   }
 

@@ -5,12 +5,14 @@
     :drawMode="drawMode"
     :pickForForm="pickForForm"
     :baseMaps="baseMaps"
+    :intersectPanelOpen="intersectPanelOpen"
     @toggleMeasure="toggleMeasure"
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
     @setBaseLayer="$emit('setBaseLayer', $event)"
     @start-cut-mode="startCutMode"
     @openKroki="openKroki"
+    @openIntersectPanel="openIntersectPanel"
   />
 
   <MapboxKrokiDialog ref="krokiDialogRef" :map="map" :pins="pins" />
@@ -57,6 +59,20 @@
     </div>
   </transition>
 
+  <IntersectPanel
+    :panelOpen="intersectPanelOpen"
+    :drawMode="drawMode"
+    :intersectResults="intersectResults"
+    :intersectSummary="intersectSummary"
+    :overlapSourceLabel="overlapSourceLabel"
+    :analyzing="intersectAnalyzing"
+    @startIntersectMode="startIntersectMode"
+    @uploadKML="loadIntersectFromKML"
+    @clearIntersect="clearIntersect"
+    @generateReport="generateIntersectReport"
+    @exportCSV="exportIntersectReportCSV"
+  />
+
   <Loading :active="loading" />
 </template>
 
@@ -68,6 +84,7 @@ import DrawPanel from "./DrawPanel.vue";
 import MapboxKrokiDialog from "./MapboxKrokiDialog.vue";
 import { useDrawing } from "../../composables/useDrawing";
 import { useDragPanel } from "../../composables/useDragPanel";
+import IntersectPanel from "./IntersectPanel.vue";
 
 const props = defineProps({
   map: { type: Object, required: true },
@@ -115,7 +132,18 @@ const {
   copyCoordinates,
   getDrawTypeName,
   inactiveDrawing,
-  startCutMode, // <--- تابع جدید برش اضافه شد
+  startCutMode,
+  intersectResults,
+  intersectSummary,
+  overlapSourceLabel,
+  intersectAnalyzing,
+  intersectPanelOpen,
+  openIntersectPanel,
+  startIntersectMode,
+  loadIntersectFromKML,
+  clearIntersect,
+  generateIntersectReport,
+  exportIntersectReportCSV,
 } = useDrawing(props.map, props.pins, emit, SelectGroup);
 
 const {
@@ -136,10 +164,10 @@ watch(showForm, async (newVal) => {
 });
 
 // <--- متغیرها و توابع جدید را expose می‌کنیم تا کامپوننت والد بتواند به آن‌ها دسترسی داشته باشد
-defineExpose({ 
+defineExpose({
   inactiveDrawing,
   drawMode,
-  startCutMode 
+  startCutMode,
 });
 </script>
 

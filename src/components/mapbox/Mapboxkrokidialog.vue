@@ -9,6 +9,7 @@
         </h2>
         <button @click="close" class="text-gray-500 hover:text-gray-700 text-lg leading-none">✕</button>
       </div>
+      
       <!-- Body -->
       <div class="overflow-y-auto px-5 py-4 flex-1 min-h-0">
         <!-- انتخاب پلی‌گان/خط -->
@@ -30,6 +31,7 @@
             </button>
           </div>
         </div>
+
         <!-- اطلاعات فرم (اختیاری) -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 border rounded p-3">
           <div>
@@ -47,10 +49,19 @@
           </div>
           <div>
             <label class="block mb-1 font-medium">تاریخ برداشت</label>
-            <input v-model="form.date" type="date" class="w-full border rounded px-2 py-1"/>
+            <input 
+              v-model="form.date" 
+              type="text" 
+              class="w-full border rounded px-2 py-1 text-center"
+              placeholder="1403/01/01"
+              dir="ltr"
+              @input="form.date = form.date.replace(/[^\d/]/g, '')"
+            />
           </div>
         </div>
+
         <div v-if="errorMsg" class="mb-3 text-red-600">{{ errorMsg }}</div>
+
         <!-- پیش‌نمایش -->
         <div v-if="ready" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -73,6 +84,7 @@
               <canvas ref="sketchCanvasRef" width="700" height="700" class="w-full border rounded bg-white"></canvas>
             </div>
           </div>
+          
           <!-- جدول مختصات UTM -->
           <div class="border rounded p-3">
             <div class="font-medium mb-2">مختصات UTM</div>
@@ -96,6 +108,7 @@
           </div>
         </div>
       </div>
+
       <!-- Footer -->
       <div class="flex justify-end gap-2 px-5 py-3 border-t flex-shrink-0">
         <button @click="close" class="px-4 py-1.5 border rounded">بستن</button>
@@ -130,15 +143,39 @@ const areaM2 = ref(0)
 
 const sketchCanvasRef = ref(null)
 
+/* -------------------- تبدیل تاریخ میلادی به شمسی -------------------- */
+function toJalali(gy, gm, gd) {
+  const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+  const gy2 = (gm > 2) ? (gy + 1) : gy
+  let days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + g_d_m[gm - 1]
+  let jy = -1595 + (33 * Math.floor(days / 12053))
+  days %= 12053
+  jy += 4 * Math.floor(days / 1461)
+  days %= 1461
+  if (days > 365) {
+    jy += Math.floor((days - 1) / 365)
+    days = (days - 1) % 365
+  }
+  const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30)
+  const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30))
+  return { jy, jm, jd }
+}
+
+function getTodayJalali() {
+  const d = new Date()
+  const { jy, jm, jd } = toJalali(d.getFullYear(), d.getMonth() + 1, d.getDate())
+  const pad = n => String(n).padStart(2, '0')
+  return `${jy}/${pad(jm)}/${pad(jd)}`
+}
+
 const form = reactive({
   title: 'پلان وضعیت موجود',
   client: '',
   address: '',
-  date: new Date().toISOString().slice(0, 10)
+  date: getTodayJalali() // تاریخ پیش‌فرض شمسی
 })
 
 /* -------------------- لیست پلی‌گان‌ها / خط‌های قابل استفاده -------------------- */
-
 function flattenPins(list) {
   const out = []
   for (const p of list || []) {
@@ -166,7 +203,6 @@ const selectedPin = computed(() =>
 )
 
 /* -------------------- باز / بسته کردن دیالوگ -------------------- */
-
 function open(pin) {
   errorMsg.value = ''
   ready.value = false
@@ -186,7 +222,6 @@ function close() {
 }
 
 /* -------------------- تبدیل به UTM -------------------- */
-
 function toUTM(positions) {
   if (!positions.length) return []
   const lonAvg = positions.reduce((s, p) => s + p.lon, 0) / positions.length
@@ -209,16 +244,13 @@ function computeArea(pts) {
   return Math.abs(sum / 2)
 }
 
-
 /* -------------------- گرفتن تصویر از نقشه -------------------- */
-
 async function captureMapImage(positions) {
   const bounds = new mapboxgl.LngLatBounds()
   positions.forEach(p => bounds.extend([p.lon, p.lat]))
 
   const allLayers = props.map.getStyle().layers || []
   
-  // ذخیره وضعیت اولیه تمام لایه‌ها
   const layerStates = new Map()
   for (const layer of allLayers) {
     try {
@@ -229,7 +261,6 @@ async function captureMapImage(positions) {
     }
   }
 
-  // شناسایی لایه‌های basemap (این لایه‌ها نباید مخفی شوند)
   const baseLayerIds = new Set()
   for (const layer of allLayers) {
     if (layer.id.startsWith('basemap-') || 
@@ -240,7 +271,6 @@ async function captureMapImage(positions) {
     }
   }
 
-  // شناسایی پین‌های فعال (آنهایی که show === true دارند)
   const activePinIds = new Set()
   for (const pin of flattenPins(props.pins)) {
     if (pin.shape && pin.shape.show !== false) {
@@ -248,57 +278,43 @@ async function captureMapImage(positions) {
     }
   }
 
-  // مخفی کردن تمام لایه‌های غیر basemap
   for (const layer of allLayers) {
     if (!baseLayerIds.has(layer.id)) {
-      try {
-        props.map.setLayoutProperty(layer.id, 'visibility', 'none')
-      } catch (e) {}
+      try { props.map.setLayoutProperty(layer.id, 'visibility', 'none') } catch (e) {}
     }
   }
 
-  // visible کردن فقط لایه‌های مربوط به پین‌های فعال
   for (const layer of allLayers) {
     if (!baseLayerIds.has(layer.id)) {
       for (const pinId of activePinIds) {
         if (layer.id.includes(pinId)) {
-          try {
-            props.map.setLayoutProperty(layer.id, 'visibility', 'visible')
-          } catch (e) {}
+          try { props.map.setLayoutProperty(layer.id, 'visibility', 'visible') } catch (e) {}
           break
         }
       }
     }
   }
 
-  // fit به bounds و انتظار برای render
   await new Promise(resolve => {
     props.map.fitBounds(bounds, { padding: 60, duration: 0 })
     props.map.once('idle', resolve)
     setTimeout(resolve, 1500)
   })
 
-  // repaint برای اطمینان از render شدن
   props.map.triggerRepaint()
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
   await new Promise(r => setTimeout(r, 200))
 
-  // گرفتن تصویر
   const dataUrl = props.map.getCanvas().toDataURL('image/png')
 
-  // بازگرداندن لایه‌ها به وضعیت اولیه
   for (const [layerId, visibility] of layerStates) {
-    try {
-      props.map.setLayoutProperty(layerId, 'visibility', visibility)
-    } catch (e) {}
+    try { props.map.setLayoutProperty(layerId, 'visibility', visibility) } catch (e) {}
   }
 
   return dataUrl
 }
 
-
 /* -------------------- رسم کروکی روی کانواس سفید -------------------- */
-
 function niceScaleLength(span) {
   const target = span / 5
   if (!isFinite(target) || target <= 0) return 1
@@ -343,7 +359,6 @@ function drawSketch() {
 
   const isClosed = selectedPin.value?.shape?.type === 'polygon'
 
-  // بدنه شکل
   ctx.beginPath()
   cpts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
   if (isClosed) ctx.closePath()
@@ -355,7 +370,6 @@ function drawSketch() {
   ctx.strokeStyle = '#7a1f1f'
   ctx.stroke()
 
-  // برچسب طول اضلاع
   const edgeCount = isClosed ? cpts.length : cpts.length - 1
   for (let i = 0; i < edgeCount; i++) {
     const a = cpts[i]
@@ -395,7 +409,6 @@ function drawSketch() {
     ctx.restore()
   }
 
-  // شماره نقاط
   cpts.forEach((p, i) => {
     ctx.beginPath()
     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2)
@@ -414,7 +427,6 @@ function drawSketch() {
     ctx.fillText(String(i + 1), lx, ly)
   })
 
-  // فلش شمال
   const nax = W - 50, nay = 50
   ctx.save()
   ctx.strokeStyle = '#333'
@@ -429,7 +441,6 @@ function drawSketch() {
   ctx.fillText('N', nax, nay + 36)
   ctx.restore()
 
-  // مقیاس
   const barM = niceScaleLength(spanX)
   const barPx = barM * scale
   const bx0 = pad, by0 = H - 30
@@ -449,7 +460,6 @@ function drawSketch() {
 }
 
 /* -------------------- تولید (map screenshot + کروکی) -------------------- */
-
 async function generate() {
   errorMsg.value = ''
   ready.value = false
@@ -472,11 +482,8 @@ async function generate() {
     areaM2.value = computeArea(utmPoints.value)
     mapImage.value = await captureMapImage(positions)
 
-    // ابتدا ready را فعال می‌کنیم تا canvas در DOM رندر شود
     ready.value = true
     await nextTick()
-
-    // سپس کروکی را رسم می‌کنیم
     drawSketch()
   } catch (err) {
     console.error('خطا در تولید کروکی:', err)
@@ -487,7 +494,6 @@ async function generate() {
 }
 
 /* -------------------- دانلود تصاویر -------------------- */
-
 function downloadImage(dataUrl, filename) {
   if (!dataUrl) return
   const a = document.createElement('a')
@@ -503,7 +509,6 @@ function downloadCanvas() {
 }
 
 /* -------------------- چاپ -------------------- */
-
 function escapeHtml(s = '') {
   return String(s).replace(/[&<>"']/g, c => ({
     '&': '&amp;',
@@ -593,7 +598,6 @@ function doPrint() {
 
   const html = buildPrintHtml()
 
-  // استفاده از iframe به جای window.open برای جلوگیری از Popup Blocker
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
   iframe.style.right = '0'

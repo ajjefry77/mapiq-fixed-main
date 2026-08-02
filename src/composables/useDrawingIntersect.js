@@ -256,25 +256,46 @@ export function createIntersectHandler(ctx) {
     });
   }
 
+  function analyzePinShape(pin, polygon, rows) {
+    const s = pin.shape;
+    if (!s || !s.type) return;
+    if (s.show === false) return;
+    if (s.type === "point") {
+      analyzePoint(pin, { lon: s.lon, lat: s.lat }, polygon, rows);
+    } else if (s.type === "multi_point") {
+      (s.positions || []).forEach((p, idx) => analyzePoint(pin, p, polygon, rows, idx));
+    } else if (s.type === "polyline") {
+      analyzeLine(pin, s, polygon, rows);
+    } else if (s.type === "polygon") {
+      analyzePolygon(pin, s.positions, polygon, rows, false);
+    } else if (s.type === "circle" && s.center && s.radius) {
+      const ring = computeCircleCoords(s.center, s.radius).map(([lon, lat]) => ({ lon, lat }));
+      analyzePolygon(pin, ring, polygon, rows, true);
+    }
+  }
+
+  function collectVisiblePins(list) {
+    const visible = [];
+    (list || []).forEach((pin) => {
+      if (!pin) return;
+      if (pin.type === "group") {
+        if (pin.show === false) return;
+        visible.push(...collectVisiblePins(pin.children));
+        return;
+      }
+      if (!pin.shape || !pin.shape.type) return;
+      if (pin.shape.show === false) return;
+      visible.push(pin);
+    });
+    return visible;
+  }
+
   function runIntersectAnalysis(polygon) {
     analyzing.value = true;
     const rows = [];
     const pinsList = Array.isArray(ctx.pins) ? ctx.pins : ctx.pins.value || [];
-    pinsList.forEach((pin) => {
-      const s = pin.shape;
-      if (!s || !s.type) return;
-      if (s.type === "point") {
-        analyzePoint(pin, { lon: s.lon, lat: s.lat }, polygon, rows);
-      } else if (s.type === "multi_point") {
-        (s.positions || []).forEach((p, idx) => analyzePoint(pin, p, polygon, rows, idx));
-      } else if (s.type === "polyline") {
-        analyzeLine(pin, s, polygon, rows);
-      } else if (s.type === "polygon") {
-        analyzePolygon(pin, s.positions, polygon, rows, false);
-      } else if (s.type === "circle" && s.center && s.radius) {
-        const ring = computeCircleCoords(s.center, s.radius).map(([lon, lat]) => ({ lon, lat }));
-        analyzePolygon(pin, ring, polygon, rows, true);
-      }
+    collectVisiblePins(pinsList).forEach((pin) => {
+      analyzePinShape(pin, polygon, rows);
     });
     intersectResults.value = rows;
     renderHighlights(rows);

@@ -1,6 +1,7 @@
 <template>
   <div>
-    <div v-if="dialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <Transition name="modal">
+      <div v-if="dialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">انتخاب ستون‌ها</h2>
@@ -73,9 +74,10 @@
           <button @click="renderPoints" class="btn btn-primary">تایید</button>
         </div>
       </div>
-    </div>
+      </div>
+    </Transition>
+    <Loading :active="loading"/>
   </div>
-  <Loading :active="loading"/>
 </template>
 
 <script setup>

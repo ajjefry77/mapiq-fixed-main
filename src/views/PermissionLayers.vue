@@ -114,27 +114,29 @@
     </div>
 
     <!-- Add Workspace (Modal)-->
-    <div v-if="showUserModal" class="modal-backdrop" @click.self="closeUserModal">
-      <div class="modal card">
-        <h3 class="modal-title">افزودن فضاهای کاری</h3>
-        <div class="pl-modal-list">
-          <div
-            v-for="work in workspaces"
-            :key="work.id"
-            @click="addWorkspace(work)"
-            class="pl-list-item"
-            :class="{ selected: selectedWork === work.name }">
-            <i class="fas fa-layer-group pl-list-icon"></i>
-            {{ translate(work.name) }}
+    <Transition name="modal">
+      <div v-if="showUserModal" class="modal-backdrop" @click.self="closeUserModal">
+        <div class="modal card">
+          <h3 class="modal-title">افزودن فضاهای کاری</h3>
+          <div class="pl-modal-list">
+            <div
+              v-for="work in workspaces"
+              :key="work.id"
+              @click="addWorkspace(work)"
+              class="pl-list-item"
+              :class="{ selected: selectedWork === work.name }">
+              <i class="fas fa-layer-group pl-list-icon"></i>
+              {{ translate(work.name) }}
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="closeUserModal" class="btn btn-ghost">
+              بستن
+            </button>
           </div>
         </div>
-        <div class="modal-actions">
-          <button type="button" @click="closeUserModal" class="btn btn-ghost">
-            بستن
-          </button>
-        </div>
       </div>
-    </div>
+    </Transition>
 
     <UserSelect :open="OpenUserList" @close="OpenUserList = false" @select="addUser"/>
     <RoleSelect :open="OpenRoleList" @close="OpenRoleList = false" @select="addRole"/>

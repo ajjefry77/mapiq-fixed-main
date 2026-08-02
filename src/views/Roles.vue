@@ -28,28 +28,30 @@
       </div>
     </div>
 
-    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal card">
-        <h2 class="modal-title">{{ editing ? 'ویرایش نقش' : 'نقش جدید' }}</h2>
-        <form @submit.prevent="save" class="modal-form">
-          <div class="form-row"><label>نام</label><input v-model="form.name" class="input" required /></div>
-          <div class="form-row"><label>توضیحات</label><input v-model="form.description" class="input" required /></div>
-          <div class="form-row">
-            <label>دسترسی‌ها</label>
-            <div class="perm-checklist">
-              <label v-for="p in permissions" :key="p.id" class="check-row">
-                <input type="checkbox" :value="p.id" v-model="form.permissions" />
-                <span>{{ p.description }}</span>
-              </label>
+    <Transition name="modal">
+      <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+        <div class="modal card">
+          <h2 class="modal-title">{{ editing ? 'ویرایش نقش' : 'نقش جدید' }}</h2>
+          <form @submit.prevent="save" class="modal-form">
+            <div class="form-row"><label>نام</label><input v-model="form.name" class="input" required /></div>
+            <div class="form-row"><label>توضیحات</label><input v-model="form.description" class="input" required /></div>
+            <div class="form-row">
+              <label>دسترسی‌ها</label>
+              <div class="perm-checklist">
+                <label v-for="p in permissions" :key="p.id" class="check-row">
+                  <input type="checkbox" :value="p.id" v-model="form.permissions" />
+                  <span>{{ p.description }}</span>
+                </label>
+              </div>
             </div>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
-            <button type="submit" class="btn btn-primary">{{ editing ? 'بروزرسانی' : 'ایجاد' }}</button>
-          </div>
-        </form>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
+              <button type="submit" class="btn btn-primary">{{ editing ? 'بروزرسانی' : 'ایجاد' }}</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 

@@ -1,5 +1,5 @@
 <template>
-  <transition name="fade">
+  <Transition name="modal">
     <div v-if="show"  class="fixed inset-0 flex items-center justify-center z-50" >
       <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
         <h2 class="text-xl font-semibold mb-4 text-center">
@@ -35,7 +35,7 @@
         </button>
       </div>
     </div>
-  </transition>
+  </Transition>
 </template>
 
 <script setup>
@@ -121,12 +121,4 @@ const onCancel = () => {
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
 </style>

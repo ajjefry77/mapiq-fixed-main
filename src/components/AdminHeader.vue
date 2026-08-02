@@ -259,7 +259,7 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
-  transition: all 0.15s;
+  transition: color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
   white-space: nowrap;
   cursor: pointer;
   background: none;
@@ -270,11 +270,13 @@ onUnmounted(() => {
 .nav-link:hover {
   color: var(--text);
   background: var(--surface2);
+  transform: translateY(-1px);
 }
 
 .nav-link--active {
   color: var(--accent);
   background: var(--accent-glow);
+  box-shadow: inset 0 0 0 1px var(--accent-glow-strong);
 }
 
 .gear-btn {
@@ -285,13 +287,14 @@ onUnmounted(() => {
   justify-content: center;
   border-radius: var(--radius);
   color: var(--text-muted);
-  transition: all 0.15s;
+  transition: color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
   font-size: 16px;
 }
 
 .gear-btn:hover {
   color: var(--text);
   background: var(--surface2);
+  transform: translateY(-1px);
 }
 
 .topbar-actions {
@@ -375,6 +378,7 @@ onUnmounted(() => {
   padding: 8px 6px;
   border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
 }
 
 .dropdown-item:hover {

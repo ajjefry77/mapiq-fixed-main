@@ -1,6 +1,7 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-2/4 max-h-[80vh] flex flex-col">
+  <Transition name="modal">
+    <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-2/4 max-h-[80vh] flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b">
         <h2 class="text-lg font-semibold">لیست ذخیره شده ها</h2>
@@ -32,8 +33,9 @@
           </table>
         </div>
       </div>
-    </div>
-  </div>
+      </div>
+      </div>
+    </Transition>
 
   <transition name="fade">
     <div v-if="selectedPin" class="absolute inset-0 bg-black/50 flex items-center justify-center">

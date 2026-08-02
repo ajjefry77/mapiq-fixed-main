@@ -1,6 +1,7 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="emit('close')" >
+  <Transition name="modal">
+    <div v-if="isOpen" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+        @click.self="emit('close')" >
 
     <div class="bg-white rounded-2xl shadow-lg w-96 max-h-[85vh] flex flex-col overflow-hidden">
       <!-- header -->
@@ -79,7 +80,8 @@
       </div>
 
     </div>
-  </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>

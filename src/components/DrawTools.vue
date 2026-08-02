@@ -76,7 +76,7 @@
   </div>
 
   <!-- مودال افزودن پین -->
-  <transition name="fade">
+  <Transition name="modal">
     <div v-if="showForm"
          class="absolute inset-0 bg-black/40 flex items-end justify-end px-14 py-32 z-50"
          @contextmenu.prevent @click.self="cancelForm">
@@ -184,7 +184,7 @@
       </div>
     </div>
 
-  </transition>
+  </Transition>
 
 
   <MultiPointsList  v-if="drawMode === 'multi_point'" :pointList="pointList"/>

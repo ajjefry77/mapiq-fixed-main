@@ -43,25 +43,27 @@
     </div>
 
     <!-- ASSIGN MODAL -->
-    <div v-if="showAssignModal" class="modal-backdrop" @click.self="closeAssignModal">
-      <div class="modal card" style="max-width:380px">
-        <h2 class="modal-title">انتساب فرم به گروه</h2>
-        <p class="assign-form-title">{{ assignForm?.title }}</p>
-        <div class="modal-form">
-          <div class="form-row">
-            <label>گروه</label>
-            <select v-model="assignGroupId" class="input">
-              <option :value="null">بدون گروه (همه)</option>
-              <option v-for="g in displayGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
-            </select>
+    <Transition name="modal">
+      <div v-if="showAssignModal" class="modal-backdrop" @click.self="closeAssignModal">
+        <div class="modal card" style="max-width:380px">
+          <h2 class="modal-title">انتساب فرم به گروه</h2>
+          <p class="assign-form-title">{{ assignForm?.title }}</p>
+          <div class="modal-form">
+            <div class="form-row">
+              <label>گروه</label>
+              <select v-model="assignGroupId" class="input">
+                <option :value="null">بدون گروه (همه)</option>
+                <option v-for="g in displayGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top:14px">
+            <button class="btn btn-ghost" @click="closeAssignModal">انصراف</button>
+            <button class="btn btn-primary" @click="saveAssignment" :disabled="assignSaving">{{ assignSaving ? 'در حال ذخیره...' : 'ذخیره' }}</button>
           </div>
         </div>
-        <div class="modal-actions" style="margin-top:14px">
-          <button class="btn btn-ghost" @click="closeAssignModal">انصراف</button>
-          <button class="btn btn-primary" @click="saveAssignment" :disabled="assignSaving">{{ assignSaving ? 'در حال ذخیره...' : 'ذخیره' }}</button>
-        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 

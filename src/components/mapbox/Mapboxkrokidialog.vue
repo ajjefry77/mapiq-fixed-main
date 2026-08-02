@@ -1,5 +1,6 @@
 <template>
-  <div v-if="dialog" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] p-4">
+  <Transition name="modal">
+    <div v-if="dialog" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] p-4">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col max-h-[95vh] text-xs" dir="rtl">
       <!-- Header -->
       <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
@@ -118,7 +119,8 @@
         </button>
       </div>
     </div>
-  </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>

@@ -17,7 +17,7 @@
 
   <MapboxKrokiDialog ref="krokiDialogRef" :map="map" :pins="pins" />
 
-  <transition name="fade">
+  <Transition name="modal">
     <div
       v-if="showForm"
       class="absolute inset-0 z-50 pointer-events-none"
@@ -57,7 +57,7 @@
         @copyCoordinates="copyCoordinates"
       />
     </div>
-  </transition>
+  </Transition>
 
   <IntersectPanel
     :panelOpen="intersectPanelOpen"

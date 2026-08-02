@@ -17,6 +17,38 @@
       <span class="badge badge-active">{{ roleLabel }}</span>
     </div>
 
+    <!-- Stats overview -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--accent"><i class="fas fa-users"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.users }}</span>
+          <span class="stat-label">کاربران</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--success"><i class="fas fa-user-tag"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.roles }}</span>
+          <span class="stat-label">نقش‌ها</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--info"><i class="fas fa-layer-group"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.groups }}</span>
+          <span class="stat-label">گروه‌ها</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--warning"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.forms }}</span>
+          <span class="stat-label">فرم‌ها</span>
+        </div>
+      </div>
+    </div>
+
     <!-- ADMIN -->
     <div v-if="isAdmin">
       <div class="info-row">
@@ -256,10 +288,20 @@ const roleLabel = computed(() => {
   return "کاربر";
 });
 
+const stats = computed(() => ({
+  users: usersCount.value,
+  roles: rolesCount.value,
+  groups: groups.value.length,
+  forms: forms.value.length,
+}));
+
 const forms = ref([]);
 const groups = ref([]);
 const saving = ref(false);
 const profileForm = reactive({ name: "", phone: "", code: "", password: "" });
+
+const usersCount = ref(0);
+const rolesCount = ref(0);
 
 async function loadProfile() {
   profileForm.name = authStore.user?.name || "";
@@ -324,13 +366,19 @@ async function loadMyData() {
         groups.value = [];
       }
     } else {
-      const [formsRes, meRes] = await Promise.all([
+      const [formsRes, meRes, usersRes, rolesRes] = await Promise.all([
         axios.get(SERVER + "/api/forms"),
         axios.get(SERVER + "/api/auth/me"),
+        axios.get(SERVER + "/api/users").catch(() => null),
+        axios.get(SERVER + "/api/roles").catch(() => null),
       ]);
       forms.value = Array.isArray(formsRes.data)
         ? formsRes.data
         : formsRes.data?.data || [];
+      const userList = usersRes ? (Array.isArray(usersRes.data?.data || usersRes.data) ? (usersRes.data?.data || usersRes.data) : []) : [];
+      const roleList = rolesRes ? (Array.isArray(rolesRes.data?.data || rolesRes.data) ? (rolesRes.data?.data || rolesRes.data) : []) : [];
+      usersCount.value = userList.length;
+      rolesCount.value = roleList.length;
       const me = meRes.data?.data || meRes.data;
       const myGroups = me?.Groups ?? me?.groups ?? [];
       if (Array.isArray(myGroups) && myGroups.length) {
@@ -407,6 +455,64 @@ onMounted(() => {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 2px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: linear-gradient(180deg, var(--surface), var(--bg-elevated));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all var(--transition-base);
+}
+
+.stat-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.stat-icon--accent { background: var(--accent-glow); color: var(--accent); }
+.stat-icon--success { background: var(--success-glow); color: var(--success); }
+.stat-icon--info { background: var(--info-glow); color: var(--info); }
+.stat-icon--warning { background: var(--warning-glow); color: var(--warning); }
+
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .info-row {
@@ -635,6 +741,13 @@ onMounted(() => {
   .info-row {
     flex-direction: column;
     gap: 8px;
+  }
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-value {
+    font-size: 18px;
   }
   .shortcuts {
     grid-template-columns: repeat(2, 1fr);

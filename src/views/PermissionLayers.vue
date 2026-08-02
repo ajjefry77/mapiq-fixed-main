@@ -1,165 +1,156 @@
 <template>
-  <div class="min-h-screen">
-    <main class="flex-1 overflow-auto">
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">دسترسی لایه‌ها</h1>
+        <p class="page-subtitle">مدیریت فضاهای کاری و لایه‌های هر کاربر یا نقش</p>
+      </div>
+    </div>
 
-      <div class="p-6 grid grid-cols-3 gap-6">
+    <div class="pl-grid">
 
-        <!-- Users/Roles Column -->
-        <div class="card">
-
-          <button @click="activeTab === 'users' ? OpenUserList = true : OpenRoleList = true" class="p-2 rounded-lg text-sm float-left" style="background: var(--accent); color: #fff;" title="اضافه کردن فضای کاری">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M19 14v6m3-3h-6"/>
-            </svg>
+      <!-- Users/Roles Column -->
+      <div class="card pl-column">
+        <div class="pl-header">
+          <h3 class="pl-title">{{ activeTab === 'users' ? 'کاربران' : 'نقش‌ها' }}</h3>
+          <button @click="activeTab === 'users' ? OpenUserList = true : OpenRoleList = true" class="pl-add-btn" title="اضافه کردن">
+            <i class="fas fa-plus"></i>
           </button>
-
-
-          <div class="flex space-x-2 mb-2">
-            <button
-                class="px-2 py-1 text-sm rounded"
-                :class="activeTab === 'users' ? 'bg-blue-500 text-white' : 'bg-white border'"
-                @click="activeTab = 'users'" >
-              کاربران
-            </button>
-            <button
-                class="px-2 py-1 text-sm rounded"
-                :class="activeTab === 'roles' ? 'bg-blue-500 text-white' : 'bg-white border'"
-                @click="activeTab = 'roles'" >
-                نقش ها
-            </button>
-          </div>
-          <hr style="border-color: var(--border);" class="mt-4 mb-2">
-          <div v-if="activeTab === 'users'">
-            <h3 class="font-bold text-lg mb-2">کاربران</h3>
-
-            <ul class="mt-3"> <hr>
-              <li
-                  v-for="user in users"
-                  :key="user.id"
-                  @click="selectUser(user)"
-                  :class="['cursor-pointer p-2 rounded', entityId === user.id ? 'bg-blue-100' : 'hover:bg-gray-200']"
-              >
-                {{ user.name }}
-                <hr>
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="activeTab === 'roles'">
-            <h3 class="font-bold text-lg mb-2">نقش ها</h3>
-            <ul class="mt-3">
-              <li
-                  v-for="role in roles"
-                  :key="role.id"
-                  @click="selectRole(role)"
-                  :class="['cursor-pointer p-2 rounded', entityId === role.id ? 'bg-blue-100' : 'hover:bg-gray-200']"
-              >
-                {{ role.desc }}
-              </li>
-            </ul>
-          </div>
-
-
         </div>
 
-        <!-- Workspaces Column -->
-        <div class="card">
-          <h3 class="font-bold text-lg mb-2" style="display: inline-block">فضاهای کاری</h3>
-
-          <button @click="showModal()" class="p-2 rounded-lg text-sm float-left" style="background: var(--accent); color: #fff;" title="اضافه کردن فضای کاری">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M19 14v6m3-3h-6"/>
-            </svg>
+        <div class="pl-tabs">
+          <button
+            class="pl-tab"
+            :class="{ active: activeTab === 'users' }"
+            @click="activeTab = 'users'">
+            کاربران
           </button>
-
-          <br/>
-          <hr style="border-color: var(--border);" class="mt-2">
-          <ul class="mt-3">
-            <li
-                v-for="work in selectedEntity || []"
-                :key="work.id"
-                @click="handleWorkspaceToggle(work)"
-                :class="['cursor-pointer p-2 rounded', selectedWork === work.name ? 'bg-blue-100' : 'hover:bg-gray-200']">
-              {{translate(work.name) }}
-
-              <button  class="text-red-600 hover:text-red-800 float-left"   @click.stop="removeWorkspace(work)" title="حذف">
-                <span><i class="fa fa-trash"></i> </span>
-              </button>
-              <hr>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Layers Column -->
-        <div class="card">
-          <h3 class="font-bold text-lg mb-2" style="display: inline-block">لایه ها</h3>
-          <button @click="setLayer" class="p-2 rounded-lg text-sm float-left" style="background: var(--accent); color: #fff;" title="افزودن لایه های انتخابی">
-            <i class="fas fa-check ml-1"></i>
-            ثبت تغییرات
+          <button
+            class="pl-tab"
+            :class="{ active: activeTab === 'roles' }"
+            @click="activeTab = 'roles'">
+            نقش‌ها
           </button>
+        </div>
 
-          <br/>
-          <hr style="border-color: var(--border);" class="mt-2 mb-4">
-          <div v-for="layer in layers" :key="layer" class="flex items-center mb-2 border-gray-200 border-b-[1px]">
-            <input
-                type="checkbox"
-                :value="layer"
-                v-model="selectedLayerNames"
-                class="mr-2"
-                @change="changeLayer($event, layer)"
-            /> &nbsp;
-            <label> {{ layer }} </label>
-
+        <div v-if="activeTab === 'users'" class="pl-list">
+          <div v-if="!users.length" class="empty-sm">کاربری یافت نشد</div>
+          <div
+            v-for="user in users"
+            :key="user.id"
+            @click="selectUser(user)"
+            class="pl-list-item"
+            :class="{ selected: entityId === user.id }">
+            <i class="fas fa-user pl-list-icon"></i>
+            {{ user.name }}
           </div>
         </div>
 
-        <!-- Add Workspace (Modal)-->
-        <div v-if="showUserModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white rounded-lg p-6 w-full max-w-lg">
-            <h3 class="font-bold text-lg mb-2" style="display: inline-block">افزودن فضاهای کاری</h3>
-            <div class="overflow-y-auto">
-              <ul>
-                <li
-                    v-for="work in workspaces"
-                    :key="work.id"
-                    @click="addWorkspace(work)"
-                    :class="['cursor-pointer p-2 rounded', selectedWork === work.name ? 'bg-blue-100' : 'hover:bg-gray-100']">
-                  {{ translate(work.name) }}
-                </li>
-
-              </ul>
-            </div>
-            <div class="flex justify-end space-x-4 space-x-reverse mt-6">
-              <button  type="button"  @click="closeUserModal" class="btn btn-secondary">
-                انصراف
-              </button>
-              <button type="submit" class="btn btn-primary" @click="addWorkspace(work)">
-                اضافه کردن
-              </button>
-            </div>
-
+        <div v-else class="pl-list">
+          <div v-if="!roles.length" class="empty-sm">نقشی یافت نشد</div>
+          <div
+            v-for="role in roles"
+            :key="role.id"
+            @click="selectRole(role)"
+            class="pl-list-item"
+            :class="{ selected: entityId === role.id }">
+            <i class="fas fa-user-tag pl-list-icon"></i>
+            {{ role.desc }}
           </div>
         </div>
-
-        <UserSelect :open="OpenUserList"  @close="OpenUserList = false"   @select="addUser"/>
-        <RoleSelect :open="OpenRoleList"  @close="OpenRoleList = false"   @select="addRole"/>
-
       </div>
 
-      <Loading :active="loading" />
-    </main>
+      <!-- Workspaces Column -->
+      <div class="card pl-column">
+        <div class="pl-header">
+          <h3 class="pl-title">فضاهای کاری</h3>
+          <button @click="showModal()" class="pl-add-btn" title="اضافه کردن فضای کاری">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+
+        <div v-if="!selectedEntity?.length" class="empty-sm">فضای کاری انتخاب نشده است</div>
+        <div class="pl-list">
+          <div
+            v-for="work in selectedEntity || []"
+            :key="work.id"
+            @click="handleWorkspaceToggle(work)"
+            class="pl-list-item"
+            :class="{ selected: selectedWork === work.name }">
+            <i class="fas fa-layer-group pl-list-icon"></i>
+            <span class="pl-item-text">{{ translate(work.name) }}</span>
+            <button class="pl-delete" @click.stop="removeWorkspace(work)" title="حذف">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layers Column -->
+      <div class="card pl-column">
+        <div class="pl-header">
+          <h3 class="pl-title">لایه‌ها</h3>
+          <button @click="setLayer" class="btn btn-primary btn-sm" title="ثبت تغییرات">
+            <i class="fas fa-check"></i> ثبت تغییرات
+          </button>
+        </div>
+
+        <div v-if="!layers.length" class="empty-sm">
+          یک فضای کاری انتخاب کنید
+        </div>
+        <div class="pl-layers">
+          <label v-for="layer in layers" :key="layer" class="pl-layer-item">
+            <input
+              type="checkbox"
+              :value="layer"
+              v-model="selectedLayerNames"
+              class="pl-checkbox"
+              @change="changeLayer($event, layer)"
+            />
+            <span class="pl-layer-name">{{ layer }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Workspace (Modal)-->
+    <div v-if="showUserModal" class="modal-backdrop" @click.self="closeUserModal">
+      <div class="modal card">
+        <h3 class="modal-title">افزودن فضاهای کاری</h3>
+        <div class="pl-modal-list">
+          <div
+            v-for="work in workspaces"
+            :key="work.id"
+            @click="addWorkspace(work)"
+            class="pl-list-item"
+            :class="{ selected: selectedWork === work.name }">
+            <i class="fas fa-layer-group pl-list-icon"></i>
+            {{ translate(work.name) }}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" @click="closeUserModal" class="btn btn-ghost">
+            بستن
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <UserSelect :open="OpenUserList" @close="OpenUserList = false" @select="addUser"/>
+    <RoleSelect :open="OpenRoleList" @close="OpenRoleList = false" @select="addRole"/>
+
+    <Loading :active="loading" />
   </div>
 </template>
 
 <script setup>
-import {ref, inject, onMounted} from 'vue'
+import { ref, inject, onMounted } from 'vue'
 
 import UserSelect from '../components/UserSelect.vue'
 import RoleSelect from '../components/RoleSelect.vue'
 import Loading from '../components/Loading.vue'
 import { useToast } from "vue-toast-notification";
 import axios from 'axios';
-//import dict from '../lang.json'
 
 const SERVER = import.meta.env.VITE_SERVER
 const dict = inject('dict')
@@ -181,18 +172,17 @@ const workspaces = ref([]);
 const selectedWorkLayers = ref([]);
 const selectedLayerNames = ref([]);
 const showUserModal = ref(false);
-let entityId=1;
-let Work=null;
+let entityId = 1;
+let Work = null;
 let activeTab = ref("users")
 
 function translate(word) {
-  return  dict[word] || dict[word.toLowerCase()] || word;
+  return dict[word] || dict[word.toLowerCase()] || word;
 }
 
 onMounted(() => {
   loadUsers();
   loadRoles();
-  //loadWorkspaces();
   fetchLayers()
 });
 
@@ -212,7 +202,6 @@ const fetchLayers = async () => {
     workspaceMap[workspaceName].push(layerName)
   })
 
-// تبدیل به آرایه دلخواه
   workspaces.value = Object.entries(workspaceMap).map(([name, layers]) => ({
     name,
     layers
@@ -245,10 +234,8 @@ const handleWorkspaceToggle = (workspace) => {
   selectedWork.value = workspace.name;
   selectedWorkLayers.value = workspace.layers || [];
   selectedLayerNames.value = workspace.layers;
-  //layers.value = workspace.layers;
   Work = workspaces.value.find(u => u.name === workspace.name);
   layers.value = Work.layers;
-
 };
 
 const selectUser = (user) => {
@@ -270,19 +257,17 @@ const selectRole = (role) => {
 const addUser = (user) => {
   let exist = users.value.find(a => a.id == user.id);
   if (!exist) {
-    user.workspaces=[];
+    user.workspaces = [];
     users.value.push(user);
   }
-
 }
 
 const addRole = (role) => {
   let exist = roles.value.find(a => a.id == role.id);
   if (!exist) {
-    role.workspaces=[];
+    role.workspaces = [];
     roles.value.push(role);
   }
-
 }
 
 const addWorkspace = (work) => {
@@ -291,20 +276,18 @@ const addWorkspace = (work) => {
   showUserModal.value = false;
 }
 
-const removeWorkspace =async (work) => {
+const removeWorkspace = async (work) => {
   let workspace = {
     id: work.id,
     type: "user"
   }
-  // if exist in database
   if (work.id) {
     if (activeTab.value == "roles") workspace.type = "role"
     loading.value = true;
-    let result = await axios.delete(SERVER +`/api/user/${entityId}/workspace`, {params: {workspace: workspace}});
+    let result = await axios.delete(SERVER + `/api/user/${entityId}/workspace`, { params: { workspace: workspace } });
     loading.value = false;
 
     if (result.data.status == 0) {
-      // remove from array with id
       selectedEntity.value = selectedEntity.value.filter(item => item.id !== work.id);
 
       if (activeTab.value == "roles") {
@@ -320,7 +303,6 @@ const removeWorkspace =async (work) => {
       alert('خطا در عملیات در سمت سرور')
     }
   } else {
-    // remove from array with name - ( for name add worksapce )
     selectedEntity.value = selectedEntity.value.filter(item => item.name !== work.name);
 
     if (activeTab.value == "roles") {
@@ -332,7 +314,6 @@ const removeWorkspace =async (work) => {
       if (user)
         user.workspaces = user.workspaces.filter(ws => ws.name !== work.name);
     }
-
   }
   layers.value = [];
   showInfo("فضای کاری حذف شد");
@@ -340,39 +321,26 @@ const removeWorkspace =async (work) => {
 
 const changeLayer = async (event, layer) => {
   const isChecked = event.target.checked;
-  //let work=Work;
   let user = users.value.find(a => a.id == entityId)
   if (isChecked) {
     let work = user.workspaces.find(a => a.name == Work.name)
     work.layers.push(layer);
-    let p =1 ;
-    // await axios.post(SERVER + `/api/user/${workId}/layer`, {
-    //   workspaceId : Work,
-    //   layer : layer
-    // });
-
-  } else {
-    // await axios.delete(SERVER + `/api/workspace/${workId}/layer`, {
-    //   params: { layer : layer }
-    // });
-
   }
 };
 
 const setLayer = async () => {
   let data = null;
   if (activeTab.value == "roles") {
-    data =  roles.value.find(a => a.id == entityId);
+    data = roles.value.find(a => a.id == entityId);
     data.type = 'role';
   } else {
-    data =  users.value.find(a => a.id == entityId);
+    data = users.value.find(a => a.id == entityId);
     data.type = 'user';
   }
   loading.value = true;
   await axios.post(SERVER + `/api/user/${entityId}/layer`, data);
   loading.value = false;
   showSuccess("عملیات با موفقیت انجام شد");
-
 }
 
 const showModal = () => {
@@ -387,38 +355,228 @@ function showSuccess(msg) {
   $toast.open({
     message: msg,
     type: "success",
-    duration: 4000   // ۲ ثانیه
+    duration: 4000
   });
-
 }
 
 function showInfo(msg) {
   $toast.open({
     message: msg,
     type: "info",
-    duration: 4000   // ۲ ثانیه
+    duration: 4000
   });
-
 }
-
-
 </script>
 
-
 <style scoped>
-/* ظاهر ساده و قابل فهم برای ستون‌ها */
-ul {
-  list-style: none;
-  padding: 0;
+.pl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-items: start;
 }
-@media (max-width: 768px) {
-  .grid-cols-3 {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-  .p-6 { padding: 14px !important; }
+
+.pl-column {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
 }
-@media (max-width: 480px) {
-  .p-6 { padding: 10px !important; }
+
+.pl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.pl-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pl-add-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.pl-add-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.pl-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 12px;
+}
+
+.pl-tab {
+  flex: 1;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pl-tab:hover {
+  color: var(--text);
+}
+
+.pl-tab.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.pl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.pl-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.pl-list-item:hover {
+  background: var(--surface2);
+}
+
+.pl-list-item.selected {
+  background: var(--accent-glow);
+  border-color: var(--accent-dim);
+  color: var(--accent-soft);
+}
+
+.pl-list-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  width: 16px;
+  text-align: center;
+}
+
+.pl-list-item.selected .pl-list-icon {
+  color: var(--accent);
+}
+
+.pl-item-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-delete {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pl-delete:hover {
+  color: var(--danger);
+  background: var(--danger-glow);
+}
+
+.pl-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.pl-layer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  margin-bottom: 0;
+}
+
+.pl-layer-item:hover {
+  background: var(--surface2);
+}
+
+.pl-checkbox {
+  flex-shrink: 0;
+}
+
+.pl-layer-name {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.empty-sm {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 0;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.pl-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .pl-grid { grid-template-columns: 1fr; gap: 12px; }
+  .pl-column { min-height: auto; }
+  .pl-list, .pl-layers { max-height: 320px; }
 }
 </style>

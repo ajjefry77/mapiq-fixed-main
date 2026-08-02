@@ -7,13 +7,15 @@
       <template v-else>پنل کاربری</template>
     </router-link>
 
-    <button v-if="authStore.isAuthenticated" class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }">
+    <button v-if="authStore.isAuthenticated" class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }" :aria-label="mobileOpen ? 'بستن منو' : 'باز کردن منو'">
       <span></span><span></span><span></span>
     </button>
 
     <router-link v-else to="/login" class="btn btn-primary btn-sm md:hidden">ورود / ثبت نام</router-link>
 
-    <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false"></div>
+    <transition name="fade">
+      <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false"></div>
+    </transition>
 
     <div class="topbar-right" :class="{ 'nav-open': mobileOpen }">
       <div v-if="authStore.isAuthenticated" class="topbar-nav">
@@ -339,6 +341,13 @@ onUnmounted(() => {
   padding: 14px;
   z-index: 300;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  animation: dropdownIn 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+  transform-origin: top left;
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .user-dropdown-info {
@@ -377,6 +386,15 @@ onUnmounted(() => {
   display: none;
 }
 
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 @media (max-width: 768px) {
   .mobile-overlay {
     display: block;
@@ -412,8 +430,9 @@ onUnmounted(() => {
     gap: 0;
     z-index: 200;
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
+    box-shadow: var(--shadow-lg);
   }
   .topbar-right.nav-open {
     transform: translateX(0);

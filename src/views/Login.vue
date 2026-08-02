@@ -63,10 +63,10 @@
 
     <!-- کارت ورود با افکت شیشه‌ای -->
     <div
-      class="relative w-full max-w-md p-8 rounded-2xl backdrop-blur-sm border shadow-2xl transition-all duration-300"
+      class="relative w-full max-w-md p-8 rounded-2xl backdrop-blur-md border shadow-2xl transition-all duration-300 login-card"
       style="
-        background: rgba(var(--card-bg-rgb), 0.7);
-        border-color: rgba(var(--border-rgb), 0.2);
+        background: rgba(var(--card-bg-rgb), 0.8);
+        border-color: rgba(var(--border-rgb), 0.25);
       "
     >
       <!-- هدر -->
@@ -105,17 +105,20 @@
           >
             نام کاربری
           </label>
-          <input
-            id="username"
-            v-model="form.username"
-            type="text"
-            required
-            class="w-full px-0 py-2 border-0 border-b-2 bg-transparent focus:ring-0 transition-colors duration-200 placeholder:text-sm"
-            style="border-color: var(--border); color: var(--text)"
-            placeholder="شماره همراه یا ایمیل"
-            @focus="(e) => (e.target.style.borderColor = '#f97316')"
-            @blur="(e) => (e.target.style.borderColor = 'var(--border)')"
-          />
+          <div class="relative">
+            <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint)"></i>
+            <input
+              id="username"
+              v-model="form.username"
+              type="text"
+              required
+              class="login-input"
+              style="border-color: var(--border); color: var(--text)"
+              placeholder="شماره همراه یا ایمیل"
+              @focus="(e) => (e.target.style.borderColor = '#f97316')"
+              @blur="(e) => (e.target.style.borderColor = 'var(--border)')"
+            />
+          </div>
         </div>
 
         <!-- فیلد رمز عبور -->
@@ -127,16 +130,19 @@
           >
             رمز عبور
           </label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            class="w-full px-0 py-2 border-0 border-b-2 bg-transparent focus:ring-0 transition-colors duration-200 placeholder:text-sm"
-            style="border-color: var(--border); color: var(--text)"
-            placeholder="رمز عبور خود را وارد کنید"
-            @focus="(e) => (e.target.style.borderColor = '#f97316')"
-            @blur="(e) => (e.target.style.borderColor = 'var(--border)')"
-          />
+          <div class="relative">
+            <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint)"></i>
+            <input
+              id="password"
+              v-model="form.password"
+              type="password"
+              class="login-input"
+              style="border-color: var(--border); color: var(--text)"
+              placeholder="رمز عبور خود را وارد کنید"
+              @focus="(e) => (e.target.style.borderColor = '#f97316')"
+              @blur="(e) => (e.target.style.borderColor = 'var(--border)')"
+            />
+          </div>
         </div>
 
         <!-- دکمه ورود -->
@@ -448,6 +454,40 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* ورودی‌های فرم ورود */
+.login-input {
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  background: rgba(26, 29, 39, 0.6);
+  border-radius: var(--radius);
+  outline: none;
+  font-family: var(--font);
+  font-size: 14px;
+  transition: all 0.2s ease;
+  direction: rtl;
+}
+
+.login-input:focus {
+  background: rgba(26, 29, 39, 0.9);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.login-input::placeholder {
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.login-card {
+  animation: loginCardIn 0.4s ease-out;
+}
+
+@keyframes loginCardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* انیمیشن ورود Toast */
 .toast-enter-active {
   animation: toast-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);

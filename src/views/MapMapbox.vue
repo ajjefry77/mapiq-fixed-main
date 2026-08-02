@@ -45,21 +45,22 @@
 
         <div
           id="layer-panel"
-          class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden"
+          class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded-lg shadow-lg p-3 z-50 max-md:hidden"
         >
           <div class="overflow-y-auto h-[95%]">
-            <h3 class="mb-2 text-sm">لایه ها :</h3>
-            <hr style="border-top: 1px solid #aaa; margin-bottom: 10px" />
+            <h3 class="mb-2 text-sm font-bold" style="color: var(--text)">لایه ها :</h3>
+            <hr style="border-top: 1px solid var(--border); margin-bottom: 10px" />
             <span
               v-if="
                 authStore?.user?.phone == '09153333989' ||
                 authStore?.user?.phone == '09156620866'
               "
-              class="text-xs text-gray-800 truncate"
+              class="text-xs truncate flex items-center gap-2"
+              style="color: var(--text)"
             >
               <input
                 type="checkbox"
-                class="ml-2 accent-green-600"
+                class="accent-green-600"
                 @change="ShowTile"
               />
               <i class="text-blue-500" />

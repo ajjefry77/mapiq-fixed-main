@@ -78,8 +78,10 @@ const send = async (data) => {
   form.append("document_id", pin.save);
   form.append("descr", data.description);
   if (pin.save < 0) {
+    let content = pin.content;
+    if (pin.type == 'draw' && pin.shape) content = JSON.stringify(pin.shape);
     form.append("name", pin.name);
-    form.append("pin", JSON.stringify({ name: pin.name, content: pin.content, type: pin.type, obj_id: pin.id }));
+    form.append("pin", JSON.stringify({ name: pin.name, content, type: pin.type, obj_id: pin.id }));
   }
   if (pin.type == 'file' && pin.content == null) form.append("file", pin.file);
   await axios.post(SERVER + '/api/sendTo', form, { headers: { "Content-Type": "multipart/form-data" } });

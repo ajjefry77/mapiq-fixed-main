@@ -162,6 +162,15 @@
                 ></i>
                 <span class="text-sm truncate">{{ getTitle(file) }}</span>
               </div>
+              <div class="flex items-center gap-1">
+                <button
+                  @click.stop="addInboxToDesktop(index)"
+                  class="text-blue-600 hover:text-blue-800 px-1"
+                  title="افزودن به میز کار"
+                >
+                  <i class="fas fa-plus text-sm"></i>
+                </button>
+              </div>
             </li>
             <li
               v-if="!inboxFiles.length"
@@ -425,7 +434,8 @@ const loadInbox = async () => {
 };
 
 const drawInbox = async (idx) => {
-  const pin = inboxFiles.value[idx].MyWork;
+  const pin = inboxFiles.value[idx]?.MyWork;
+  if (!pin) return;
   try {
     await axios.post(SERVER + "/api/inbox/opened", {
       id: inboxFiles.value[idx].id,
@@ -460,12 +470,95 @@ const drawInbox = async (idx) => {
     return;
   }
   if (pin.type == "draw") {
-    pin.shape = JSON.parse(pin.content);
-    drawShape(pin, "inbox");
-  } else if (pin.name) {
+    try {
+      pin.shape = JSON.parse(pin.content);
+    } catch (e) {
+      pin.shape = pin.content;
+    }
+    if (pin.shape && pin.shape.type) {
+      drawShape(pin, "inbox");
+      bringDrawingsToFront(props.map);
+    } else {
+      showMessage("لایه دریافتی قابلیت نمایش روی نقشه را ندارد", "warning");
+    }
+  } else if (pin.name || pin.content) {
     await drawKML(pin, "inbox");
+    bringDrawingsToFront(props.map);
   }
   pin.show = true;
+};
+
+// افزودن لایه دریافتی به میز کار تا قابل ویرایش و ذخیره باشد
+const addInboxToDesktop = async (idx) => {
+  const file = inboxFiles.value[idx];
+  const pin = file?.MyWork;
+  if (!pin) return;
+  loading.value = true;
+  try {
+    const newPin = {
+      id: crypto.randomUUID(),
+      name: pin.name || "بدون نام",
+      type: pin.type,
+      date: new Date(),
+      save: -1,
+    };
+    if (pin.type == "draw") {
+      let shape;
+      const content =
+        typeof pin.content === "string"
+          ? pin.content.replace(/^"|"$/g, "")
+          : pin.content;
+      try {
+        shape = JSON.parse(content);
+      } catch (e) {
+        shape = content;
+      }
+      if (!shape || !shape.type) {
+        showMessage("ترسیم دریافتی معتبر نیست", "error");
+        return;
+      }
+      shape.show = true;
+      newPin.shape = shape;
+    } else if (pin.type == "file") {
+      newPin.shape = { show: true };
+      newPin.content = pin.content;
+    } else {
+      newPin.shape = { show: true };
+    }
+
+    if (SelectGroup.value !== null && props.pins[SelectGroup.value]) {
+      newPin.parent_id = props.pins[SelectGroup.value].save ?? -1;
+      if (!props.pins[SelectGroup.value].children)
+        props.pins[SelectGroup.value].children = [];
+      props.pins[SelectGroup.value].children.push(newPin);
+    } else {
+      newPin.parent_id = -1;
+      props.pins.push(newPin);
+    }
+
+    if (newPin.type == "draw") {
+      drawShape(newPin, "draw", true);
+    } else if (newPin.type == "file" && newPin.content) {
+      // فایل KML/KMZ: بایت‌های فایل را از سرور گرفته و برای ذخیره در میز کار جاری آپلود می‌کنیم
+      const url = SERVER + "/uploads/pins/" + newPin.content;
+      const res = await fetch(url);
+      const blob = await res.blob();
+      newPin.file = new File(
+        [blob],
+        String(newPin.content).replace(/^.*[\\/]/, ""),
+        { type: blob.type || "application/vnd.google-earth.kml+xml" },
+      );
+      await drawKML(newPin, true);
+    }
+    bringDrawingsToFront(props.map);
+    await saveOneWorks(newPin);
+    showMessage("لایه دریافتی به میز کار اضافه شد", "success");
+  } catch (e) {
+    console.error("خطا در افزودن به میز کار:", e);
+    showMessage("خطا در افزودن به میز کار", "error");
+  } finally {
+    loading.value = false;
+  }
 };
 
 const loadWorks = async () => {
@@ -1039,12 +1132,14 @@ const send = async (data) => {
   form.append("document_id", pin.save);
   form.append("descr", data.description);
   if (pin.save < 0) {
+    let content = pin.content;
+    if (pin.type == "draw" && pin.shape) content = JSON.stringify(pin.shape);
     form.append("name", pin.name);
     form.append(
       "pin",
       JSON.stringify({
         name: pin.name,
-        content: pin.content,
+        content,
         type: pin.type,
         obj_id: pin.id,
       }),

@@ -37,6 +37,55 @@
 
     <div class="p-3 max-h-72 overflow-y-auto text-sm">
       <div v-if="activeTab === 'measurements'" class="space-y-3">
+        <div class="border border-gray-200 rounded p-2 space-y-2">
+          <div>
+            <label class="block text-xs mb-1 text-gray-600">نام ترسیم</label>
+            <input
+              :value="formData.name"
+              @input="
+                $emit('update:formData', {
+                  ...formData,
+                  name: $event.target.value,
+                })
+              "
+              :class="[
+                'w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none',
+                nameError ? 'border-red-500' : '',
+              ]"
+              placeholder="نام ترسیم را وارد کنید"
+            />
+            <p v-if="nameError" class="text-red-500 text-xs mt-1">
+              نام اجباری است
+            </p>
+          </div>
+          <div>
+            <label class="block text-xs mb-1 text-gray-600">توضیحات</label>
+            <textarea
+              :value="formData.description"
+              @input="
+                $emit('update:formData', {
+                  ...formData,
+                  description: $event.target.value,
+                })
+              "
+              placeholder="توضیحات اضافی..."
+              rows="2"
+              class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+            ></textarea>
+          </div>
+          <div v-if="drawMode === 'circle' || shape?.type === 'circle'">
+            <label class="block text-xs mb-1 text-gray-600">فایل ضمیمه</label>
+            <input
+              type="file"
+              @change="$emit('fileChange', $event)"
+              class="w-full text-xs"
+            />
+            <p v-if="attchFileName" class="mt-1 text-xs text-green-600">
+              {{ attchFileName }} انتخاب شد
+            </p>
+          </div>
+        </div>
+
         <div class="flex items-center justify-between bg-gray-50 rounded p-2">
           <span class="text-xs text-gray-600">سیستم مختصات:</span>
           <div class="flex gap-1">
@@ -139,7 +188,7 @@
                     {{ point.id || index + 1 }}
                   </td>
 
-                  <td class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
+                  <td class="p-1.5 text-left font-mono text-[10px]" dir="ltr">
                     {{
                       getCoordValue(
                         point,
@@ -148,7 +197,7 @@
                     }}
                   </td>
 
-                  <td class="p-1.5 text-center font-mono text-[10px]" dir="ltr">
+                  <td class="p-1.5 text-left font-mono text-[10px]" dir="ltr">
                     {{
                       getCoordValue(
                         point,
@@ -159,7 +208,7 @@
 
                   <td
                     v-if="coordinateSystem === 'utm'"
-                    class="p-1.5 text-center font-mono text-[10px]"
+                    class="p-1.5 text-left font-mono text-[10px]"
                     dir="ltr"
                   >
                     {{ getCoordValue(point, "zone") }}
@@ -184,55 +233,6 @@
           >
             <p>در حال ترسیم روی نقشه کلیک کنید</p>
           </div>
-        </div>
-      </div>
-
-      <div v-if="activeTab === 'info'" class="space-y-2">
-        <div>
-          <label class="block text-xs mb-1 text-gray-600">نام ترسیم</label>
-          <input
-            :value="formData.name"
-            @input="
-              $emit('update:formData', {
-                ...formData,
-                name: $event.target.value,
-              })
-            "
-            :class="[
-              'w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none',
-              nameError ? 'border-red-500' : '',
-            ]"
-            placeholder="نام ترسیم را وارد کنید"
-          />
-          <p v-if="nameError" class="text-red-500 text-xs mt-1">
-            نام اجباری است
-          </p>
-        </div>
-        <div>
-          <label class="block text-xs mb-1 text-gray-600">توضیحات</label>
-          <textarea
-            :value="formData.description"
-            @input="
-              $emit('update:formData', {
-                ...formData,
-                description: $event.target.value,
-              })
-            "
-            placeholder="توضیحات اضافی..."
-            rows="2"
-            class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-          ></textarea>
-        </div>
-        <div v-if="drawMode === 'circle' || shape?.type === 'circle'">
-          <label class="block text-xs mb-1 text-gray-600">فایل ضمیمه</label>
-          <input
-            type="file"
-            @change="$emit('fileChange', $event)"
-            class="w-full text-xs"
-          />
-          <p v-if="attchFileName" class="mt-1 text-xs text-green-600">
-            {{ attchFileName }} انتخاب شد
-          </p>
         </div>
       </div>
 

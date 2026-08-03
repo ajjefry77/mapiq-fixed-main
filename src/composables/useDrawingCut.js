@@ -52,7 +52,7 @@ export function createCutHandler(ctx) {
       return {
         ...pin,
         id: crypto.randomUUID(),
-        name: `${pin.name} (بخش ${index + 1})`,
+        name: `${pin.name} cut ${index + 1}`,
         color: newColor,
         shape: {
           ...pin.shape,
@@ -159,11 +159,21 @@ export function createCutHandler(ctx) {
         if (turf.booleanIntersects(feature, cutLine)) {
           hasCut = true;
           removeCutOriginalLayers(pin);
-          const pieces = pin.shape.type === "polyline"
-            ? splitPolyline(pin, cutLine)
-            : splitPolygon(pin, cutLine);
-          pieces.forEach(renderCutPiece);
-          newPins.push(...pieces);
+          if (pin.shape.type === "polyline") {
+            const pieces = splitPolyline(pin, cutLine);
+            pieces.forEach(renderCutPiece);
+            newPins.push(...pieces);
+          } else {
+            const pieces = splitPolygon(pin, cutLine);
+            if (pieces.length === 1 && pieces[0] === pin) {
+              renderCutPiece(pin);
+              newPins.push(pin);
+            } else {
+              renderCutPiece(pin);
+              pieces.forEach(renderCutPiece);
+              newPins.push(pin, ...pieces);
+            }
+          }
         } else {
           newPins.push(pin);
         }

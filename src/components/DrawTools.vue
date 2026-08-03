@@ -167,8 +167,8 @@
                 <tbody>
                 <tr v-for="p in formPoints" :key="p.row">
                   <td class="p-1 border text-center">{{ p.row }}</td>
-                  <td class="p-1 border font-mono">{{ p.lon }}</td>
-                  <td class="p-1 border font-mono">{{ p.lat }}</td>
+                  <td class="p-1 border font-mono text-left" dir="ltr">{{ p.lon }}</td>
+                  <td class="p-1 border font-mono text-left" dir="ltr">{{ p.lat }}</td>
                 </tr>
                 </tbody>
               </table>

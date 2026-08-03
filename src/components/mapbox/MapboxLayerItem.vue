@@ -6,7 +6,7 @@
     <div class="flex items-center gap-1" @click.stop="zoomOnPin">
       <i v-if="isGroup" class="fas fa-folder text-yellow-500"></i>
       <span class="text-xs text-gray-800 truncate" :class="{ 'font-bold': isGroup }">
-        <input type="checkbox" @click="toggle" v-model="item.shape.show" class="ml-2 accent-green-600"/>
+        <input type="checkbox" :checked="item.shape?.show" @change="toggle" class="ml-2 accent-green-600"/>
         <i :class="selectIcon(item)" class="text-blue-500"/>
         {{ name }}
       </span>
@@ -148,27 +148,46 @@ function removeMapLayers(pin) {
 
 const toggle = () => {
   const item = props.item;
+  if (!item.shape) {
+    item.shape = { show: true };
+  }
   toggleVisible(item.id);
 
   if (item.type == 'file') {
-    if (!item.loaded) drawPin(item);
-    if (item.shape) item.shape.show = !item.shape.show;
-  } else {
-    const sourceId = 'draw-pin-' + item.id;
-    if (map.value?.getSource?.(sourceId) || props.map.getSource(sourceId)) {
-      const mapRef = props.map;
-      const layers = mapRef.getStyle().layers.filter(l => l.id.startsWith(sourceId));
-      const visible = !item.shape.show;
-      item.shape.show = visible;
-      layers.forEach(l => {
-        mapRef.setLayoutProperty(l.id, 'visibility', visible ? 'visible' : 'none');
-      });
-    } else {
+    if (!item.shape._sourceIds && !item.loaded) {
       drawPin(item);
+      item.shape.show = true;
+    } else {
       item.shape.show = !item.shape.show;
+      applyLayersVisibility(item, item.shape.show);
     }
+    return;
+  }
+
+  const next = !item.shape.show;
+  item.shape.show = next;
+  const sourceId = 'draw-pin-' + item.id;
+  const mapRef = props.map;
+  if (mapRef.getSource?.(sourceId) || props.map.getSource(sourceId)) {
+    const layers = mapRef.getStyle().layers.filter(l => l.id.startsWith(sourceId));
+    layers.forEach(l => {
+      mapRef.setLayoutProperty(l.id, 'visibility', next ? 'visible' : 'none');
+    });
+  } else {
+    drawPin(item, next);
   }
 };
+
+function applyLayersVisibility(item, visible) {
+  const mapRef = props.map;
+  const ids = item.shape._sourceIds || ['draw-pin-' + item.id];
+  ids.forEach(sid => {
+    const layers = mapRef.getStyle().layers.filter(l => l.id.startsWith(sid));
+    layers.forEach(l => {
+      mapRef.setLayoutProperty(l.id, 'visibility', visible ? 'visible' : 'none');
+    });
+  });
+}
 
 const backToDesk = async () => {
   const pin = findPinById(Pins, props.item.id);

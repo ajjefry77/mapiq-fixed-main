@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "vue-toast-notification";
+import { useSharedArray } from "../stores/app";
 import { registerDrawLayer, bringDrawingsToFront } from "../utils/layerOrder";
 import {
   measureDistance,
@@ -27,6 +28,7 @@ const SERVER = import.meta.env.VITE_SERVER;
 export function useDrawing(map, pins, emit, SelectGroup) {
   const authStore = useAuthStore();
   const $toast = useToast();
+  const { addVisibleId } = useSharedArray();
   // Reactive state
   const loading = ref(false);
   const drawMode = ref("");
@@ -74,19 +76,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   const cs = { radius: 0, center: null };
   const drawDataSourceId = "pins-draw-" + crypto.randomUUID();
   // Tabs
-  const tabs = computed(() => {
-    const isMultiPoint =
-      drawMode.value === "multi_point" || shape.value?.type === "multi_point";
-    const isMeasure = drawMode.value === "measure" || measureActive.value;
-    return [
-      {
-        key: "measurements",
-        label: isMultiPoint ? "نقاط" : isMeasure ? "اندازه‌گیری" : "اندازه‌ها",
-      },
-      { key: "style", label: "استایل" },
-      { key: "info", label: "ذخیره" },
-    ];
-  });
+  const tabs = computed(() => [
+    { key: "measurements", label: "ترسیم" },
+    { key: "style", label: "استایل" },
+  ]);
   // Computed
   const livePoints = computed(() => {
     if (shape.value) return getAllPoints();
@@ -1000,7 +993,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       file: null,
     };
     attch_file.value = null;
-    activeTab.value = "info";
+    activeTab.value = "measurements";
     showForm.value = true;
     enableVertexEditing();
   }
@@ -1117,7 +1110,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   }
   const saveEditedPin = async () => {
     if (!formData.value.name.trim()) {
-      activeTab.value = "info";
+      activeTab.value = "measurements";
       nameError.value = true;
       return;
     }
@@ -1312,9 +1305,150 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       });
     } else savePin();
   };
+  // رندر یک ترسیم تازه ذخیره شده روی نقشه تا پس از ذخیره فعال و قابل مشاهده بماند
+  function renderNewPin(pin) {
+    const s = pin.shape;
+    if (!s || !s.type) return;
+    const sourceId = "draw-pin-" + pin.id;
+    if (map.getSource(sourceId)) return;
+    const visibility = s.show === false ? "none" : "visible";
+    if (s.type === "polyline" || s.type === "polygon") {
+      const coords = s.positions.map((p) => [p.lon, p.lat]);
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry:
+                s.type === "polygon"
+                  ? { type: "Polygon", coordinates: [coords] }
+                  : { type: "LineString", coordinates: coords },
+              properties: { name: pin.name },
+            },
+          ],
+        },
+      });
+      if (s.type === "polygon") {
+        map.addLayer({
+          id: sourceId + "-fill",
+          type: "fill",
+          source: sourceId,
+          paint: { "fill-color": s.color || "#ff0000", "fill-opacity": 0.5 },
+          layout: { visibility },
+        });
+      }
+      map.addLayer({
+        id: sourceId + "-line",
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": s.outlineColor || s.color || "#ff0000",
+          "line-width": s.width || 2,
+        },
+        layout: { visibility },
+      });
+    } else if (s.type === "point") {
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+              properties: {},
+            },
+          ],
+        },
+      });
+      map.addLayer({
+        id: sourceId + "-point",
+        type: "circle",
+        source: sourceId,
+        paint: {
+          "circle-radius": s.pixelSize || 8,
+          "circle-color": s.color || "#ff0000",
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": s.outlineWidth || 1,
+        },
+        layout: { visibility },
+      });
+    } else if (s.type === "multi_point") {
+      const features = s.positions.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+        properties: { color: p.color || s.color || "#00ff00" },
+      }));
+      map.addSource(sourceId, { type: "geojson", data: { type: "FeatureCollection", features } });
+      map.addLayer({
+        id: sourceId + "-points",
+        type: "circle",
+        source: sourceId,
+        paint: {
+          "circle-radius": 5,
+          "circle-color": ["get", "color"],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 1,
+        },
+        layout: { visibility },
+      });
+    } else if (s.type === "circle") {
+      const center = s.center;
+      const r = s.radius;
+      const coords = [];
+      for (let i = 0; i <= 64; i++) {
+        const angle = (i / 64) * 2 * Math.PI;
+        const rLat = center.lat + (r / 110540) * Math.sin(angle);
+        const rLng =
+          center.lng +
+          (r / (111319.9 * Math.cos((center.lat * Math.PI) / 180))) *
+            Math.cos(angle);
+        coords.push([rLng, rLat]);
+      }
+      coords.push(coords[0]);
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Polygon", coordinates: [coords] },
+              properties: {},
+            },
+          ],
+        },
+      });
+      map.addLayer({
+        id: sourceId + "-fill",
+        type: "fill",
+        source: sourceId,
+        paint: { "fill-color": s.fillColor || s.color || "#0000ff", "fill-opacity": 0.3 },
+        layout: { visibility },
+      });
+      map.addLayer({
+        id: sourceId + "-line",
+        type: "line",
+        source: sourceId,
+        paint: { "line-color": s.outlineColor || "#0000ff", "line-width": s.outlineWidth || 2 },
+        layout: { visibility },
+      });
+    } else {
+      return;
+    }
+    s._sourceIds = [sourceId];
+    registerDrawLayer(sourceId + "-fill");
+    registerDrawLayer(sourceId + "-line");
+    registerDrawLayer(sourceId + "-point");
+    registerDrawLayer(sourceId + "-points");
+    bringDrawingsToFront(map);
+  }
+
   const savePin = async () => {
     if (!formData.value.name.trim()) {
-      activeTab.value = "info";
+      activeTab.value = "measurements";
       nameError.value = true;
       return;
     }
@@ -1352,6 +1486,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     tempCircle.value = null;
     cs.center = null;
     clearTempLayers();
+    renderNewPin(pin);
+    addVisibleId(pin.id);
     await saveOneWorks(pin);
   };
   const saveOneWorks = async (item) => {

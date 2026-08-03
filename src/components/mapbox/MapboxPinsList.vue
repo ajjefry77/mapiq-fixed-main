@@ -437,7 +437,26 @@ const drawInbox = async (idx) => {
   }
 
   if (pin.show != undefined) {
-    pin.entity.show = !pin.entity.show;
+    if (pin.entity && pin.entity.show !== undefined) {
+      pin.entity.show = !pin.entity.show;
+      if (pin.shape) pin.shape.show = pin.entity.show;
+    } else if (pin.shape) {
+      const sourceId =
+        (pin.shape._sourceIds && pin.shape._sourceIds[0]) ||
+        "draw-pin-" + pin.id;
+      const visible = !pin.shape.show;
+      pin.shape.show = visible;
+      const layers = props.map
+        .getStyle()
+        .layers.filter((l) => l.id.startsWith(sourceId));
+      layers.forEach((l) =>
+        props.map.setLayoutProperty(
+          l.id,
+          "visibility",
+          visible ? "visible" : "none",
+        ),
+      );
+    }
     return;
   }
   if (pin.type == "draw") {
@@ -786,7 +805,8 @@ async function drawKML(pin, visible = false) {
   try {
     const url = SERVER + "/uploads/pins/" + pin.content;
     const response = await fetch(url);
-    const text = await response.text();
+    const blob = await response.blob();
+    const text = await readKmlText(blob, pin.content);
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, "application/xml");
     const geojson = kmlToGeoJSON(doc);
@@ -877,6 +897,55 @@ function parseKMLCoords(el) {
       return [lon, lat];
     })
     .filter((c) => !isNaN(c[0]) && !isNaN(c[1]));
+}
+
+// ----- پشتیبانی از فایل KMZ (زیپ حاوی doc.kml) -----
+const readU16 = (buf, o) => buf[o] | (buf[o + 1] << 8);
+const readU32 = (buf, o) =>
+  buf[o] | (buf[o + 1] << 8) | (buf[o + 2] << 16) | (buf[o + 3] << 24);
+
+async function inflateRawZipEntry(data) {
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error("مرورگر شما از فایل KMZ پشتیبانی نمی‌کند");
+  }
+  const stream = new Blob([data]).stream().pipeThrough(
+    new DecompressionStream("deflate-raw"),
+  );
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+async function extractKmlFromZip(buf) {
+  const decoder = new TextDecoder("latin1");
+  let offset = 0;
+  while (offset + 30 <= buf.length) {
+    const sig = readU32(buf, offset);
+    if (sig !== 0x04034b50) break;
+    const method = buf[offset + 8];
+    const compSize = readU32(buf, offset + 18);
+    const nameLen = readU16(buf, offset + 26);
+    const extraLen = readU16(buf, offset + 28);
+    const name = decoder
+      .decode(buf.subarray(offset + 30, offset + 30 + nameLen))
+      .toLowerCase();
+    const dataStart = offset + 30 + nameLen + extraLen;
+    if (name.endsWith(".kml")) {
+      const comp = buf.subarray(dataStart, dataStart + compSize);
+      if (method === 0) return comp;
+      if (method === 8) return await inflateRawZipEntry(comp);
+      throw new Error("روش فشرده‌سازی KMZ پشتیبانی نمی‌شود");
+    }
+    offset = dataStart + compSize;
+  }
+  throw new Error("فایل doc.kml داخل KMZ یافت نشد");
+}
+
+async function readKmlText(blob, name = "") {
+  const isKmz = /\.kmz$/i.test(name);
+  if (!isKmz) return await blob.text();
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const kmlBytes = await extractKmlFromZip(buf);
+  return new TextDecoder().decode(kmlBytes);
 }
 
 const drawPins = async () => {
@@ -1012,10 +1081,7 @@ const handleFileUpload = async (event) => {
 
   if (fileName.endsWith(".kml") || fileName.endsWith(".kmz")) {
     try {
-      const url = URL.createObjectURL(file);
-      const response = await fetch(url);
-      const text = await response.text();
-      URL.revokeObjectURL(url);
+      const text = await readKmlText(file, file.name);
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, "application/xml");
       const geojson = kmlToGeoJSON(doc);

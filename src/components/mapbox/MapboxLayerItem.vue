@@ -1,13 +1,13 @@
 <template>
   <div class="grid grid-cols-[1fr_auto] items-center w-full pr-2 px-1 py-0 cursor-pointer"
-       :class="{ 'bg-blue-200': isActiveLayer, 'hover:bg-gray-300': !isActiveLayer }"
+       :class="{ 'bg-accent/15': isActiveLayer, 'hover:bg-gray-300': !isActiveLayer }"
        :style="{ ['paddingRight']: `${depth * 20}px` }">
 
     <div class="flex items-center gap-1" @click.stop="zoomOnPin">
       <i v-if="isGroup" class="fas fa-folder text-yellow-500"></i>
       <span class="text-xs text-gray-800 truncate" :class="{ 'font-bold': isGroup }">
         <input type="checkbox" :checked="item.shape?.show" @change="toggle" class="ml-2 accent-green-600"/>
-        <i :class="selectIcon(item)" class="text-blue-500"/>
+        <i :class="selectIcon(item)" class="text-accent"/>
         {{ name }}
       </span>
     </div>
@@ -21,7 +21,7 @@
       <button v-if="Icons.includes('back')"
               class="text-green-600 hover:text-green-800"
               @click="backToDesk" title="انتقال به میز کار">
-        <i class="fas fa-share rev text-blue-700 text-sm"/>
+        <i class="fas fa-share rev text-accent text-sm"/>
       </button>
       <button class="text-red-500 hover:text-red-700 w-6 h-6 flex items-center justify-center"
               @click="remove" title="حذف لایه">

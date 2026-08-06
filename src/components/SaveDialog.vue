@@ -7,7 +7,7 @@
         <input
             v-model="fileName"
             type="text"
-            class="border w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="border w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
         />
 
         <div class="flex justify-end gap-3 mt-4">
@@ -19,7 +19,7 @@
           </button>
           <button
               @click="confirm"
-              class="px-4 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              class="px-4 py-1 bg-accent text-white rounded-md hover:bg-accent-dim transition"
           >
             تایید
           </button>

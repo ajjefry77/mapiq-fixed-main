@@ -65,7 +65,7 @@
             </select>
           </div>
           <div class="block w-full h-3 bg-gray-200 rounded-full overflow-hidden" style="margin-top: 50px">
-            <div class="h-full bg-blue-600" :style="{ width: `${progress}%` }"/>
+            <div class="h-full bg-accent" :style="{ width: `${progress}%` }"/>
           </div>
         </div>
 

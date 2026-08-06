@@ -4,7 +4,7 @@
       <button
         class="px-2 py-1 text-sm rounded"
         :class="
-          activeTab === 'my2' ? 'bg-blue-500 text-white' : 'bg-white border'
+          activeTab === 'my2' ? 'bg-accent text-white' : 'bg-white border'
         "
         @click="activeTab = 'my2'"
       >
@@ -14,7 +14,7 @@
         v-if="authStore.user"
         class="relative px-2 py-1 text-sm rounded"
         :class="
-          activeTab === 'in' ? 'bg-blue-500 text-white' : 'bg-white border'
+          activeTab === 'in' ? 'bg-accent text-white' : 'bg-white border'
         "
         @click="activeTab = 'in'"
       >
@@ -29,7 +29,7 @@
         v-if="authStore.user"
         class="px-2 py-1 text-sm rounded"
         :class="
-          activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'
+          activeTab === 'out' ? 'bg-accent text-white' : 'bg-white border'
         "
         @click="activeTab = 'out'"
       >
@@ -157,7 +157,7 @@
                   :class="
                     file.opened
                       ? 'fas fa-envelope-open text-gray-400'
-                      : 'fas fa-envelope text-blue-500'
+                      : 'fas fa-envelope text-accent'
                   "
                 ></i>
                 <span class="text-sm truncate">{{ getTitle(file) }}</span>
@@ -165,7 +165,7 @@
               <div class="flex items-center gap-1">
                 <button
                   @click.stop="addInboxToDesktop(index)"
-                  class="text-blue-600 hover:text-blue-800 px-1"
+                  class="text-accent hover:text-accent px-1"
                   title="افزودن به میز کار"
                 >
                   <i class="fas fa-plus text-sm"></i>

@@ -11,7 +11,7 @@
         class="w-8 h-8 rounded flex items-center justify-center shadow-md"
         :class="
           drawMode === 'measure'
-            ? 'text-white bg-blue-500'
+            ? 'text-white bg-accent'
             : 'text-black bg-gray-200'
         "
       >
@@ -23,7 +23,7 @@
         @click="$emit('togglePointPick')"
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
-          pickForForm ? 'text-white bg-blue-500' : 'text-black bg-gray-200',
+          pickForForm ? 'text-white bg-accent' : 'text-black bg-gray-200',
         ]"
         title="نقطه (انتخاب برای فرم)"
       >
@@ -36,7 +36,7 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'multi_point'
-            ? 'text-white bg-blue-500'
+            ? 'text-white bg-accent'
             : 'text-black bg-gray-200',
         ]"
         title="چند نقطه"
@@ -50,7 +50,7 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'polyline'
-            ? 'text-white bg-blue-500'
+            ? 'text-white bg-accent'
             : 'text-black bg-gray-200',
         ]"
         title="خط"
@@ -80,7 +80,7 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'polygon'
-            ? 'text-white bg-blue-500'
+            ? 'text-white bg-accent'
             : 'text-black bg-gray-200',
         ]"
         title="پلی‌گان"
@@ -94,7 +94,7 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'circle'
-            ? 'text-white bg-blue-500'
+            ? 'text-white bg-accent'
             : 'text-black bg-gray-200',
         ]"
         title="دایره"
@@ -174,7 +174,7 @@
           @click.stop="expanded = !expanded"
           :class="[
             'w-8 h-8 rounded flex items-center justify-center shadow-md',
-            expanded ? 'text-white bg-blue-500' : 'text-black bg-gray-200',
+            expanded ? 'text-white bg-accent' : 'text-black bg-gray-200',
           ]"
           title="نقشه پایه"
         >

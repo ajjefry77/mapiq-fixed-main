@@ -4,19 +4,19 @@
   <div class="flex mb-2 ">
 <!--    <button-->
 <!--        class="px-2 py-1 text-sm rounded"-->
-<!--        :class="activeTab === 'my' ? 'bg-blue-500 text-white' : 'bg-white border'"-->
+<!--        :class="activeTab === 'my' ? 'bg-accent text-white' : 'bg-white border'"-->
 <!--        @click="activeTab = 'my'" >-->
 <!--      میز کار-->
 <!--    </button>-->
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'my2' ? 'bg-blue-500 text-white' : 'bg-white border'"
+        :class="activeTab === 'my2' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'my2'" >
       میز کار
     </button>
     <button
         class="relative px-2 py-1 text-sm rounded"
-        :class="activeTab === 'in' ? 'bg-blue-500 text-white' : 'bg-white border'"
+        :class="activeTab === 'in' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'in'" >
        فضای اشتراکی
       <span
@@ -26,7 +26,7 @@
     </button>
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'"
+        :class="activeTab === 'out' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'out'" >
        تاریخچه
     </button>

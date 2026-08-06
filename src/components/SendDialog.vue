@@ -10,7 +10,7 @@
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">توضیحات</label>
           <textarea v-model="description"  rows="3" placeholder="توضیحات را وارد کنید..."
-              class="w-full border rounded-lg p-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+              class="w-full border rounded-lg p-2 focus:outline-none focus:ring focus:ring-accent-soft"/>
         </div>
 
 <!--        <UserSearch v-model="selectedUser"   />-->
@@ -24,7 +24,7 @@
           <button @click="onCancel" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">
             لغو
           </button>
-          <button @click="onSubmit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+          <button @click="onSubmit" class="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-dim">
             ارسال
           </button>
         </div>

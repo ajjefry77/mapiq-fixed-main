@@ -34,7 +34,7 @@
             <hr style="border-top: 1px solid #aaa; margin-bottom: 10px"/>
             <span v-if="authStore?.user?.phone == '09153333989' || authStore?.user?.phone == '09156620866'" class="text-xs text-gray-800 truncate" >
               <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
-              <i class="text-blue-500"/>
+              <i class="text-accent"/>
               عکس هوایی طرقبه 1340
             </span>
           </div>
@@ -49,7 +49,7 @@
 
             <span v-if="authStore?.user?.phone == '09153333989' || authStore?.user?.phone == '09156620866'" class="text-xs text-gray-800 truncate" >
               <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
-              <i class="text-blue-500"/>
+              <i class="text-accent"/>
               عکس هوایی طرقبه 1340
             </span>
           </div>

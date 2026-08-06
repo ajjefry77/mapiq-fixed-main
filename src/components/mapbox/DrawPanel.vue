@@ -94,7 +94,7 @@
               :class="[
                 'px-2 py-0.5 text-xs rounded transition',
                 coordinateSystem === 'latlon'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-accent text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
               ]"
             >
@@ -105,7 +105,7 @@
               :class="[
                 'px-2 py-0.5 text-xs rounded transition',
                 coordinateSystem === 'utm'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-accent text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
               ]"
             >
@@ -143,7 +143,7 @@
             class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
             <span class="text-gray-400">شعاع:</span>
-            <span class="font-bold text-purple-400">{{ liveRadius }}</span>
+            <span class="font-bold text-accent">{{ liveRadius }}</span>
           </div>
         </div>
 

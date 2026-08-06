@@ -1,7 +1,7 @@
 <template>
   <!--<div class="absolute top-[4px] left-[66px] z-50 flex items-center">
     <label
-        class="bg-[var(--primary-color)] border border-gray-300 rounded-lg px-2 py-1 shadow hover:bg-blue-400 transition text-white mr-1">
+        class="bg-[var(--primary-color)] border border-gray-300 rounded-lg px-2 py-1 shadow hover:bg-accent-soft transition text-white mr-1">
         <img src="../assets/icons/add_layer.svg" class="w-6 h-6" />
         <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.zip"/>
     </label>

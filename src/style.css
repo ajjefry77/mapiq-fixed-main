@@ -4,6 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Everything below is wrapped in Tailwind's @layer directive.
+  This is the key fix: without @layer, all of this plain CSS is emitted
+  AFTER @tailwind utilities in the final stylesheet, so on ties in
+  specificity these custom classes (.btn, .card, .input, etc.) would
+  beat any Tailwind utility class placed on the same element
+  (e.g. class="btn py-1.5" -> .btn's padding would silently win over py-1.5).
+  Using @layer base / components / utilities restores Tailwind's intended
+  cascade order (base < components < utilities) regardless of where the
+  code physically sits in this file, so utility classes always win over
+  component classes, exactly like stock Tailwind behavior.
+  The dark color-theme remap section keeps its !important flags, so the
+  theme itself is unaffected by this change.
+*/
+
+@layer base {
+
 @font-face {
   font-family: Vazir;
   src: url('./assets/fonts/Vazir-FD-WOL.eot');
@@ -32,6 +49,14 @@
   --accent-dim: #8a4514;
   --accent-glow: rgba(232, 132, 60, 0.08);
   --accent-glow-strong: rgba(232, 132, 60, 0.16);
+
+  /* RGB triplets (no alpha) so Tailwind's color-opacity modifiers work
+     natively, e.g. bg-accent/15, border-accent/60, text-accent-soft/40.
+     This is what lets these become real Tailwind utilities with zero
+     need for a CSS override file. */
+  --accent-rgb: 232 132 60;
+  --accent-soft-rgb: 255 161 92;
+  --accent-dim-rgb: 138 69 20;
   --text: #e8eaf0;
   --text-muted: #7b82a0;
   --text-faint: #5a6080;
@@ -148,6 +173,10 @@ button {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+} /* end @layer base */
+
+@layer components {
 
 /* ============ Layout helpers ============ */
 .container {
@@ -765,6 +794,10 @@ tbody tr:hover {
   }
 }
 
+} /* end @layer components */
+
+@layer utilities {
+
 /* ============ Utility overrides for dark theme ============ */
 /* These keep Tailwind light-theme utilities consistent with the dark design */
 
@@ -807,45 +840,11 @@ tbody tr:hover {
 .shadow-xl,
 .shadow-2xl { box-shadow: var(--shadow-md) !important; }
 
-/* ===== Orange Accent: override blue/purple/indigo → accent ===== */
-.bg-blue-600,
-.hover\:bg-blue-600:hover { background: var(--accent) !important; color: #fff !important; border: none !important; }
-.hover\:bg-blue-700:hover { background: var(--accent) !important; filter: brightness(1.08) !important; }
-.bg-blue-500,
-.hover\:bg-blue-500:hover { background: var(--accent) !important; color: #fff !important; }
-
-.text-blue-600,
-.text-blue-700,
-.text-blue-800 { color: var(--accent) !important; }
-.hover\:text-blue-800:hover { color: var(--accent) !important; filter: brightness(1.1); }
-
-.focus\:ring-blue-500:focus { --tw-ring-color: var(--accent) !important; border-color: var(--accent) !important; }
-.focus\:border-blue-500:focus { border-color: var(--accent) !important; }
-
-.peer:checked ~ .peer-checked\:bg-blue-600 { background: var(--accent) !important; }
-
-.bg-purple-600,
-.hover\:bg-purple-600:hover { background: var(--accent) !important; color: #fff !important; }
-.hover\:bg-purple-700:hover { background: var(--accent) !important; filter: brightness(1.08) !important; }
-
-.bg-indigo-200 { background: var(--accent-glow) !important; }
-.bg-indigo-300 { background: var(--accent) !important; color: #fff !important; }
-.hover\:bg-indigo-200:hover { background: var(--accent-glow) !important; }
-.bg-indigo-600,
-.hover\:bg-indigo-600:hover { background: var(--accent) !important; color: #fff !important; }
-
-.bg-purple-100 { background: var(--accent-glow) !important; }
-.bg-purple-400\/60 { border-color: var(--accent-glow) !important; }
-.bg-blue-100 { background: var(--accent-glow) !important; }
-.bg-blue-50 { background: var(--accent-glow) !important; }
-.bg-blue-200 { background: var(--accent-glow-strong) !important; }
-.bg-blue-400\/60 { border-color: var(--info-glow) !important; }
-.hover\:bg-blue-50:hover { background: var(--accent-glow) !important; }
-.hover\:bg-blue-100:hover { background: var(--accent-glow) !important; }
-.hover\:bg-blue-400:hover { background: var(--accent-glow-strong) !important; }
-.hover\:border-blue-300:hover { border-color: var(--accent) !important; }
-.border-blue-400\/60 { border-color: rgba(94, 163, 255, 0.35) !important; }
-.border-purple-400\/60 { border-color: rgba(232, 132, 60, 0.35) !important; }
+/* Blue/purple/indigo → accent overrides have been removed: the templates
+   now use real bg-accent / text-accent / accent-soft / accent-dim
+   Tailwind utility classes directly (defined via theme.extend.colors in
+   tailwind.config.cjs), so there is nothing left to override and no
+   conflict with Tailwind. */
 
 .text-red-600 { color: var(--danger) !important; }
 .hover\:text-red-800:hover { color: var(--danger) !important; filter: brightness(1.1); }
@@ -881,7 +880,13 @@ tbody tr:hover {
 .font-bold { font-weight: 700; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+} /* end @layer utilities */
+
+@layer components {
+
 /* ============ Responsive global ============ */
+/* (component classes, so these live in the components layer too, keeping
+   them below Tailwind's own responsive utility classes in the cascade) */
 @media (max-width: 1024px) {
   .page { max-width: 100%; }
 }
@@ -930,7 +935,12 @@ tbody tr:hover {
   .container { max-width: 2000px; }
 }
 
+} /* end @layer components */
+
 /* ============ Reduced motion ============ */
+/* Intentionally left outside any @layer: this is a global accessibility
+   rule using !important and the universal selector, and must always win
+   regardless of layer ordering. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

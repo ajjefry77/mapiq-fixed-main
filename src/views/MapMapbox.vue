@@ -63,7 +63,7 @@
                 class="accent-green-600"
                 @change="ShowTile"
               />
-              <i class="text-blue-500" />
+              <i class="text-accent" />
               عکس هوایی طرقبه 1340
             </span>
           </div>

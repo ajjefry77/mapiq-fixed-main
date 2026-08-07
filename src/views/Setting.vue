@@ -83,7 +83,13 @@ const isUTM = ref(true)
 const coordinateSystem = computed(() => isUTM.value ? "UTM" : "CGS")
 
 onMounted(async () => {
-  settings.value = await loadSettings();
+  const data = await loadSettings();
+  // Normalize boolean fields that come as strings from the server
+  const boolKeys = ['isUTM', 'layers_open', 'show_point', 'verify'];
+  for (const key of boolKeys) {
+    if (typeof data[key] === 'string') data[key] = data[key] === 'true';
+  }
+  settings.value = data;
 });
 
 async function save() {

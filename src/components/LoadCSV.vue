@@ -1,7 +1,8 @@
 <template>
   <div>
     <!-- Dialog Backdrop -->
-    <div  v-if="dialog"   class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" >
+    <Transition name="modal">
+      <div  v-if="dialog"   class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" >
       <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
 
         <div class="flex items-center justify-between mb-4">
@@ -131,13 +132,13 @@
 
           <div class="block w-full h-3 bg-gray-200 rounded-full overflow-hidden" style="margin-top: 50px">
             <div
-                class="h-full bg-blue-600"
+                class="h-full bg-accent"
                 :style="{ width: `${progress}%` }"
             />
           </div>
         </div>
 
-        <div class="mt-4 p-3 bg-blue-50 rounded text-sm hidden">
+        <div class="mt-4 p-3 bg-accent/15 rounded text-sm hidden">
           <div>PDOP : 0 تا 5</div>
           <div>Age : 0 تا 30</div>
         </div>
@@ -153,7 +154,8 @@
         </div>
 
       </div>
-    </div>
+      </div>
+    </Transition>
 
   </div>
   <MultiPointsList   v-if="showPoint"  :pointList="pointList"  @close="showPoint = false"/>

@@ -7,13 +7,15 @@
       <template v-else>پنل کاربری</template>
     </router-link>
 
-    <button v-if="authStore.isAuthenticated" class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }">
+    <button v-if="authStore.isAuthenticated" class="hamburger" @click="mobileOpen = !mobileOpen" :class="{ open: mobileOpen }" :aria-label="mobileOpen ? 'بستن منو' : 'باز کردن منو'">
       <span></span><span></span><span></span>
     </button>
 
     <router-link v-else to="/login" class="btn btn-primary btn-sm md:hidden">ورود / ثبت نام</router-link>
 
-    <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false"></div>
+    <transition name="fade">
+      <div v-if="mobileOpen" class="mobile-overlay" @click="mobileOpen = false"></div>
+    </transition>
 
     <div class="topbar-right" :class="{ 'nav-open': mobileOpen }">
       <div v-if="authStore.isAuthenticated" class="topbar-nav">
@@ -257,7 +259,7 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
-  transition: all 0.15s;
+  transition: color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
   white-space: nowrap;
   cursor: pointer;
   background: none;
@@ -268,11 +270,13 @@ onUnmounted(() => {
 .nav-link:hover {
   color: var(--text);
   background: var(--surface2);
+  transform: translateY(-1px);
 }
 
 .nav-link--active {
   color: var(--accent);
   background: var(--accent-glow);
+  box-shadow: inset 0 0 0 1px var(--accent-glow-strong);
 }
 
 .gear-btn {
@@ -283,13 +287,14 @@ onUnmounted(() => {
   justify-content: center;
   border-radius: var(--radius);
   color: var(--text-muted);
-  transition: all 0.15s;
+  transition: color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
   font-size: 16px;
 }
 
 .gear-btn:hover {
   color: var(--text);
   background: var(--surface2);
+  transform: translateY(-1px);
 }
 
 .topbar-actions {
@@ -339,6 +344,13 @@ onUnmounted(() => {
   padding: 14px;
   z-index: 300;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  animation: dropdownIn 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+  transform-origin: top left;
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .user-dropdown-info {
@@ -366,6 +378,7 @@ onUnmounted(() => {
   padding: 8px 6px;
   border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
 }
 
 .dropdown-item:hover {
@@ -375,6 +388,15 @@ onUnmounted(() => {
 
 .mobile-overlay {
   display: none;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 @media (max-width: 768px) {
@@ -412,8 +434,9 @@ onUnmounted(() => {
     gap: 0;
     z-index: 200;
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
+    box-shadow: var(--shadow-lg);
   }
   .topbar-right.nav-open {
     transform: translateX(0);

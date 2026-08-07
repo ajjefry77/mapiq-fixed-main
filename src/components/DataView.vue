@@ -1,7 +1,7 @@
 <template>
   <!-- دکمه باز/بستن شناور -->
   <button
-      class="fixed bottom-3 right-[100px] bg-gray-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 z-11 text-sm"  @click="togglePanel">
+      class="fixed bottom-3 right-[100px] bg-gray-600 text-white p-2 rounded-full shadow-lg hover:bg-accent-dim z-11 text-sm"  @click="togglePanel">
     نمونه
   </button>
 

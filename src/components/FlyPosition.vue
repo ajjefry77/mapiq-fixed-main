@@ -2,7 +2,7 @@
   <div class="absolute top-[calc(var(--top)+103px)] left-[12px] z-50 flex items-center ">
     <!-- آیکن کوچک مشکی و مربع -->
 
-<!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-gray-300 rounded px-2 py-1 shadow transition hover:bg-blue-400 items-center"-->
+<!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-gray-300 rounded px-2 py-1 shadow transition hover:bg-accent-soft items-center"-->
     <button
         @click="expanded = !expanded"
         class= 'w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md' dir="ltr"
@@ -18,7 +18,7 @@
 
       <button
           @click="goToLocation"
-          class="bg-[var(--primary-color)] text-white px-3 h-full hover:bg-blue-700 transition flex-shrink-0">
+          class="bg-[var(--primary-color)] text-white px-3 h-full hover:bg-accent-dim transition flex-shrink-0">
         <i class="fas fa-arrow-right" />
       </button>
 

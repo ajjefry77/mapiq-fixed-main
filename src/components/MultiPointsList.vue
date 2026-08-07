@@ -22,8 +22,8 @@
         <tbody>
         <tr v-for="point in pointList" :key="point.id" class="hover:bg-gray-50" >
           <td class="p-2 border text-center"> {{ point.row }} </td>
-          <td class="p-2 border font-mono"> {{ point.x }} </td>
-          <td class="p-2 border font-mono"> {{ point.y }} </td>
+          <td class="p-2 border text-left font-mono"> {{ point.x }} </td>
+          <td class="p-2 border text-left font-mono"> {{ point.y }} </td>
         </tr>
         </tbody>
       </table>

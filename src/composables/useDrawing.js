@@ -9,16 +9,27 @@ import {
   nextTick,
 } from "vue";
 import axios from "axios";
-import proj4 from "proj4";
-import * as turf from "@turf/turf";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "vue-toast-notification";
+import { useSharedArray } from "../stores/app";
 import { registerDrawLayer, bringDrawingsToFront } from "../utils/layerOrder";
+import {
+  measureDistance,
+  formatDistance,
+  formatArea,
+  formatVertexLabel,
+  getDrawTypeName,
+  toUTM,
+  computeCircleCoords,
+} from "./useDrawingHelpers";
+import { createCutHandler } from "./useDrawingCut";
+import { createIntersectHandler } from "./useDrawingIntersect";
 const SERVER = import.meta.env.VITE_SERVER;
 export function useDrawing(map, pins, emit, SelectGroup) {
   const authStore = useAuthStore();
   const $toast = useToast();
-  // State
+  const { addVisibleId } = useSharedArray();
+  // Reactive state
   const loading = ref(false);
   const drawMode = ref("");
   const color = ref("#ff0000");
@@ -30,58 +41,45 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   const shape = ref(null);
   const attch_file = ref(null);
   const activeTab = ref("measurements");
-  let radius = 0;
-  let circleCenter = null;
   const tempCircle = ref(null);
   const measurePoints = reactive([]);
   const measureActive = ref(false);
   const coordinateSystem = ref("utm");
-  const cutPieceColors = [
-    "#3b82f6",
-    "#10b981",
-    "#f97316",
-    "#a855f7",
-    "#ec4899",
-    "#eab308",
-  ];
-  // Edit mode state (same dialog is reused for editing an existing feature)
   const editingPin = ref(null);
-  // Event handlers
-  let mouseMoveHandler = null;
-  let clickHandler = null;
-  let dblClickHandler = null;
-  let rightClickHandler = null;
-  let keyHandler = null;
-  let featureClickHandler = null;
-  let styleLoadHandler = null;
-  // Vertex-drag editing (edit mode only)
-  let editHandlesSourceId = null;
-  let editDragIndex = null;
-  let editDragging = false;
-  let onEditMouseDown = null;
-  let onEditMouseMove = null;
-  let onEditMouseUp = null;
-  // Source IDs
-  let drawDataSourceId = "pins-draw-" + crypto.randomUUID();
-  let tempSourceId = null;
-  let tempLayerIds = [];
-  let polygonLabelSourceId = null;
-  let lineLabelSourceId = null;
-  let extraTempSourceIds = [];
+  const intersectActive = ref(false);
+  const nameError = ref(false);
+  // Non-reactive mutable state (shared across modules)
+  const hs = {
+    mouseMove: null,
+    click: null,
+    dblClick: null,
+    rightClick: null,
+    key: null,
+    featureClick: null,
+    styleLoad: null,
+  };
+  const es = {
+    sourceId: null,
+    dragIndex: null,
+    dragging: false,
+    mouseDown: null,
+    mouseMove: null,
+    mouseUp: null,
+  };
+  const ts = {
+    sourceId: null,
+    layerIds: [],
+    polygonLabelSourceId: null,
+    lineLabelSourceId: null,
+    extraSourceIds: [],
+  };
+  const cs = { radius: 0, center: null };
+  const drawDataSourceId = "pins-draw-" + crypto.randomUUID();
   // Tabs
-  const tabs = computed(() => {
-    const isMultiPoint =
-      drawMode.value === "multi_point" || shape.value?.type === "multi_point";
-    const isMeasure = drawMode.value === "measure" || measureActive.value;
-    return [
-      {
-        key: "measurements",
-        label: isMultiPoint ? "نقاط" : isMeasure ? "اندازه‌گیری" : "اندازه‌ها",
-      },
-      { key: "style", label: "استایل" },
-      { key: "info", label: "ذخیره" },
-    ];
-  });
+  const tabs = computed(() => [
+    { key: "measurements", label: "ترسیم" },
+    { key: "style", label: "استایل" },
+  ]);
   // Computed
   const livePoints = computed(() => {
     if (shape.value) return getAllPoints();
@@ -94,48 +92,30 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     return [];
   });
   const displayPoints = computed(() => {
-    if (measureActive.value) {
-      return measurePoints.map((p, i) => {
-        if (coordinateSystem.value === "utm") {
-          const zone = Math.floor((p[0] + 180) / 6) + 1;
-          const [x, y] = proj4(
-            "EPSG:4326",
-            `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`,
-            [p[0], p[1]],
-          );
-          return {
-            lat: p[1],
-            lon: p[0],
-            displayX: x,
-            displayY: y,
-            zone,
-            system: "utm",
-            index: i,
-          };
-        } else {
-          return {
-            lat: p[1],
-            lon: p[0],
-            displayX: p[0],
-            displayY: p[1],
-            system: "latlon",
-            index: i,
-          };
-        }
-      });
-    }
-    return livePoints.value.map((p) => {
+    const src = measureActive.value ? measurePoints : livePoints.value;
+    return src.map((p, i) => {
+      const lon = Array.isArray(p) ? p[0] : p.lon || p.lng;
+      const lat = Array.isArray(p) ? p[1] : p.lat;
       if (coordinateSystem.value === "utm") {
-        const zone = Math.floor((p.lon + 180) / 6) + 1;
-        const [x, y] = proj4(
-          "EPSG:4326",
-          `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`,
-          [p.lon, p.lat],
-        );
-        return { ...p, displayX: x, displayY: y, zone, system: "utm" };
-      } else {
-        return { ...p, displayX: p.lon, displayY: p.lat, system: "latlon" };
+        const { x, y, zone } = toUTM(lon, lat);
+        return {
+          lat,
+          lon,
+          displayX: x,
+          displayY: y,
+          zone,
+          system: "utm",
+          index: i,
+        };
       }
+      return {
+        lat,
+        lon,
+        displayX: lon,
+        displayY: lat,
+        system: "latlon",
+        index: i,
+      };
     });
   });
   const livePointCount = computed(() => {
@@ -144,48 +124,40 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     if (measureActive.value) return measurePoints.length;
     return positions.length;
   });
-  const liveTotalLength = computed(() => {
-    if (shape.value) return calculateTotalLength();
-    if (measureActive.value) {
-      if (measurePoints.length < 2) return "0 m";
-      let total = 0;
-      for (let i = 1; i < measurePoints.length; i++) {
-        total += measureDistance(measurePoints[i - 1], measurePoints[i]);
-      }
-      return formatDistance(total);
-    }
-    const points = livePoints.value;
-    if (points.length < 2) return "0 m";
+  const computeTotalFromArr = (arr) => {
+    if (arr.length < 2) return "0 m";
     let total = 0;
-    for (let i = 1; i < points.length; i++) {
+    for (let i = 1; i < arr.length; i++) {
+      const a = arr[i - 1];
+      const b = arr[i];
       total += measureDistance(
-        [points[i - 1].lon, points[i - 1].lat],
-        [points[i].lon, points[i].lat],
+        Array.isArray(a) ? a : [a.lon || a.lng, a.lat],
+        Array.isArray(b) ? b : [b.lon || b.lng, b.lat],
       );
     }
     return formatDistance(total);
+  };
+  const liveTotalLength = computed(() => {
+    if (shape.value) return calculateTotalLength();
+    if (measureActive.value) return computeTotalFromArr(measurePoints);
+    return computeTotalFromArr(livePoints.value);
   });
   const liveArea = computed(() => {
     if (shape.value) return calculateArea();
     if (drawMode.value !== "polygon") return "0 m²";
     const points = livePoints.value;
     if (points.length < 3) return "0 m²";
-    let area = 0;
     const coords = points.map((p) => {
-      const zone = Math.floor((p.lon + 180) / 6) + 1;
-      return proj4(
-        "EPSG:4326",
-        `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`,
-        [p.lon, p.lat],
-      );
+      const { x, y } = toUTM(p.lon, p.lat);
+      return [x, y];
     });
+    let area = 0;
     for (let i = 0; i < coords.length; i++) {
       const j = (i + 1) % coords.length;
       area += coords[i][0] * coords[j][1];
       area -= coords[j][0] * coords[i][1];
     }
-    area = Math.abs(area) / 2;
-    return formatArea(area);
+    return formatArea(Math.abs(area) / 2);
   });
   const liveRadius = computed(() => {
     if (shape.value && shape.value.type === "circle")
@@ -194,9 +166,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     return "0 m";
   });
   const isSaveEnabled = computed(() => {
-    if (drawMode.value === "multi_point") {
-      return positions.length > 0;
-    }
+    if (drawMode.value === "multi_point") return positions.length > 0;
     return !!shape.value;
   });
   // Watchers
@@ -205,7 +175,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     (newVal) => {
       if (newVal && showForm.value) {
         tempCircle.value = null;
-        circleCenter = null;
+        cs.center = null;
       }
     },
     { deep: true },
@@ -216,154 +186,292 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       nameError.value = false;
     },
   );
-  // Lifecycle
-  onMounted(() => {
-    if (!map.getSource(drawDataSourceId)) {
-      map.addSource(drawDataSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-    }
-    // Persistent listener: clicking an already-drawn feature opens the same
-    // Draw dialog, pre-filled, in edit mode. It stays out of the way while
-    // drawing/measuring/picking a point or while the dialog is already open.
-    featureClickHandler = (e) => onExistingFeatureClick(e);
-    map.on("click", featureClickHandler);
-    // وقتی سبک نقشه (بیس‌مپ) عوض می‌شود، لایه‌های در حال ترسیم را دوباره بالا بیاور
-    styleLoadHandler = () => reassertDrawingOrder();
-    map.on("style.load", styleLoadHandler);
-  });
-  onUnmounted(() => {
-    cleanupHandlers();
-    clearTempLayers();
-    disableVertexEditing();
-    if (featureClickHandler) {
-      map.off("click", featureClickHandler);
-      featureClickHandler = null;
-    }
-    if (styleLoadHandler) {
-      map.off("style.load", styleLoadHandler);
-      styleLoadHandler = null;
-    }
-  });
-  // Helper functions
+  // Core utilities
   function reassertDrawingOrder() {
-    tempLayerIds.forEach((id) => registerDrawLayer(id));
-    if (editHandlesSourceId) registerDrawLayer(editHandlesSourceId + "-points");
+    ts.layerIds.forEach((id) => registerDrawLayer(id));
+    if (es.sourceId) registerDrawLayer(es.sourceId + "-points");
     bringDrawingsToFront(map);
   }
   function clearTempLayers() {
-    tempLayerIds.forEach((id) => {
+    ts.layerIds.forEach((id) => {
       if (map.getLayer(id)) map.removeLayer(id);
     });
-    tempLayerIds = [];
-    if (tempSourceId && map.getSource(tempSourceId)) {
-      map.removeSource(tempSourceId);
-      tempSourceId = null;
+    ts.layerIds = [];
+    if (ts.sourceId && map.getSource(ts.sourceId)) {
+      map.removeSource(ts.sourceId);
+      ts.sourceId = null;
     }
-    extraTempSourceIds.forEach((id) => {
+    ts.extraSourceIds.forEach((id) => {
       if (map.getSource(id)) map.removeSource(id);
     });
-    extraTempSourceIds = [];
-    polygonLabelSourceId = null;
-    lineLabelSourceId = null;
+    ts.extraSourceIds = [];
+    ts.polygonLabelSourceId = null;
+    ts.lineLabelSourceId = null;
   }
   function cleanupHandlers() {
-    if (mouseMoveHandler) {
-      map.off("mousemove", mouseMoveHandler);
-      mouseMoveHandler = null;
+    if (hs.mouseMove) {
+      map.off("mousemove", hs.mouseMove);
+      hs.mouseMove = null;
     }
-    if (clickHandler) {
-      map.off("click", clickHandler);
-      clickHandler = null;
+    if (hs.click) {
+      map.off("click", hs.click);
+      hs.click = null;
     }
-    if (dblClickHandler) {
-      map.off("dblclick", dblClickHandler);
-      dblClickHandler = null;
+    if (hs.dblClick) {
+      map.off("dblclick", hs.dblClick);
+      hs.dblClick = null;
     }
-    if (rightClickHandler) {
-      map.off("contextmenu", rightClickHandler);
-      rightClickHandler = null;
+    if (hs.rightClick) {
+      map.off("contextmenu", hs.rightClick);
+      hs.rightClick = null;
     }
-    if (keyHandler) {
-      window.removeEventListener("keydown", keyHandler);
-      keyHandler = null;
+    if (hs.key) {
+      window.removeEventListener("keydown", hs.key);
+      hs.key = null;
     }
     map.getCanvas().style.cursor = "default";
   }
-  function togglePointPick() {
-    if (pickForForm.value) {
-      cancelPointPick();
-      return;
+  function addTempSource() {
+    ts.sourceId = "temp-" + crypto.randomUUID();
+    map.addSource(ts.sourceId, {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    return ts.sourceId;
+  }
+  function addTempLayer(id, config) {
+    map.addLayer({ source: ts.sourceId, ...config, id });
+    ts.layerIds.push(id);
+  }
+  function addLabelSource() {
+    const labelId = ts.sourceId + "-labels";
+    map.addSource(labelId, {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    ts.extraSourceIds.push(labelId);
+    return labelId;
+  }
+  function buildFeatures(pts, closed) {
+    const lineCoords = pts.map((p) => [p.lng || p.lon, p.lat]);
+    const features = pts.map((p) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [p.lng || p.lon, p.lat] },
+      properties: {},
+    }));
+    if (lineCoords.length >= 2) {
+      if (closed && lineCoords.length >= 3) {
+        features.push({
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[...lineCoords, lineCoords[0]]],
+          },
+          properties: {},
+        });
+      } else {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: lineCoords },
+          properties: {},
+        });
+      }
     }
-    if (clickHandler) cleanupHandlers();
-    drawMode.value = "";
-    pickForForm.value = true;
-    startPointPick();
+    return { type: "FeatureCollection", features };
   }
-  function startPointPick() {
-    map.getCanvas().style.cursor = "crosshair";
-    clickHandler = (e) => {
-      const { lng, lat } = e.lngLat;
-      cleanupHandlers();
-      pickForForm.value = false;
-      drawMode.value = "";
-      emit("pickPoint", { lat, lng });
-    };
-    map.on("click", clickHandler);
+  function updateTempSource(pts, closed) {
+    const src = map.getSource(ts.sourceId);
+    if (src) src.setData(buildFeatures(pts, closed));
+    updatePolygonLabels(pts);
+    updateLineLabels(pts);
   }
-  function cancelPointPick() {
-    cleanupHandlers();
-    pickForForm.value = false;
-  }
-  function setDrawMode(mode) {
-    pickForForm.value = false;
-    if (editingPin.value) {
-      renderUpdatedShape(editingPin.value);
-      disableVertexEditing();
+  function updatePolygonLabels(pts) {
+    if (drawMode.value !== "polygon" || !ts.polygonLabelSourceId) return;
+    const labelSrc = map.getSource(ts.polygonLabelSourceId);
+    if (!labelSrc) return;
+    const features = [];
+    pts.forEach((p) => {
+      const lng = p.lng || p.lon;
+      features.push({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [lng, p.lat] },
+        properties: {
+          kind: "vertex",
+          label: formatVertexLabel(lng, p.lat, coordinateSystem.value),
+        },
+      });
+    });
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      const dist = measureDistance(
+        [a.lng || a.lon, a.lat],
+        [b.lng || b.lon, b.lat],
+      );
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [
+            (a.lng + b.lng) / 2 || (a.lon + b.lon) / 2,
+            (a.lat + b.lat) / 2,
+          ],
+        },
+        properties: { kind: "edge", label: formatDistance(dist) },
+      });
     }
-    editingPin.value = null;
-    if (drawMode.value === mode && showForm.value) return;
-    measureActive.value = false;
-    cleanupHandlers();
-    clearTempLayers();
-    drawMode.value = mode;
-    activeTab.value = "measurements";
-    positions.length = 0;
-    shape.value = null;
-    pointList.value = [];
-    tempCircle.value = null;
-    circleCenter = null;
-    showForm.value = true;
-    setTimeout(() => {
-      startDrawing();
-    }, 100);
+    labelSrc.setData({ type: "FeatureCollection", features });
   }
+  function updateLineLabels(pts) {
+    if (drawMode.value !== "polyline" || !ts.lineLabelSourceId) return;
+    const labelSrc = map.getSource(ts.lineLabelSourceId);
+    if (!labelSrc) return;
+    const features = [];
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      const dist = measureDistance(
+        [a.lng || a.lon, a.lat],
+        [b.lng || b.lon, b.lat],
+      );
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [
+            (a.lng + b.lng) / 2 || (a.lon + b.lon) / 2,
+            (a.lat + b.lat) / 2,
+          ],
+        },
+        properties: { label: formatDistance(dist) },
+      });
+    }
+    labelSrc.setData({ type: "FeatureCollection", features });
+  }
+  // Drawing layers setup
+  function addPolygonLayers() {
+    addTempLayer(ts.sourceId + "-fill", {
+      type: "fill",
+      paint: { "fill-color": color.value, "fill-opacity": 0.35 },
+    });
+    addTempLayer(ts.sourceId + "-outline", {
+      type: "line",
+      paint: {
+        "line-color": color.value,
+        "line-width": 2.5,
+        "line-opacity": 0.9,
+      },
+    });
+    addTempLayer(ts.sourceId + "-points", {
+      type: "circle",
+      filter: ["==", "$type", "Point"],
+      paint: {
+        "circle-radius": 5,
+        "circle-color": "#ffffff",
+        "circle-stroke-color": color.value,
+        "circle-stroke-width": 2.5,
+        "circle-opacity": 0.9,
+      },
+    });
+    const labelSrcId = addLabelSource();
+    ts.polygonLabelSourceId = labelSrcId;
+    addTempLayer(ts.sourceId + "-edge-label", {
+      type: "symbol",
+      source: labelSrcId,
+      filter: ["==", ["get", "kind"], "edge"],
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": 11,
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+        "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
+      },
+      paint: {
+        "text-color": "#b45309",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 2,
+      },
+    });
+    addTempLayer(ts.sourceId + "-vertex-label", {
+      type: "symbol",
+      source: labelSrcId,
+      filter: ["==", ["get", "kind"], "vertex"],
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": 10,
+        "text-offset": [0, -1.2],
+        "text-anchor": "bottom",
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+        "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
+      },
+      paint: {
+        "text-color": "#1e3a8a",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 2,
+      },
+    });
+  }
+  function addPolylineLayers() {
+    addTempLayer(ts.sourceId + "-line", {
+      type: "line",
+      paint: {
+        "line-color": color.value,
+        "line-width": 3,
+        "line-opacity": 0.85,
+      },
+    });
+    addTempLayer(ts.sourceId + "-points", {
+      type: "circle",
+      filter: ["==", "$type", "Point"],
+      paint: {
+        "circle-radius": 6,
+        "circle-color": "#ffffff",
+        "circle-stroke-color": color.value,
+        "circle-stroke-width": 3,
+        "circle-opacity": 0.9,
+      },
+    });
+    const labelSrcId = addLabelSource();
+    ts.lineLabelSourceId = labelSrcId;
+    addTempLayer(ts.sourceId + "-edge-label", {
+      type: "symbol",
+      source: labelSrcId,
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": 11,
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+        "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
+      },
+      paint: {
+        "text-color": "#b45309",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 2,
+      },
+    });
+  }
+  function addMultiPointLayers() {
+    addTempLayer(ts.sourceId + "-points", {
+      type: "circle",
+      paint: {
+        "circle-radius": 7,
+        "circle-color": color.value,
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2,
+        "circle-opacity": 0.9,
+      },
+    });
+  }
+  // Drawing mode setup
   function startDrawing() {
     const m = map;
     m.getCanvas().style.cursor = "crosshair";
     if (drawMode.value === "multi_point") {
-      tempSourceId = "temp-" + crypto.randomUUID();
-      m.addSource(tempSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      const pointsLayerId = tempSourceId + "-points";
-      m.addLayer({
-        id: pointsLayerId,
-        type: "circle",
-        source: tempSourceId,
-        paint: {
-          "circle-radius": 7,
-          "circle-color": color.value,
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 2,
-          "circle-opacity": 0.9,
-        },
-      });
-      tempLayerIds.push(pointsLayerId);
-      const updateMultiPointSource = () => {
-        const src = m.getSource(tempSourceId);
+      addTempSource();
+      addMultiPointLayers();
+      const updateSource = () => {
+        const src = m.getSource(ts.sourceId);
         if (!src) return;
         const features = positions.map((p) => ({
           type: "Feature",
@@ -372,267 +480,120 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         }));
         src.setData({ type: "FeatureCollection", features });
       };
-      clickHandler = (e) => {
-        const { lng, lat } = e.lngLat;
-        positions.push({ lng, lat, color: color.value });
-        updateMultiPointSource();
+      hs.click = (e) => {
+        positions.push({
+          lng: e.lngLat.lng,
+          lat: e.lngLat.lat,
+          color: color.value,
+        });
+        updateSource();
       };
-      rightClickHandler = (e) => {
+      hs.rightClick = (e) => {
         e.preventDefault();
         if (positions.length < 1) return;
         cleanupHandlers();
         finishDrawing("multi_point", [...positions]);
       };
-      m.on("click", clickHandler);
-      m.on("contextmenu", rightClickHandler);
+      m.on("click", hs.click);
+      m.on("contextmenu", hs.rightClick);
     } else if (drawMode.value === "polyline") {
-      tempSourceId = "temp-" + crypto.randomUUID();
-      m.addSource(tempSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      const lineLayerId = tempSourceId + "-line";
-      const pointsLayerId = tempSourceId + "-points";
-      m.addLayer({
-        id: lineLayerId,
-        type: "line",
-        source: tempSourceId,
-        paint: {
-          "line-color": color.value,
-          "line-width": 3,
-          "line-opacity": 0.85,
-        },
-      });
-      m.addLayer({
-        id: pointsLayerId,
-        type: "circle",
-        source: tempSourceId,
-        filter: ["==", "$type", "Point"],
-        paint: {
-          "circle-radius": 6,
-          "circle-color": "#ffffff",
-          "circle-stroke-color": color.value,
-          "circle-stroke-width": 3,
-          "circle-opacity": 0.9,
-        },
-      });
-      tempLayerIds.push(lineLayerId, pointsLayerId);
-      // Live label: length along each segment (no vertex coordinates)
-      lineLabelSourceId = tempSourceId + "-labels";
-      m.addSource(lineLabelSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      extraTempSourceIds.push(lineLabelSourceId);
-      const lineEdgeLabelLayerId = lineLabelSourceId + "-edge";
-      m.addLayer({
-        id: lineEdgeLabelLayerId,
-        type: "symbol",
-        source: lineLabelSourceId,
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": 11,
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
-          "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
-        },
-        paint: {
-          "text-color": "#b45309",
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 2,
-        },
-      });
-      tempLayerIds.push(lineEdgeLabelLayerId);
-      clickHandler = (e) => {
+      addTempSource();
+      addPolylineLayers();
+      hs.click = (e) => {
         positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
-        updateTempGeoJSON();
+        updateTempSource(positions);
       };
-      mouseMoveHandler = (e) => {
+      hs.mouseMove = (e) => {
         if (positions.length === 0) return;
-        const pts = [...positions, { lng: e.lngLat.lng, lat: e.lngLat.lat }];
-        updateTempGeoJSONWithPreview(pts);
+        updateTempSource([
+          ...positions,
+          { lng: e.lngLat.lng, lat: e.lngLat.lat },
+        ]);
       };
-      rightClickHandler = (e) => {
+      hs.rightClick = (e) => {
         e.preventDefault();
         if (positions.length > 0) {
           positions.pop();
-          updateTempGeoJSON();
+          updateTempSource(positions);
           if (positions.length < 2) cleanupHandlers();
         }
       };
-      dblClickHandler = () => {
+      hs.dblClick = () => {
         if (positions.length < 2) return;
         if (positions.length > 1) positions.pop();
         cleanupHandlers();
         finishDrawing("polyline", [...positions]);
       };
-      keyHandler = (event) => {
+      hs.key = (event) => {
         if (event.key === "Delete" && positions.length > 0) {
           positions.pop();
-          updateTempGeoJSON();
+          updateTempSource(positions);
           if (positions.length < 2) cleanupHandlers();
         }
       };
-      window.addEventListener("keydown", keyHandler);
-      m.on("click", clickHandler);
-      m.on("mousemove", mouseMoveHandler);
-      m.on("contextmenu", rightClickHandler);
-      m.on("dblclick", dblClickHandler);
+      window.addEventListener("keydown", hs.key);
+      m.on("click", hs.click);
+      m.on("mousemove", hs.mouseMove);
+      m.on("contextmenu", hs.rightClick);
+      m.on("dblclick", hs.dblClick);
     } else if (drawMode.value === "polygon") {
-      tempSourceId = "temp-" + crypto.randomUUID();
-      m.addSource(tempSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      const fillLayerId = tempSourceId + "-fill";
-      const outlineLayerId = tempSourceId + "-outline";
-      const pointsLayerId = tempSourceId + "-points";
-      m.addLayer({
-        id: fillLayerId,
-        type: "fill",
-        source: tempSourceId,
-        paint: { "fill-color": color.value, "fill-opacity": 0.35 },
-      });
-      m.addLayer({
-        id: outlineLayerId,
-        type: "line",
-        source: tempSourceId,
-        paint: {
-          "line-color": color.value,
-          "line-width": 2.5,
-          "line-opacity": 0.9,
-        },
-      });
-      m.addLayer({
-        id: pointsLayerId,
-        type: "circle",
-        source: tempSourceId,
-        filter: ["==", "$type", "Point"],
-        paint: {
-          "circle-radius": 5,
-          "circle-color": "#ffffff",
-          "circle-stroke-color": color.value,
-          "circle-stroke-width": 2.5,
-          "circle-opacity": 0.9,
-        },
-      });
-      tempLayerIds.push(fillLayerId, outlineLayerId, pointsLayerId);
-      // Live labels: coordinates at each vertex, length along each edge
-      polygonLabelSourceId = tempSourceId + "-labels";
-      m.addSource(polygonLabelSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      extraTempSourceIds.push(polygonLabelSourceId);
-      const vertexLabelLayerId = polygonLabelSourceId + "-vertex";
-      const edgeLabelLayerId = polygonLabelSourceId + "-edge";
-      m.addLayer({
-        id: edgeLabelLayerId,
-        type: "symbol",
-        source: polygonLabelSourceId,
-        filter: ["==", ["get", "kind"], "edge"],
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": 11,
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
-          "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
-        },
-        paint: {
-          "text-color": "#b45309",
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 2,
-        },
-      });
-      m.addLayer({
-        id: vertexLabelLayerId,
-        type: "symbol",
-        source: polygonLabelSourceId,
-        filter: ["==", ["get", "kind"], "vertex"],
-        layout: {
-          "text-field": ["get", "label"],
-          "text-size": 10,
-          "text-offset": [0, -1.2],
-          "text-anchor": "bottom",
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
-          "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
-        },
-        paint: {
-          "text-color": "#1e3a8a",
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 2,
-        },
-      });
-      tempLayerIds.push(edgeLabelLayerId, vertexLabelLayerId);
-      clickHandler = (e) => {
+      addTempSource();
+      addPolygonLayers();
+      hs.click = (e) => {
         positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
-        updateTempGeoJSON();
+        updateTempSource(positions, true);
       };
-      mouseMoveHandler = (e) => {
+      hs.mouseMove = (e) => {
         if (positions.length === 0) return;
-        const pts = [...positions, { lng: e.lngLat.lng, lat: e.lngLat.lat }];
-        updateTempGeoJSONWithPreview(pts);
+        updateTempSource(
+          [...positions, { lng: e.lngLat.lng, lat: e.lngLat.lat }],
+          true,
+        );
       };
-      rightClickHandler = (e) => {
+      hs.rightClick = (e) => {
         e.preventDefault();
         if (positions.length > 0) {
           positions.pop();
-          updateTempGeoJSON();
+          updateTempSource(positions, true);
           if (positions.length < 3) cleanupHandlers();
         }
       };
-      dblClickHandler = () => {
+      hs.dblClick = () => {
         if (positions.length < 3) return;
         if (positions.length > 0) positions.pop();
         cleanupHandlers();
         finishDrawing("polygon", [...positions]);
       };
-      keyHandler = (event) => {
+      hs.key = (event) => {
         if (event.key === "Delete" && positions.length > 0) {
           positions.pop();
-          updateTempGeoJSON();
+          updateTempSource(positions, true);
           if (positions.length < 3) cleanupHandlers();
         }
       };
-      window.addEventListener("keydown", keyHandler);
-      m.on("click", clickHandler);
-      m.on("mousemove", mouseMoveHandler);
-      m.on("contextmenu", rightClickHandler);
-      m.on("dblclick", dblClickHandler);
+      window.addEventListener("keydown", hs.key);
+      m.on("click", hs.click);
+      m.on("mousemove", hs.mouseMove);
+      m.on("contextmenu", hs.rightClick);
+      m.on("dblclick", hs.dblClick);
     } else if (drawMode.value === "circle") {
-      circleCenter = null;
+      cs.center = null;
       tempCircle.value = null;
-      tempSourceId = "temp-" + crypto.randomUUID();
-      m.addSource(tempSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      const fillLayerId = tempSourceId + "-fill";
-      const outlineLayerId = tempSourceId + "-outline";
-      m.addLayer({
-        id: fillLayerId,
+      addTempSource();
+      addTempLayer(ts.sourceId + "-fill", {
         type: "fill",
-        source: tempSourceId,
         paint: { "fill-color": color.value, "fill-opacity": 0.4 },
       });
-      m.addLayer({
-        id: outlineLayerId,
+      addTempLayer(ts.sourceId + "-outline", {
         type: "line",
-        source: tempSourceId,
         paint: {
           "line-color": color.value,
           "line-width": 2,
           "line-opacity": 0.9,
         },
       });
-      tempLayerIds.push(fillLayerId, outlineLayerId);
-      // Center point marker (blue)
-      const centerPointLayerId = tempSourceId + "-center";
-      m.addLayer({
-        id: centerPointLayerId,
+      addTempLayer(ts.sourceId + "-center", {
         type: "circle",
-        source: tempSourceId,
         filter: ["==", "$type", "Point"],
         paint: {
           "circle-radius": 8,
@@ -641,13 +602,9 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "circle-stroke-width": 2,
         },
       });
-      tempLayerIds.push(centerPointLayerId);
-      // Radius line (blue, dashed)
-      const radiusLineLayerId = tempSourceId + "-radius";
-      m.addLayer({
-        id: radiusLineLayerId,
+      addTempLayer(ts.sourceId + "-radius", {
         type: "line",
-        source: tempSourceId,
+        source: ts.sourceId,
         filter: ["==", "$type", "LineString"],
         paint: {
           "line-color": "#3b82f6",
@@ -656,17 +613,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "line-opacity": 0.8,
         },
       });
-      tempLayerIds.push(radiusLineLayerId);
-      // Radius label source and layer
-      const circleLabelSourceId = tempSourceId + "-radius-label";
-      m.addSource(circleLabelSourceId, {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      extraTempSourceIds.push(circleLabelSourceId);
-      const circleLabelLayerId = circleLabelSourceId + "-text";
-      m.addLayer({
-        id: circleLabelLayerId,
+      const circleLabelSourceId = addLabelSource();
+      addTempLayer(circleLabelSourceId + "-text", {
         type: "symbol",
         source: circleLabelSourceId,
         layout: {
@@ -684,237 +632,116 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "text-halo-width": 2,
         },
       });
-      tempLayerIds.push(circleLabelLayerId);
-      clickHandler = (e) => {
-        if (!circleCenter) {
-          circleCenter = [e.lngLat.lng, e.lngLat.lat];
+      hs.click = (e) => {
+        if (!cs.center) {
+          cs.center = [e.lngLat.lng, e.lngLat.lat];
           tempCircle.value = {
-            center: { lat: circleCenter[1], lng: circleCenter[0] },
+            center: { lat: cs.center[1], lng: cs.center[0] },
             radius: 0,
           };
-          // Immediately show center point (without radius line until mouse moves)
-          const src = m.getSource(tempSourceId);
-          if (src) {
+          const src = m.getSource(ts.sourceId);
+          if (src)
             src.setData({
               type: "FeatureCollection",
               features: [
                 {
                   type: "Feature",
-                  geometry: { type: "Point", coordinates: circleCenter },
+                  geometry: { type: "Point", coordinates: cs.center },
                   properties: {},
                 },
               ],
             });
-          }
         } else {
           cleanupHandlers();
           finishDrawing("circle", {
-            center: { lng: circleCenter[0], lat: circleCenter[1] },
-            radius,
+            center: { lng: cs.center[0], lat: cs.center[1] },
+            radius: cs.radius,
           });
         }
       };
-      mouseMoveHandler = (e) => {
-        if (!circleCenter) return;
+      hs.mouseMove = (e) => {
+        if (!cs.center) return;
         const dx =
-          (e.lngLat.lng - circleCenter[0]) *
+          (e.lngLat.lng - cs.center[0]) *
           111319.9 *
-          Math.cos((circleCenter[1] * Math.PI) / 180);
-        const dy = (e.lngLat.lat - circleCenter[1]) * 110540;
-        radius = Math.sqrt(dx * dx + dy * dy);
+          Math.cos((cs.center[1] * Math.PI) / 180);
+        const dy = (e.lngLat.lat - cs.center[1]) * 110540;
+        cs.radius = Math.sqrt(dx * dx + dy * dy);
         tempCircle.value = {
-          center: { lat: circleCenter[1], lng: circleCenter[0] },
-          radius: radius,
+          center: { lat: cs.center[1], lng: cs.center[0] },
+          radius: cs.radius,
         };
-        const coords = [];
-        for (let i = 0; i <= 64; i++) {
-          const angle = (i / 64) * 2 * Math.PI;
-          const rLat = circleCenter[1] + (radius / 110540) * Math.sin(angle);
-          const rLng =
-            circleCenter[0] +
-            (radius /
-              (111319.9 * Math.cos((circleCenter[1] * Math.PI) / 180))) *
-              Math.cos(angle);
-          coords.push([rLng, rLat]);
-        }
-        coords.push(coords[0]);
-        const src = m.getSource(tempSourceId);
+        const circleCoords = computeCircleCoords(
+          { lat: cs.center[1], lng: cs.center[0] },
+          cs.radius,
+        );
+        const src = m.getSource(ts.sourceId);
         if (src) {
-          const features = [
-            {
-              type: "Feature",
-              geometry: { type: "Polygon", coordinates: [coords] },
-              properties: {},
-            },
-            {
-              type: "Feature",
-              geometry: { type: "Point", coordinates: circleCenter },
-              properties: {},
-            },
-            {
-              type: "Feature",
-              geometry: {
-                type: "LineString",
-                coordinates: [circleCenter, [e.lngLat.lng, e.lngLat.lat]],
+          src.setData({
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                geometry: { type: "Polygon", coordinates: [circleCoords] },
+                properties: {},
               },
-              properties: {},
-            },
-          ];
-          src.setData({ type: "FeatureCollection", features });
+              {
+                type: "Feature",
+                geometry: { type: "Point", coordinates: cs.center },
+                properties: {},
+              },
+              {
+                type: "Feature",
+                geometry: {
+                  type: "LineString",
+                  coordinates: [cs.center, [e.lngLat.lng, e.lngLat.lat]],
+                },
+                properties: {},
+              },
+            ],
+          });
         }
-        // Update radius label
         const labelSrc = m.getSource(circleLabelSourceId);
         if (labelSrc) {
-          const midLng = (circleCenter[0] + e.lngLat.lng) / 2;
-          const midLat = (circleCenter[1] + e.lngLat.lat) / 2;
           labelSrc.setData({
             type: "FeatureCollection",
             features: [
               {
                 type: "Feature",
-                geometry: { type: "Point", coordinates: [midLng, midLat] },
-                properties: { label: formatDistance(radius) },
+                geometry: {
+                  type: "Point",
+                  coordinates: [
+                    (cs.center[0] + e.lngLat.lng) / 2,
+                    (cs.center[1] + e.lngLat.lat) / 2,
+                  ],
+                },
+                properties: { label: formatDistance(cs.radius) },
               },
             ],
           });
         }
       };
-      m.on("click", clickHandler);
-      m.on("mousemove", mouseMoveHandler);
+      m.on("click", hs.click);
+      m.on("mousemove", hs.mouseMove);
     }
-  }
-  function updateTempGeoJSON() {
-    const src = map.getSource(tempSourceId);
-    if (!src) return;
-    const lineCoords = positions.map((p) => [p.lng, p.lat]);
-    const pointFeatures = positions.map((p) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-      properties: {},
-    }));
-    const features = [...pointFeatures];
-    if (lineCoords.length >= 2) {
-      if (drawMode.value === "polygon" && lineCoords.length >= 3) {
-        features.push({
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[...lineCoords, lineCoords[0]]],
-          },
-          properties: {},
-        });
-      } else {
-        features.push({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: lineCoords },
-          properties: {},
-        });
-      }
-    }
-    src.setData({ type: "FeatureCollection", features });
-    updatePolygonLabels(positions);
-    updateLineLabels(positions);
-  }
-  function updateTempGeoJSONWithPreview(pts) {
-    const src = map.getSource(tempSourceId);
-    if (!src) return;
-    const lineCoords = pts.map((p) => [p.lng, p.lat]);
-    const pointFeatures = pts.map((p, i) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-      properties: { isPreview: i === pts.length - 1 },
-    }));
-    const features = [...pointFeatures];
-    if (lineCoords.length >= 2) {
-      if (drawMode.value === "polygon" && lineCoords.length >= 3) {
-        features.push({
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[...lineCoords, lineCoords[0]]],
-          },
-          properties: {},
-        });
-      } else {
-        features.push({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: lineCoords },
-          properties: {},
-        });
-      }
-    }
-    src.setData({ type: "FeatureCollection", features });
-    updatePolygonLabels(pts);
-    updateLineLabels(pts);
-  }
-  function updatePolygonLabels(pts) {
-    if (drawMode.value !== "polygon" || !polygonLabelSourceId) return;
-    const labelSrc = map.getSource(polygonLabelSourceId);
-    if (!labelSrc) return;
-    const features = [];
-    pts.forEach((p) => {
-      features.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-        properties: {
-          kind: "vertex",
-          label: formatVertexLabel(p.lng, p.lat),
-        },
-      });
-    });
-    for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1];
-      const b = pts[i];
-      const dist = measureDistance([a.lng, a.lat], [b.lng, b.lat]);
-      features.push({
-        type: "Feature",
-        geometry: {
-          type: "Point",
-          coordinates: [(a.lng + b.lng) / 2, (a.lat + b.lat) / 2],
-        },
-        properties: { kind: "edge", label: formatDistance(dist) },
-      });
-    }
-    labelSrc.setData({ type: "FeatureCollection", features });
-  }
-  function updateLineLabels(pts) {
-    if (drawMode.value !== "polyline" || !lineLabelSourceId) return;
-    const labelSrc = map.getSource(lineLabelSourceId);
-    if (!labelSrc) return;
-    const features = [];
-    for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1];
-      const b = pts[i];
-      const dist = measureDistance([a.lng, a.lat], [b.lng, b.lat]);
-      features.push({
-        type: "Feature",
-        geometry: {
-          type: "Point",
-          coordinates: [(a.lng + b.lng) / 2, (a.lat + b.lat) / 2],
-        },
-        properties: { label: formatDistance(dist) },
-      });
-    }
-    labelSrc.setData({ type: "FeatureCollection", features });
   }
   function finishDrawing(draw, pos) {
     cleanupHandlers();
     map.getCanvas().style.cursor = "default";
     const defaultOpacity = 0.7;
-    const defaultWidth = 3;
     if (draw === "circle") {
       shape.value = {
         type: "circle",
         center: pos.center,
-        radius,
+        radius: cs.radius,
         color: color.value,
         opacity: defaultOpacity,
-        width: defaultWidth,
+        width: 3,
         backgroundImage: null,
         show: true,
       };
       tempCircle.value = null;
-      circleCenter = null;
+      cs.center = null;
     } else if (draw === "multi_point") {
       shape.value = {
         type: "multi_point",
@@ -947,15 +774,85 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         color: color.value,
         outlineColor: color.value,
         opacity: defaultOpacity,
-        width: defaultWidth,
+        width: 3,
         show: true,
       };
     }
     positions.length = 0;
   }
-  // ---------------------------------------------------------------------
-  // Edit existing feature (reuses the Draw dialog instead of a separate one)
-  // ---------------------------------------------------------------------
+  function setDrawMode(mode) {
+    pickForForm.value = false;
+    if (editingPin.value) {
+      renderUpdatedShape(editingPin.value);
+      disableVertexEditing();
+    }
+    editingPin.value = null;
+    if (drawMode.value === mode && showForm.value) return;
+    measureActive.value = false;
+    cleanupHandlers();
+    clearTempLayers();
+    drawMode.value = mode;
+    activeTab.value = "measurements";
+    positions.length = 0;
+    shape.value = null;
+    pointList.value = [];
+    tempCircle.value = null;
+    cs.center = null;
+    showForm.value = true;
+    setTimeout(() => {
+      startDrawing();
+    }, 100);
+  }
+  // Point picking
+  function togglePointPick() {
+    if (pickForForm.value) {
+      cancelPointPick();
+      return;
+    }
+    if (hs.click) cleanupHandlers();
+    drawMode.value = "";
+    pickForForm.value = true;
+    map.getCanvas().style.cursor = "crosshair";
+    hs.click = (e) => {
+      const { lng, lat } = e.lngLat;
+      cleanupHandlers();
+      pickForForm.value = false;
+      drawMode.value = "";
+      emit("pickPoint", { lat, lng });
+    };
+    map.on("click", hs.click);
+  }
+  function cancelPointPick() {
+    cleanupHandlers();
+    pickForForm.value = false;
+  }
+  // Lifecycle
+  onMounted(() => {
+    if (!map.getSource(drawDataSourceId)) {
+      map.addSource(drawDataSourceId, {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+    }
+    hs.featureClick = (e) => onExistingFeatureClick(e);
+    map.on("click", hs.featureClick);
+    hs.styleLoad = () => reassertDrawingOrder();
+    map.on("style.load", hs.styleLoad);
+  });
+  onUnmounted(() => {
+    cleanupHandlers();
+    clearTempLayers();
+    disableVertexEditing();
+    if (hs.featureClick) {
+      map.off("click", hs.featureClick);
+      hs.featureClick = null;
+    }
+    if (hs.styleLoad) {
+      map.off("style.load", hs.styleLoad);
+      hs.styleLoad = null;
+    }
+  });
+  // Edit existing feature
   function findPinRecursive(list, id) {
     if (!list || !id) return null;
     for (const item of list) {
@@ -969,13 +866,12 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     return null;
   }
   function onExistingFeatureClick(e) {
-    // Don't hijack clicks that belong to drawing, measuring, point-picking,
-    // or that happen while the dialog is already open.
     if (
       drawMode.value ||
       pickForForm.value ||
       measureActive.value ||
-      showForm.value
+      showForm.value ||
+      intersectActive.value
     )
       return;
     const rendered = map.queryRenderedFeatures(e.point);
@@ -987,23 +883,21 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     const pin = findPinRecursive(pins, pinId);
     if (pin) startEditFeature(pin);
   }
-  // ------------------------------------------------------------------
-  // Drag vertices on the map while editing a polyline/polygon
-  // ------------------------------------------------------------------
+  // Vertex drag editing
   function enableVertexEditing() {
     disableVertexEditing();
     const type = shape.value?.type;
-    if (type !== "polyline" && type !== "polygon") return;
-    editHandlesSourceId = "edit-handles-" + crypto.randomUUID();
-    map.addSource(editHandlesSourceId, {
+    if (type !== "polyline" && type !== "polygon" && type !== "multi_point") return;
+    es.sourceId = "edit-handles-" + crypto.randomUUID();
+    map.addSource(es.sourceId, {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-    const handlesLayerId = editHandlesSourceId + "-points";
+    const handlesLayerId = es.sourceId + "-points";
     map.addLayer({
       id: handlesLayerId,
       type: "circle",
-      source: editHandlesSourceId,
+      source: es.sourceId,
       paint: {
         "circle-radius": 6,
         "circle-color": "#ffffff",
@@ -1012,52 +906,45 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       },
     });
     refreshEditHandles();
-    onEditMouseDown = (e) => {
+    es.mouseDown = (e) => {
       if (!e.features?.length) return;
-      editDragIndex = Number(e.features[0].properties.index);
-      editDragging = true;
+      es.dragIndex = Number(e.features[0].properties.index);
+      es.dragging = true;
       map.dragPan.disable();
       map.getCanvas().style.cursor = "grabbing";
     };
-    onEditMouseMove = (e) => {
-      if (!editDragging || editDragIndex === null || !shape.value) return;
+    es.mouseMove = (e) => {
+      if (!es.dragging || es.dragIndex === null || !shape.value) return;
       const { lng, lat } = e.lngLat;
       const pts = shape.value.positions;
-      pts[editDragIndex] = { ...pts[editDragIndex], lon: lng, lat };
-      // Keep a polygon's ring closed: first and last vertex must match
+      pts[es.dragIndex] = { ...pts[es.dragIndex], lon: lng, lat };
       if (shape.value.type === "polygon") {
-        if (editDragIndex === 0) {
-          pts[pts.length - 1] = { ...pts[0] };
-        } else if (editDragIndex === pts.length - 1) {
+        if (es.dragIndex === 0) pts[pts.length - 1] = { ...pts[0] };
+        else if (es.dragIndex === pts.length - 1)
           pts[0] = { ...pts[pts.length - 1] };
-        }
       }
       refreshEditHandles();
-      if (editingPin.value) {
+      if (editingPin.value)
         renderUpdatedShape(editingPin.value, toRaw(shape.value));
-      }
     };
-    onEditMouseUp = () => {
-      if (editDragging) {
-        editDragging = false;
-        editDragIndex = null;
+    es.mouseUp = () => {
+      if (es.dragging) {
+        es.dragging = false;
+        es.dragIndex = null;
         map.dragPan.enable();
         map.getCanvas().style.cursor = "";
       }
     };
-    map.on("mousedown", handlesLayerId, onEditMouseDown);
-    map.on("mousemove", onEditMouseMove);
-    map.on("mouseup", onEditMouseUp);
+    map.on("mousedown", handlesLayerId, es.mouseDown);
+    map.on("mousemove", es.mouseMove);
+    map.on("mouseup", es.mouseUp);
   }
   function refreshEditHandles() {
-    if (!editHandlesSourceId || !shape.value) return;
-    const src = map.getSource(editHandlesSourceId);
+    if (!es.sourceId || !shape.value) return;
+    const src = map.getSource(es.sourceId);
     if (!src) return;
     const pts = shape.value.positions || [];
-    const isPolygon = shape.value.type === "polygon";
-    // For polygon, the last position duplicates the first (closing point);
-    // skip it so there aren't two overlapping handles on the same spot.
-    const limit = isPolygon ? pts.length - 1 : pts.length;
+    const limit = shape.value.type === "polygon" ? pts.length - 1 : pts.length;
     const features = [];
     for (let i = 0; i < limit; i++) {
       features.push({
@@ -1069,32 +956,27 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     src.setData({ type: "FeatureCollection", features });
   }
   function disableVertexEditing() {
-    if (editHandlesSourceId) {
-      const handlesLayerId = editHandlesSourceId + "-points";
-      if (onEditMouseDown)
-        map.off("mousedown", handlesLayerId, onEditMouseDown);
+    if (es.sourceId) {
+      const handlesLayerId = es.sourceId + "-points";
+      if (es.mouseDown) map.off("mousedown", handlesLayerId, es.mouseDown);
       if (map.getLayer(handlesLayerId)) map.removeLayer(handlesLayerId);
-      if (map.getSource(editHandlesSourceId))
-        map.removeSource(editHandlesSourceId);
-      editHandlesSourceId = null;
+      if (map.getSource(es.sourceId)) map.removeSource(es.sourceId);
+      es.sourceId = null;
     }
-    if (onEditMouseMove) map.off("mousemove", onEditMouseMove);
-    if (onEditMouseUp) map.off("mouseup", onEditMouseUp);
-    onEditMouseDown = null;
-    onEditMouseMove = null;
-    onEditMouseUp = null;
-    editDragging = false;
-    editDragIndex = null;
+    if (es.mouseMove) map.off("mousemove", es.mouseMove);
+    if (es.mouseUp) map.off("mouseup", es.mouseUp);
+    es.mouseDown = null;
+    es.mouseMove = null;
+    es.mouseUp = null;
+    es.dragging = false;
+    es.dragIndex = null;
     map.dragPan.enable();
     map.getCanvas().style.cursor = "";
   }
   function startEditFeature(pin) {
     if (!pin || !pin.shape) return;
-    // Switching to edit a different feature mid-edit: restore the previous
-    // one's saved geometry (discard any unsaved drag) before moving on.
-    if (editingPin.value && editingPin.value !== pin) {
+    if (editingPin.value && editingPin.value !== pin)
       renderUpdatedShape(editingPin.value);
-    }
     disableVertexEditing();
     cleanupHandlers();
     clearTempLayers();
@@ -1111,7 +993,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       file: null,
     };
     attch_file.value = null;
-    activeTab.value = "info";
+    activeTab.value = "measurements";
     showForm.value = true;
     enableVertexEditing();
   }
@@ -1121,6 +1003,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     const sourceId = "draw-pin-" + pin.id;
     const src = map.getSource(sourceId);
     if (!src) return;
+    const opacity = s.opacity ?? 1;
     if (s.type === "polyline") {
       const coords = s.positions.map((p) => [p.lon, p.lat]);
       src.setData({
@@ -1143,6 +1026,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           s.color || "#ff0000",
         );
         map.setPaintProperty(sourceId + "-line", "line-width", s.width || 3);
+        map.setPaintProperty(sourceId + "-line", "line-opacity", opacity);
       }
     } else if (s.type === "polygon") {
       const coords = s.positions.map((p) => [p.lon, p.lat]);
@@ -1165,6 +1049,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "fill-color",
           s.color || "#ff0000",
         );
+        map.setPaintProperty(sourceId + "-fill", "fill-opacity", opacity);
       }
       if (map.getLayer(sourceId + "-line")) {
         map.setPaintProperty(
@@ -1172,28 +1057,17 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "line-color",
           s.outlineColor || s.color || "#ff0000",
         );
-        map.setPaintProperty(sourceId + "-line", "line-width", s.width || 2);
+        map.setPaintProperty(sourceId + "-line", "line-width", s.width || s.outlineWidth || 2);
+        map.setPaintProperty(sourceId + "-line", "line-opacity", opacity);
       }
     } else if (s.type === "circle") {
-      const center = s.center;
-      const r = s.radius;
-      const coords = [];
-      for (let i = 0; i <= 64; i++) {
-        const angle = (i / 64) * 2 * Math.PI;
-        const rLat = center.lat + (r / 110540) * Math.sin(angle);
-        const rLng =
-          center.lng +
-          (r / (111319.9 * Math.cos((center.lat * Math.PI) / 180))) *
-            Math.cos(angle);
-        coords.push([rLng, rLat]);
-      }
-      coords.push(coords[0]);
+      const circleCoords = computeCircleCoords(s.center, s.radius);
       src.setData({
         type: "FeatureCollection",
         features: [
           {
             type: "Feature",
-            geometry: { type: "Polygon", coordinates: [coords] },
+            geometry: { type: "Polygon", coordinates: [circleCoords] },
             properties: {},
           },
         ],
@@ -1204,13 +1078,15 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "fill-color",
           s.color || s.fillColor || "#0000ff",
         );
+        map.setPaintProperty(sourceId + "-fill", "fill-opacity", opacity);
       }
       if (map.getLayer(sourceId + "-line")) {
         map.setPaintProperty(
           sourceId + "-line",
           "line-color",
-          s.outlineColor || "#0000ff",
+          s.outlineColor || s.color || "#0000ff",
         );
+        map.setPaintProperty(sourceId + "-line", "line-opacity", opacity);
       }
     } else if (s.type === "multi_point") {
       const features = s.positions.map((p) => ({
@@ -1219,6 +1095,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         properties: { color: p.color || s.color || "#00ff00" },
       }));
       src.setData({ type: "FeatureCollection", features });
+      if (map.getLayer(sourceId + "-points")) {
+        map.setPaintProperty(sourceId + "-points", "circle-opacity", opacity);
+        map.setPaintProperty(sourceId + "-points", "circle-stroke-opacity", opacity);
+      }
     } else if (s.type === "point") {
       src.setData({
         type: "FeatureCollection",
@@ -1239,12 +1119,14 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "circle-color",
           s.color || "#ff0000",
         );
+        map.setPaintProperty(sourceId + "-point", "circle-opacity", opacity);
+        map.setPaintProperty(sourceId + "-point", "circle-stroke-opacity", opacity);
       }
     }
   }
   const saveEditedPin = async () => {
     if (!formData.value.name.trim()) {
-      activeTab.value = "info";
+      activeTab.value = "measurements";
       nameError.value = true;
       return;
     }
@@ -1265,10 +1147,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     formData.value = { name: "", description: "", file: null };
     attch_file.value = null;
     tempCircle.value = null;
-    circleCenter = null;
+    cs.center = null;
     clearTempLayers();
     await saveOneWorks(pin);
   };
+  // Measure mode
   function toggleMeasure() {
     if (editingPin.value) {
       renderUpdatedShape(editingPin.value);
@@ -1292,7 +1175,6 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
     });
-    // خط نارنجی با ظاهری نرم
     m.addLayer({
       id: tempId + "-line",
       type: "line",
@@ -1304,7 +1186,6 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         "line-opacity": 0.85,
       },
     });
-    // نقاط نارنجی با حاشیه سفید
     m.addLayer({
       id: tempId + "-points",
       type: "circle",
@@ -1318,7 +1199,6 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         "circle-opacity": 0.9,
       },
     });
-    // برچسب مسافت (لایو) - با تنظیمات اطمینان از نمایش
     m.addLayer({
       id: tempId + "-labels",
       type: "symbol",
@@ -1340,94 +1220,53 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         "text-halo-blur": 2,
       },
     });
-    tempSourceId = tempId;
-    tempLayerIds.push(tempId + "-line", tempId + "-points", tempId + "-labels");
-    // کلیک
-    clickHandler = (e) => {
-      measurePoints.push([e.lngLat.lng, e.lngLat.lat]);
-      const features = [];
-      measurePoints.forEach((p) =>
-        features.push({
-          type: "Feature",
-          geometry: { type: "Point", coordinates: p },
-          properties: {},
-        }),
-      );
-      if (measurePoints.length >= 2) {
-        features.push({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: measurePoints },
-          properties: {},
-        });
-        let totalDist = 0;
-        for (let i = 1; i < measurePoints.length; i++) {
-          totalDist += measureDistance(measurePoints[i - 1], measurePoints[i]);
-        }
-        const label = formatDistance(totalDist);
-        features.push({
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: measurePoints[measurePoints.length - 1],
-          },
-          properties: { distance: label },
-        });
-      }
-      const src = m.getSource(tempId);
-      if (src) src.setData({ type: "FeatureCollection", features });
-    };
-    // حرکت موس (لایو)
-    mouseMoveHandler = (e) => {
-      if (measurePoints.length === 0) return;
-      const features = [];
-      measurePoints.forEach((p) =>
-        features.push({
-          type: "Feature",
-          geometry: { type: "Point", coordinates: p },
-          properties: {},
-        }),
-      );
-      const allPoints = [...measurePoints, [e.lngLat.lng, e.lngLat.lat]];
-      features.push({
+    ts.sourceId = tempId;
+    ts.layerIds.push(tempId + "-line", tempId + "-points", tempId + "-labels");
+    const buildMeasureFeatures = (pts, withPreview) => {
+      const allPts = withPreview
+        ? [...measurePoints, [withPreview.lng, withPreview.lat]]
+        : measurePoints;
+      const features = allPts.map((p) => ({
         type: "Feature",
-        geometry: { type: "LineString", coordinates: allPoints },
+        geometry: { type: "Point", coordinates: p },
         properties: {},
-      });
-      let totalDist = 0;
-      for (let i = 1; i < allPoints.length; i++) {
-        totalDist += measureDistance(allPoints[i - 1], allPoints[i]);
+      }));
+      if (allPts.length >= 2) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "LineString", coordinates: allPts },
+          properties: {},
+        });
+        let total = 0;
+        for (let i = 1; i < allPts.length; i++)
+          total += measureDistance(allPts[i - 1], allPts[i]);
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: allPts[allPts.length - 1] },
+          properties: { distance: formatDistance(total) },
+        });
       }
-      const label = formatDistance(totalDist);
-      // برچسب روی نقطه انتهایی (موقعیت ماوس)
-      features.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [e.lngLat.lng, e.lngLat.lat] },
-        properties: { distance: label },
-      });
-      const src = m.getSource(tempId);
-      if (src) src.setData({ type: "FeatureCollection", features });
+      return { type: "FeatureCollection", features };
     };
-    // کلیک راست (ریست)
-    rightClickHandler = (e) => {
+    hs.click = (e) => {
+      measurePoints.push([e.lngLat.lng, e.lngLat.lat]);
+      const src = m.getSource(tempId);
+      if (src) src.setData(buildMeasureFeatures());
+    };
+    hs.mouseMove = (e) => {
+      if (measurePoints.length === 0) return;
+      const src = m.getSource(tempId);
+      if (src) src.setData(buildMeasureFeatures(measurePoints, e.lngLat));
+    };
+    hs.rightClick = (e) => {
       e.preventDefault();
       measurePoints.length = 0;
       const src = m.getSource(tempId);
       if (src) src.setData({ type: "FeatureCollection", features: [] });
     };
-    m.on("click", clickHandler);
-    m.on("mousemove", mouseMoveHandler);
-    m.on("contextmenu", rightClickHandler);
-  }
-  function measureDistance([lng1, lat1], [lng2, lat2]) {
-    const R = 6371000;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    m.on("click", hs.click);
+    m.on("mousemove", hs.mouseMove);
+    m.on("contextmenu", hs.rightClick);
   }
   function stopMeasure() {
     cleanupHandlers();
@@ -1435,10 +1274,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     measureActive.value = false;
     clearTempLayers();
   }
+  // Form / Save
   const cancelForm = () => {
-    // Edit mode never mutates the original pin until save, so cancelling
-    // simply discards the local form/shape state below. If vertices were
-    // dragged, the map preview must be reverted to the saved geometry.
     if (editingPin.value) {
       renderUpdatedShape(editingPin.value);
       disableVertexEditing();
@@ -1452,7 +1289,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     formData.value = { name: "", description: "", file: null };
     attch_file.value = null;
     tempCircle.value = null;
-    circleCenter = null;
+    cs.center = null;
     positions.length = 0;
     pointList.value = [];
     measurePoints.length = 0;
@@ -1479,20 +1316,171 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     ) {
       finishDrawing("multi_point", [...positions]);
       nextTick(() => {
-        if (shape.value) {
-          savePin();
-        } else {
-          alert("خطا در پایان ترسیم، لطفاً دوباره تلاش کنید");
-        }
+        if (shape.value) savePin();
+        else alert("خطا در پایان ترسیم، لطفاً دوباره تلاش کنید");
+      });
+    } else savePin();
+  };
+  // رندر یک ترسیم تازه ذخیره شده روی نقشه تا پس از ذخیره فعال و قابل مشاهده بماند
+  function renderNewPin(pin) {
+    const s = pin.shape;
+    if (!s || !s.type) return;
+    const sourceId = "draw-pin-" + pin.id;
+    if (map.getSource(sourceId)) return;
+    const visibility = s.show === false ? "none" : "visible";
+    const opacity = s.opacity ?? 0.7;
+    if (s.type === "polyline" || s.type === "polygon") {
+      const coords = s.positions.map((p) => [p.lon, p.lat]);
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry:
+                s.type === "polygon"
+                  ? { type: "Polygon", coordinates: [coords] }
+                  : { type: "LineString", coordinates: coords },
+              properties: { name: pin.name },
+            },
+          ],
+        },
+      });
+      if (s.type === "polygon") {
+        map.addLayer({
+          id: sourceId + "-fill",
+          type: "fill",
+          source: sourceId,
+          paint: {
+            "fill-color": s.color || "#ff0000",
+            "fill-opacity": opacity,
+          },
+          layout: { visibility },
+        });
+      }
+      map.addLayer({
+        id: sourceId + "-line",
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": s.outlineColor || s.color || "#ff0000",
+          "line-width": s.width || 2,
+          "line-opacity": opacity,
+        },
+        layout: { visibility },
+      });
+    } else if (s.type === "point") {
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+              properties: {},
+            },
+          ],
+        },
+      });
+      map.addLayer({
+        id: sourceId + "-point",
+        type: "circle",
+        source: sourceId,
+        paint: {
+          "circle-radius": s.pixelSize || 8,
+          "circle-color": s.color || "#ff0000",
+          "circle-opacity": opacity,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": s.outlineWidth || 1,
+          "circle-stroke-opacity": opacity,
+        },
+        layout: { visibility },
+      });
+    } else if (s.type === "multi_point") {
+      const features = s.positions.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+        properties: { color: p.color || s.color || "#00ff00" },
+      }));
+      map.addSource(sourceId, { type: "geojson", data: { type: "FeatureCollection", features } });
+      map.addLayer({
+        id: sourceId + "-points",
+        type: "circle",
+        source: sourceId,
+        paint: {
+          "circle-radius": 5,
+          "circle-color": ["get", "color"],
+          "circle-opacity": opacity,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 1,
+          "circle-stroke-opacity": opacity,
+        },
+        layout: { visibility },
+      });
+    } else if (s.type === "circle") {
+      const center = s.center;
+      const r = s.radius;
+      const coords = [];
+      for (let i = 0; i <= 64; i++) {
+        const angle = (i / 64) * 2 * Math.PI;
+        const rLat = center.lat + (r / 110540) * Math.sin(angle);
+        const rLng =
+          center.lng +
+          (r / (111319.9 * Math.cos((center.lat * Math.PI) / 180))) *
+            Math.cos(angle);
+        coords.push([rLng, rLat]);
+      }
+      coords.push(coords[0]);
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Polygon", coordinates: [coords] },
+              properties: {},
+            },
+          ],
+        },
+      });
+      map.addLayer({
+        id: sourceId + "-fill",
+        type: "fill",
+        source: sourceId,
+        paint: {
+          "fill-color": s.fillColor || s.color || "#0000ff",
+          "fill-opacity": opacity,
+        },
+        layout: { visibility },
+      });
+      map.addLayer({
+        id: sourceId + "-line",
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": s.outlineColor || s.color || "#0000ff",
+          "line-width": s.outlineWidth || s.width || 2,
+          "line-opacity": opacity,
+        },
+        layout: { visibility },
       });
     } else {
-      savePin();
+      return;
     }
-  };
-  const nameError = ref(false);
+    s._sourceIds = [sourceId];
+    registerDrawLayer(sourceId + "-fill");
+    registerDrawLayer(sourceId + "-line");
+    registerDrawLayer(sourceId + "-point");
+    registerDrawLayer(sourceId + "-points");
+    bringDrawingsToFront(map);
+  }
+
   const savePin = async () => {
     if (!formData.value.name.trim()) {
-      activeTab.value = "info";
+      activeTab.value = "measurements";
       nameError.value = true;
       return;
     }
@@ -1500,7 +1488,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       alert("ترسیم کامل نشده است");
       return;
     }
-    let pin = {
+    const pin = {
       id: crypto.randomUUID(),
       name: formData.value.name,
       descr: formData.value.description,
@@ -1528,8 +1516,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     formData.value = { name: "", description: "", file: null };
     attch_file.value = null;
     tempCircle.value = null;
-    circleCenter = null;
+    cs.center = null;
     clearTempLayers();
+    renderNewPin(pin);
+    addVisibleId(pin.id);
     await saveOneWorks(pin);
   };
   const saveOneWorks = async (item) => {
@@ -1544,7 +1534,6 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       if (item.type === "file") fd.append("file", item.file);
       else fd.append("content", JSON.stringify(toRaw(item.shape)));
       if (item.save && item.save > 0) {
-        // Already exists on the server -> update instead of creating a duplicate
         await axios.put(SERVER + "/api/save/myWork/" + item.save, fd, {
           headers: { "Content-Type": "multipart/form-data" },
         });
@@ -1552,9 +1541,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         const response = await axios.post(
           SERVER + "/api/Save/myWork/" + authStore.user?.id,
           fd,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          },
+          { headers: { "Content-Type": "multipart/form-data" } },
         );
         if (response.data?.id) item.save = response.data.id;
       }
@@ -1564,31 +1551,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       loading.value = false;
     }
   };
-  // Helper functions
-  function getDrawTypeName() {
-    const type = shape.value?.type || drawMode.value;
-    if (editingPin.value) {
-      const editNames = {
-        circle: "ویرایش دایره",
-        polygon: "ویرایش پلیگن",
-        polyline: "ویرایش خط",
-        multi_point: "ویرایش چند نقطه",
-        point: "ویرایش نقطه",
-      };
-      return editNames[type] || "ویرایش ترسیم";
-    }
-    const names = {
-      circle: "ترسیم دایره جدید",
-      polygon: "ترسیم پلیگن جدید",
-      polyline: "ترسیم خط جدید",
-      multi_point: "ترسیم چند نقطه جدید",
-    };
-    return names[type] || "ترسیم جدید";
-  }
+  // Shape helpers
   function getPointsCount() {
     if (!shape.value) return 0;
-    if (shape.value.type === "circle") return 1;
-    if (shape.value.type === "point") return 1;
+    if (shape.value.type === "circle" || shape.value.type === "point") return 1;
     if (shape.value.type === "multi_point")
       return shape.value.positions?.length || 0;
     const pos = shape.value.positions || [];
@@ -1621,63 +1587,25 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     if (!shape.value || shape.value.type !== "polygon") return "0 m²";
     const points = getAllPoints();
     if (points.length < 3) return "0 m²";
-    let area = 0;
     const coords = points.map((p) => {
-      const zone = Math.floor((p.lon + 180) / 6) + 1;
-      return proj4(
-        "EPSG:4326",
-        `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`,
-        [p.lon, p.lat],
-      );
+      const { x, y } = toUTM(p.lon, p.lat);
+      return [x, y];
     });
+    let area = 0;
     for (let i = 0; i < coords.length; i++) {
       const j = (i + 1) % coords.length;
       area += coords[i][0] * coords[j][1];
       area -= coords[j][0] * coords[i][1];
     }
-    area = Math.abs(area) / 2;
-    return formatArea(area);
-  }
-  // طول: زیر 1 متر -> سانتی‌متر، بین 1 تا 1000 متر -> متر، بالای 1000 متر -> کیلومتر
-  // برچسب مختصات هر ورتکس روی نقشه: بر اساس coordinateSystem (پیش‌فرض UTM)
-  function formatVertexLabel(lng, lat) {
-    if (coordinateSystem.value === "utm") {
-      const zone = Math.floor((lng + 180) / 6) + 1;
-      const hemisphere = lat >= 0 ? "" : "+south";
-      const [x, y] = proj4(
-        "EPSG:4326",
-        `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs${hemisphere}`,
-        [lng, lat],
-      );
-      return `${x.toFixed(2)}, ${y.toFixed(2)} (Z${zone})`;
-    }
-    return `${lng.toFixed(6)}, ${lat.toFixed(6)}`;
-  }
-  function formatDistance(meters) {
-    if (meters < 1) return (meters * 100).toFixed(0) + " cm";
-    if (meters >= 1000) return (meters / 1000).toFixed(2) + " km";
-    return meters.toFixed(2) + " m";
-  }
-  // مساحت: زیر 1000 متر مربع -> متر مربع، بالای 1000 متر مربع -> هکتار
-  function formatArea(squareMeters) {
-    if (squareMeters >= 1000)
-      return (squareMeters / 10000).toFixed(2) + " هکتار";
-    return squareMeters.toFixed(2) + " m²";
+    return formatArea(Math.abs(area) / 2);
   }
   function formatCoordinate(point) {
-    if (point.system === "utm") {
+    if (point.system === "utm")
       return `${point.displayX.toFixed(3)} E, ${point.displayY.toFixed(3)} N (منطقه ${point.zone})`;
-    } else {
-      return `${point.displayX.toFixed(6)}, ${point.displayY.toFixed(6)}`;
-    }
+    return `${point.displayX.toFixed(6)}, ${point.displayY.toFixed(6)}`;
   }
   function copyCoordinates(point) {
-    let text;
-    if (point.system === "utm") {
-      text = `${point.displayX.toFixed(3)} E, ${point.displayY.toFixed(3)} N (منطقه ${point.zone})`;
-    } else {
-      text = `${point.displayX.toFixed(6)}, ${point.displayY.toFixed(6)}`;
-    }
+    const text = formatCoordinate(point);
     navigator.clipboard
       .writeText(text)
       .then(() => {
@@ -1703,7 +1631,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     measurePoints.length = 0;
     positions.length = 0;
     tempCircle.value = null;
-    circleCenter = null;
+    cs.center = null;
     pointList.value = [];
     if (map.getSource(drawDataSourceId)) {
       map
@@ -1712,382 +1640,62 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     }
     map.getCanvas().style.cursor = "default";
   }
-  // برش پلی‌لاین
-  function splitPolyline(pin, cutLine) {
-    const coords = pin.shape.positions.map((p) => [p.lon, p.lat]);
-    const lineFeature = turf.lineString(coords, { originalId: pin.id });
-
-    const split = turf.lineSplit(lineFeature, cutLine);
-
-    if (split.features.length > 1) {
-      return split.features.map((feat, index) => {
-        const newPositions = feat.geometry.coordinates.map(([lon, lat]) => ({
-          lon,
-          lat,
-          height: 0,
-        }));
-        return {
-          ...pin,
-          id: crypto.randomUUID(),
-          name: `${pin.name} (بخش ${index + 1})`,
-          shape: {
-            ...pin.shape,
-            type: "polyline",
-            positions: newPositions,
-          },
-          save: -1, // باید دوباره ذخیره شود
-        };
-      });
-    }
-    return [pin]; // اگر برشی رخ نداد، همان قبلی را برمی‌گرداند
-  }
-
-  // برش پلی‌گان
-  function splitPolygon(pin, cutLine) {
-    const coords = [pin.shape.positions.map((p) => [p.lon, p.lat])];
-    const firstPt = coords[0][0];
-    const lastPt = coords[0][coords[0].length - 1];
-    if (firstPt[0] !== lastPt[0] || firstPt[1] !== lastPt[1]) {
-      coords[0].push([...firstPt]);
-    }
-    const polygonFeature = turf.polygon(coords, { originalId: pin.id });
-
-    // خط برش را کمی ضخیم می‌کنیم و به‌جای برش حلقه (که باعث تولید یک تکه‌ی
-    // اضافه از نقطه‌ی شروع رینگ می‌شد)، با تفاضل (difference) پلیگان را دقیقا
-    // به همان تعداد تکه‌ی واقعی تقسیم می‌کنیم
-    const cutBuffer = turf.buffer(cutLine, 0.03, { units: "meters" });
-    const diff = turf.difference(
-      turf.featureCollection([polygonFeature, cutBuffer]),
-    );
-
-    if (!diff) return [pin];
-
-    const pieces =
-      diff.geometry.type === "Polygon"
-        ? [diff.geometry.coordinates]
-        : diff.geometry.coordinates; // MultiPolygon
-
-    if (pieces.length < 2) return [pin];
-
-    return pieces.map((piece, index) => {
-      const ring = piece[0];
-      const newPositions = ring.map(([lon, lat]) => ({ lon, lat, height: 0 }));
-      const newColor = cutPieceColors[index % cutPieceColors.length];
-      return {
-        ...pin,
-        id: crypto.randomUUID(),
-        name: `${pin.name} (بخش ${index + 1})`,
-        color: newColor,
-        shape: {
-          ...pin.shape,
-          type: "polygon",
-          positions: newPositions,
-          color: newColor,
-          outlineColor: newColor,
-        },
-        save: -1,
-      };
-    });
-  }
-
-  // ساخت لایه‌ی واقعی روی نقشه برای یک تکه‌ی تازه‌ساخته‌شده (بدون نیاز به خاموش/روشن کردن pinlist)
-function renderCutPiece(pin) {
-  if (!pin.shape || !map) return;
-  const sourceId = "draw-pin-" + pin.id;
-  if (map.getSource(sourceId)) return;
-
-  // وضعیت روشن/خاموش بودن را از شکل اصلی که این تکه از آن جدا شده حفظ می‌کنیم
-  const visibility = pin.shape.show ? "visible" : "none";
-
-  if (pin.shape.type === "polygon") {
-    const coords = pin.shape.positions.map((p) => [p.lon, p.lat]);
-    map.addSource(sourceId, {
-      type: "geojson",
-      data: {
-        type: "FeatureCollection",
-        features: [{
-          type: "Feature",
-          geometry: { type: "Polygon", coordinates: [coords] },
-          properties: { name: pin.name },
-        }],
-      },
-    });
-    map.addLayer({
-      id: sourceId + "-fill",
-      type: "fill",
-      source: sourceId,
-      paint: { "fill-color": pin.shape.color || "#ff0000", "fill-opacity": 0.5 },
-      layout: { visibility },
-    });
-    map.addLayer({
-      id: sourceId + "-line",
-      type: "line",
-      source: sourceId,
-      paint: {
-        "line-color": pin.shape.outlineColor || pin.shape.color || "#ff0000",
-        "line-width": pin.shape.outlineWidth || 2,
-      },
-      layout: { visibility },
-    });
-    pin.shape._sourceIds = [sourceId];
-  } else if (pin.shape.type === "polyline") {
-    const coords = pin.shape.positions.map((p) => [p.lon, p.lat]);
-    map.addSource(sourceId, {
-      type: "geojson",
-      data: {
-        type: "FeatureCollection",
-        features: [{
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: coords },
-          properties: { name: pin.name },
-        }],
-      },
-    });
-    map.addLayer({
-      id: sourceId + "-line",
-      type: "line",
-      source: sourceId,
-      paint: {
-        "line-color": pin.shape.color || "#ff0000",
-        "line-width": pin.shape.width || 3,
-      },
-      layout: { visibility },
-    });
-    pin.shape._sourceIds = [sourceId];
-  }
-
-  registerDrawLayer(sourceId + "-fill");
-  registerDrawLayer(sourceId + "-line");
-}
-
-// حذف لایه‌ی شکل اصلی (قبل از برش) از روی نقشه، تا شبحش زیر تکه‌های جدید نمونه
-function removeCutOriginalLayers(pin) {
-  if (!map) return;
-  const sourceId = "draw-pin-" + pin.id;
-  const style = map.getStyle();
-  if (!style || !style.layers) return;
-  style.layers
-    .filter((l) => l.id.startsWith(sourceId))
-    .forEach((l) => { if (map.getLayer(l.id)) map.removeLayer(l.id); });
-  if (map.getSource(sourceId)) map.removeSource(sourceId);
-}
-
-  // پردازش نهایی برش و به‌روزرسانی آرایه pins
-  function processCut(cutPositions) {
-    const cutCoords = cutPositions.map((p) => [p.lng, p.lat]);
-    const cutLine = turf.lineString(cutCoords);
-
-    let hasCut = false;
-    const newPins = [];
-
-    // پیمایش تمام پین‌ها برای پیدا کردن تقاطع
-    // نکته: اگر pins یک Ref است، باید با pins.value کار کنید.
-    // در اینجا فرض بر این است که pins یک آرایه reactive یا ref است که می‌توان روی آن iterat کرد.
-    const pinsList = Array.isArray(pins) ? pins : pins.value || [];
-
-    pinsList.forEach((pin) => {
-      if (
-        pin.shape &&
-        (pin.shape.type === "polyline" || pin.shape.type === "polygon")
-      ) {
-        const coords =
-          pin.shape.type === "polygon"
-            ? [pin.shape.positions.map((p) => [p.lon, p.lat])]
-            : pin.shape.positions.map((p) => [p.lon, p.lat]);
-
-        const feature =
-          pin.shape.type === "polygon"
-            ? turf.polygon(coords)
-            : turf.lineString(coords);
-
-        // بررسی تقاطع
-        if (turf.booleanIntersects(feature, cutLine)) {
-          hasCut = true;
-          removeCutOriginalLayers(pin); // پاک کردن شکل اصلی از نقشه
-          const pieces =
-            pin.shape.type === "polyline"
-              ? splitPolyline(pin, cutLine)
-              : splitPolygon(pin, cutLine);
-          pieces.forEach(renderCutPiece); // رندر فوری هر تکه روی نقشه
-          newPins.push(...pieces);
-        } else {
-          newPins.push(pin);
-        }
-      } else {
-        newPins.push(pin);
-      }
-    });
-
-    if (hasCut) {
-      // به‌روزرسانی آرایه pins با حفظ reactivity
-      if (Array.isArray(pins)) {
-        pins.splice(0, pins.length, ...newPins);
-      } else if (pins.value) {
-        pins.value = newPins;
-      }
-
-      // اطلاع‌رسانی به کامپوننت والد (اختیاری)
-      emit("pinsUpdated", newPins);
-      $toast.success("شکل با موفقیت برش داده شد");
-    } else {
-      $toast.warning("خط برش با هیچ شکلی تقاطع نداشت");
-    }
-
-    // پاکسازی حالت برش
-    inactiveDrawing();
-  }
-
-  // --- CUT FEATURE: شروع حالت برش ---
-  function startCutMode() {
-    if (editingPin.value) {
-      renderUpdatedShape(editingPin.value);
-      disableVertexEditing();
-    }
-    editingPin.value = null;
-    cleanupHandlers();
-    clearTempLayers();
-
-    drawMode.value = "cut";
-    activeTab.value = "measurements";
-    positions.length = 0;
-    shape.value = null;
-    showForm.value = false; // نمایش فرم برای کنترل‌های حین برش (مثل دکمه لغو)
-
-    setTimeout(() => {
-      startDrawingCutLine();
-    }, 100);
-  }
-
-  // رسم خط برش (مشابه polyline اما با منطق پایان متفاوت)
-  function startDrawingCutLine() {
-    const m = map;
-    m.getCanvas().style.cursor = "crosshair";
-
-    tempSourceId = "temp-cut-" + crypto.randomUUID();
-    m.addSource(tempSourceId, {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-    });
-
-    const lineLayerId = tempSourceId + "-line";
-    const pointsLayerId = tempSourceId + "-points";
-
-    m.addLayer({
-      id: lineLayerId,
-      type: "line",
-      source: tempSourceId,
-      paint: {
-        "line-color": "#ef4444", // قرمز برای تمایز حالت برش
-        "line-width": 4,
-        "line-dasharray": [6, 4],
-        "line-opacity": 0.9,
-      },
-    });
-
-    m.addLayer({
-      id: pointsLayerId,
-      type: "circle",
-      source: tempSourceId,
-      filter: ["==", "$type", "Point"],
-      paint: {
-        "circle-radius": 6,
-        "circle-color": "#ffffff",
-        "circle-stroke-color": "#ef4444",
-        "circle-stroke-width": 3,
-      },
-    });
-
-    tempLayerIds.push(lineLayerId, pointsLayerId);
-
-    const updateCutGeoJSON = () => {
-      const src = m.getSource(tempSourceId);
-      if (!src) return;
-      const lineCoords = positions.map((p) => [p.lng, p.lat]);
-      const pointFeatures = positions.map((p) => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-        properties: {},
-      }));
-
-      const features = [...pointFeatures];
-      if (lineCoords.length >= 2) {
-        features.push({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: lineCoords },
-          properties: {},
-        });
-      }
-      src.setData({ type: "FeatureCollection", features });
-    };
-
-    clickHandler = (e) => {
-      positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
-      updateCutGeoJSON();
-    };
-
-    mouseMoveHandler = (e) => {
-      if (positions.length === 0) return;
-      const src = m.getSource(tempSourceId);
-      if (!src) return;
-      const pts = [...positions, { lng: e.lngLat.lng, lat: e.lngLat.lat }];
-      const lineCoords = pts.map((p) => [p.lng, p.lat]);
-      const pointFeatures = pts.map((p) => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-        properties: {},
-      }));
-      const features = [...pointFeatures];
-      if (lineCoords.length >= 2) {
-        features.push({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: lineCoords },
-          properties: {},
-        });
-      }
-      src.setData({ type: "FeatureCollection", features });
-    };
-
-    // پایان برش با دابل‌کلیک یا کلیک راست
-    const finishCut = () => {
-      if (positions.length < 2) {
-        cleanupHandlers();
-        clearTempLayers();
-        drawMode.value = "";
-        showForm.value = false;
-        return;
-      }
-      cleanupHandlers();
-      map.getCanvas().style.cursor = "default";
-      processCut([...positions]);
-    };
-
-    rightClickHandler = (e) => {
-      e.preventDefault();
-      finishCut();
-    };
-
-    dblClickHandler = () => {
-      finishCut();
-    };
-
-    keyHandler = (event) => {
-      if (event.key === "Escape") {
-        cleanupHandlers();
-        clearTempLayers();
-        drawMode.value = "";
-        showForm.value = false;
-        positions.length = 0;
-      }
-    };
-
-    window.addEventListener("keydown", keyHandler);
-    m.on("click", clickHandler);
-    m.on("mousemove", mouseMoveHandler);
-    m.on("contextmenu", rightClickHandler);
-    m.on("dblclick", dblClickHandler);
-  }
+  // Cut module
+  const cutCtx = {
+    map,
+    pins,
+    emit,
+    $toast,
+    editingPin,
+    drawMode,
+    activeTab,
+    positions,
+    shape,
+    showForm,
+    hs,
+    ts,
+    es,
+    cs,
+    renderUpdatedShape,
+    disableVertexEditing,
+    cleanupHandlers,
+    clearTempLayers,
+    inactiveDrawing,
+  };
+  const { startCutMode } = createCutHandler(cutCtx);
+  // Intersect module
+  // Intersect module
+  const intersectCtx = {
+    map,
+    pins,
+    emit,
+    $toast,
+    editingPin,
+    drawMode,
+    activeTab,
+    positions,
+    hs,
+    ts,
+    renderUpdatedShape,
+    disableVertexEditing,
+    cleanupHandlers,
+    clearTempLayers,
+    intersectActive, // برای جلوگیری از باز شدن پنل ویرایش روی محدوده همپوشانی
+  };
+  const {
+    intersectResults,
+    intersectSummary,
+    overlapSourceLabel,
+    analyzing: intersectAnalyzing,
+    intersectPanelOpen,
+    openIntersectPanel,
+    startIntersectMode,
+    loadIntersectFromKML,
+    clearIntersect,
+    generateIntersectReport,
+    exportIntersectReportCSV,
+  } = createIntersectHandler(intersectCtx);
   return {
-    // State
     loading,
     drawMode,
     color,
@@ -2104,7 +1712,6 @@ function removeCutOriginalLayers(pin) {
     coordinateSystem,
     nameError,
     editingPin,
-    // Computed
     tabs,
     livePoints,
     displayPoints,
@@ -2113,17 +1720,29 @@ function removeCutOriginalLayers(pin) {
     liveArea,
     liveRadius,
     isSaveEnabled,
-    // Methods
     togglePointPick,
     setDrawMode,
     toggleMeasure,
     cancelForm,
-    startCutMode,
     handleSave,
     onFileChange,
     formatCoordinate,
     copyCoordinates,
-    getDrawTypeName,
+    getDrawTypeName: () =>
+      getDrawTypeName(shape.value?.type || drawMode.value, !!editingPin.value),
     inactiveDrawing,
+    startCutMode,
+    // --- Intersect ---
+    intersectResults,
+    intersectSummary,
+    overlapSourceLabel,
+    intersectAnalyzing,
+    intersectPanelOpen,
+    openIntersectPanel,
+    startIntersectMode,
+    loadIntersectFromKML,
+    clearIntersect,
+    generateIntersectReport,
+    exportIntersectReportCSV,
   };
 }

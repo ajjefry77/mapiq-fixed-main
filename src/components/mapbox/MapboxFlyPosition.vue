@@ -14,7 +14,7 @@
 
       <button
           @click="goToLocation"
-          class="bg-[var(--primary-color)] text-white px-3 h-full hover:bg-blue-700 transition flex-shrink-0">
+          class="bg-[var(--primary-color)] text-white px-3 h-full hover:bg-accent-dim transition flex-shrink-0">
         <i class="fas fa-arrow-right" />
       </button>
 

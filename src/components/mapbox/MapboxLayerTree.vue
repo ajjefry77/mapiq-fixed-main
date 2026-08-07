@@ -18,7 +18,7 @@
     >
       <div v-if="item.type === 'group'" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
            :style="{ ['paddingRight']: `${depth * 8}px` }" @click.stop="handleSelectGroup(item, idx)"
-           :class="{ 'bg-blue-100': selectedGroup === item }" @dragover.prevent.stop @drop.stop="onDrop($event, item)">
+           :class="{ 'bg-accent/15': selectedGroup === item }" @dragover.prevent.stop @drop.stop="onDrop($event, item)">
         <div>
           <i @click.stop="toggleGroup(item)" class="text-sm"
              :class="item.expanded ? 'fas fa-caret-down text-black' : 'fas fa-caret-left text-black'"></i>
@@ -231,10 +231,10 @@ function showMessage(msg, type) {
 <style scoped>
 /* نشانگر خط آبی برای محل رها شدن */
 .drop-before {
-  border-top: 2px solid #3b82f6 !important; /* blue-500 */
+  border-top: 2px solid var(--accent) !important;
 }
 .drop-after {
-  border-bottom: 2px solid #3b82f6 !important;
+  border-bottom: 2px solid var(--accent) !important;
 }
 /* آیتم کشیده شده نیمه‌شفاف */
 .opacity-50 {

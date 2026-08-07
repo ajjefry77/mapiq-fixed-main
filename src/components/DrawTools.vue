@@ -13,26 +13,26 @@
       <button
           @click="toggleMeasure"  title="اندازه گیری" style="margin: 0"
           class="w-8 h-8 rounded flex items-center justify-center shadow-md"
-          :class ="drawMode === 'measure' ? 'text-white bg-blue-500' : 'text-black bg-gray-200'">
+          :class ="drawMode === 'measure' ? 'text-white bg-accent' : 'text-black bg-gray-200'">
         <i class="fas fa-ruler  m-1"></i>
       </button>
 
       <!-- pin -->
       <button @click="togglePointPick" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
-              pickForForm ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="نقطه (انتخاب برای فرم)">
+              pickForForm ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="نقطه (انتخاب برای فرم)">
 
         <i class="fas fa-location-pin"></i>
       </button>
 
       <button @click="setDrawMode('multi_point')" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
-              drawMode === 'multi_point' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="چند نقطه">
+              drawMode === 'multi_point' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="چند نقطه">
 
         <i class="fas fa-braille"></i>
       </button>
 
       <!-- line -->
       <button @click="setDrawMode('polyline')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-               drawMode === 'polyline' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="خط">
+               drawMode === 'polyline' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="خط">
         <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
           <line x1="25" y1="75" x2="75" y2="25" stroke-width="6" :class="drawMode === 'polyline' ? 'stroke-white' : 'stroke-black'"/>
           <circle cx="25" cy="75" r="6" :class="drawMode === 'polyline' ? 'fill-white' : 'fill-black'" />
@@ -42,13 +42,13 @@
 
       <!-- polygon -->
       <button @click="setDrawMode('polygon')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-              drawMode === 'polygon' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="پلیگون">
+              drawMode === 'polygon' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="پلیگون">
         <i class="fas fa-draw-polygon"></i>
       </button>
 
       <!-- circle -->
       <button @click="setDrawMode('circle')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-              drawMode === 'circle' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="دایره">
+              drawMode === 'circle' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="دایره">
         <i class="fa fa-circle"></i>
       </button>
 
@@ -76,7 +76,7 @@
   </div>
 
   <!-- مودال افزودن پین -->
-  <transition name="fade">
+  <Transition name="modal">
     <div v-if="showForm"
          class="absolute inset-0 bg-black/40 flex items-end justify-end px-14 py-32 z-50"
          @contextmenu.prevent @click.self="cancelForm">
@@ -87,19 +87,19 @@
         <!-- تب‌ها -->
         <div class="flex border-b mb-3">
           <button type="button" @click="activeFormTab = 'info'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'info' ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'info' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
             توضیحات
           </button>
           <button type="button" @click="activeFormTab = 'style'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'style' ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'style' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
             استایل
           </button>
           <button type="button" @click="activeFormTab = 'image'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'image' ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'image' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
             تصویر
           </button>
           <button type="button" @click="activeFormTab = 'measure'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'measure' ? 'border-b-2 border-blue-500 text-blue-600 font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'measure' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
             اندازه‌ها
           </button>
         </div>
@@ -167,8 +167,8 @@
                 <tbody>
                 <tr v-for="p in formPoints" :key="p.row">
                   <td class="p-1 border text-center">{{ p.row }}</td>
-                  <td class="p-1 border font-mono">{{ p.lon }}</td>
-                  <td class="p-1 border font-mono">{{ p.lat }}</td>
+                  <td class="p-1 border font-mono text-left" dir="ltr">{{ p.lon }}</td>
+                  <td class="p-1 border font-mono text-left" dir="ltr">{{ p.lat }}</td>
                 </tr>
                 </tbody>
               </table>
@@ -179,12 +179,12 @@
 
         <div class="flex justify-end gap-2 mt-4 pt-3 border-t">
           <button type="button" @click="cancelForm" class="px-4 py-2 bg-gray-300 rounded-lg">لغو</button>
-          <button type="button" @click="savePin" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">ذخیره</button>
+          <button type="button" @click="savePin" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dim">ذخیره</button>
         </div>
       </div>
     </div>
 
-  </transition>
+  </Transition>
 
 
   <MultiPointsList  v-if="drawMode === 'multi_point'" :pointList="pointList"/>

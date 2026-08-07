@@ -48,10 +48,11 @@
   <!-- ===========================
        📌 لیست نقاط (Table)
        =========================== -->
-  <div
-      v-if="showList"
-      class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
-  >
+  <Transition name="modal">
+    <div
+        v-if="showList"
+        class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+    >
     <div class="bg-white w-[700px] max-h-[80vh] overflow-y-auto rounded-xl shadow-lg p-5">
 
       <h2 class="text-xl font-bold mb-4 text-right">لیست نقاط</h2>
@@ -107,7 +108,8 @@
         </button>
       </div>
     </div>
-  </div>
+    </div>
+  </Transition>
 
   <!-- ===========================
        📌 Info Box (کلیک روی نقاط)
@@ -142,16 +144,18 @@
   <!-- ===========================
        📸 نمایش تصویر بزرگ
        =========================== -->
-  <div
-      v-if="showImage"
-      class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
-      @click="showImage = false"
-  >
-    <img
-        :src="imageUrl(selectedPoint.image)"
-        class="max-w-[90%] max-h-[90%] rounded shadow-lg"
-    />
-  </div>
+  <Transition name="modal">
+    <div
+        v-if="showImage"
+        class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+        @click="showImage = false"
+    >
+      <img
+          :src="imageUrl(selectedPoint.image)"
+          class="max-w-[90%] max-h-[90%] rounded shadow-lg"
+      />
+    </div>
+  </Transition>
 </template>
 
 <script setup>

@@ -13,7 +13,7 @@
 
       <div v-if="item.type === 'group'" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
         :style="{ ['paddingRight']: `${depth * 8}px` }" @click.stop="handleSelectGroup(item, idx)"
-        :class="{ 'bg-blue-100': selectedGroup === item }"  @dragover.prevent  @drop="onDrop($event, item)">
+        :class="{ 'bg-accent/15': selectedGroup === item }"  @dragover.prevent  @drop="onDrop($event, item)">
 
 
 <!--        :class="item.expanded ? 'fas fa-folder-open text-yellow-600' : 'fas fa-folder text-yellow-600'"></i>-->

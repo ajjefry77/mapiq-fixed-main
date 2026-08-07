@@ -124,35 +124,37 @@
       </div>
     </div>
 
-    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal card">
-        <h2 class="modal-title">{{ selectedUser ? 'ویرایش کاربر' : 'کاربر جدید' }}</h2>
-        <form @submit.prevent="saveUser" class="modal-form">
-          <div class="form-row"><label>نام</label><input v-model="userForm.name" type="text" required class="input" /></div>
-          <div class="form-row"><label>تلفن</label><input v-model="userForm.phone" type="tel" required class="input" dir="ltr" /></div>
-          <div class="form-row"><label>نام کاربری</label><input v-model="userForm.username" type="text" required class="input" /></div>
-          <div class="form-row"><label>کد ملی</label><input v-model="userForm.code" type="text" class="input" dir="ltr" /></div>
-          <div class="form-row"><label>{{ selectedUser ? 'رمز جدید (اختیاری)' : 'رمز عبور' }}</label>
-            <input v-model="userForm.password" type="password" :required="!selectedUser" class="input" />
-          </div>
+    <Transition name="modal">
+      <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+        <div class="modal card">
+          <h2 class="modal-title">{{ selectedUser ? 'ویرایش کاربر' : 'کاربر جدید' }}</h2>
+          <form @submit.prevent="saveUser" class="modal-form">
+            <div class="form-row"><label>نام</label><input v-model="userForm.name" type="text" required class="input" /></div>
+            <div class="form-row"><label>تلفن</label><input v-model="userForm.phone" type="tel" required class="input" dir="ltr" /></div>
+            <div class="form-row"><label>نام کاربری</label><input v-model="userForm.username" type="text" required class="input" /></div>
+            <div class="form-row"><label>کد ملی</label><input v-model="userForm.code" type="text" class="input" dir="ltr" /></div>
+            <div class="form-row"><label>{{ selectedUser ? 'رمز جدید (اختیاری)' : 'رمز عبور' }}</label>
+              <input v-model="userForm.password" type="password" :required="!selectedUser" class="input" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">نقش</label>
-            <select v-model="userForm.role_id" class="form-input">
-              <option value="">انتخاب نقش</option>
-              <option v-for="role in roles" :key="role.id" :value="role.id">
-                {{ role.description }}
-              </option>
-            </select>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">نقش</label>
+              <select v-model="userForm.role_id" class="form-input">
+                <option value="">انتخاب نقش</option>
+                <option v-for="role in roles" :key="role.id" :value="role.id">
+                  {{ role.description }}
+                </option>
+              </select>
+            </div>
 
-          <div class="modal-actions">
-            <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'در حال ذخیره...' : (selectedUser ? 'بروزرسانی' : 'ایجاد') }}</button>
-          </div>
-        </form>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
+              <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'در حال ذخیره...' : (selectedUser ? 'بروزرسانی' : 'ایجاد') }}</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 

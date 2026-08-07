@@ -1,5 +1,5 @@
 <template>
-  <transition name="fade">
+  <Transition name="modal">
     <div v-if="show"  class="fixed inset-0 flex items-center justify-center z-50" >
       <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
         <h2 class="text-xl font-semibold mb-4 text-center">
@@ -10,7 +10,7 @@
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">توضیحات</label>
           <textarea v-model="description"  rows="3" placeholder="توضیحات را وارد کنید..."
-              class="w-full border rounded-lg p-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+              class="w-full border rounded-lg p-2 focus:outline-none focus:ring focus:ring-accent-soft"/>
         </div>
 
 <!--        <UserSearch v-model="selectedUser"   />-->
@@ -24,7 +24,7 @@
           <button @click="onCancel" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">
             لغو
           </button>
-          <button @click="onSubmit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+          <button @click="onSubmit" class="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-dim">
             ارسال
           </button>
         </div>
@@ -35,7 +35,7 @@
         </button>
       </div>
     </div>
-  </transition>
+  </Transition>
 </template>
 
 <script setup>
@@ -52,9 +52,8 @@ const workflows = ref([]);
 const search = ref("");
 
 onMounted(async () => {
-  if (authStore.isAdmin || authStore.isGroupManager) {
-    await Promise.all([load_Users()/*, load_Works()*/]);
-  }
+  // لیست کاربران برای همه نقش‌ها (از جمله کاربر عادی) لازم است تا ارسال کار کند
+  await Promise.all([load_Users()/*, load_Works()*/]);
 });
 
 const load_Users = async () => {
@@ -121,12 +120,4 @@ const onCancel = () => {
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
 </style>

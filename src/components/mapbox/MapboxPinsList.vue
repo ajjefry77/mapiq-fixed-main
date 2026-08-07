@@ -4,16 +4,17 @@
       <button
         class="px-2 py-1 text-sm rounded"
         :class="
-          activeTab === 'my2' ? 'bg-blue-500 text-white' : 'bg-white border'
+          activeTab === 'my2' ? 'bg-accent text-white' : 'bg-white border'
         "
         @click="activeTab = 'my2'"
       >
         میز کار
       </button>
       <button
+        v-if="authStore.user"
         class="relative px-2 py-1 text-sm rounded"
         :class="
-          activeTab === 'in' ? 'bg-blue-500 text-white' : 'bg-white border'
+          activeTab === 'in' ? 'bg-accent text-white' : 'bg-white border'
         "
         @click="activeTab = 'in'"
       >
@@ -25,9 +26,10 @@
         >
       </button>
       <button
+        v-if="authStore.user"
         class="px-2 py-1 text-sm rounded"
         :class="
-          activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'
+          activeTab === 'out' ? 'bg-accent text-white' : 'bg-white border'
         "
         @click="activeTab = 'out'"
       >
@@ -111,7 +113,10 @@
       </div>
     </div>
 
-    <div v-if="activeTab === 'in'" class="text-xs flex flex-col h-full min-h-0">
+    <div
+      v-if="activeTab === 'in' && authStore.user"
+      class="text-xs flex flex-col h-full min-h-0"
+    >
       <div class="flex gap-1 mb-2">
         <button
           class="px-2 py-0.5 text-xs rounded"
@@ -152,10 +157,19 @@
                   :class="
                     file.opened
                       ? 'fas fa-envelope-open text-gray-400'
-                      : 'fas fa-envelope text-blue-500'
+                      : 'fas fa-envelope text-accent'
                   "
                 ></i>
                 <span class="text-sm truncate">{{ getTitle(file) }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  @click.stop="addInboxToDesktop(index)"
+                  class="text-accent hover:text-accent px-1"
+                  title="افزودن به میز کار"
+                >
+                  <i class="fas fa-plus text-sm"></i>
+                </button>
               </div>
             </li>
             <li
@@ -198,7 +212,7 @@
     </div>
 
     <div
-      v-if="activeTab === 'out'"
+      v-if="activeTab === 'out' && authStore.user"
       class="text-xs flex flex-col h-full min-h-0"
     >
       <div class="overflow-y-auto">
@@ -217,6 +231,12 @@
     <SaveDialog v-model="createFolderDialog" @confirm="createFolder" />
     <SendDialog :show="OpenSend" @submit="send" @cancel="OpenSend = false" />
     <MapboxLoadCSV ref="csvRef" :rows="csvRows" :map="map" :pins="props.pins" />
+    <MapboxImportPointsDialog
+      ref="importCsvRef"
+      :map="map"
+      :pins="props.pins"
+      @imported="onCsvImported"
+    />
     <Loading :active="loading" />
   </div>
 </template>
@@ -240,6 +260,7 @@ import { useAuthStore } from "../../stores/auth";
 import SaveDialog from "../SaveDialog.vue";
 import ExportDialog from "../ExportDialog.vue";
 import SendDialog from "../SendDialog.vue";
+import MapboxImportPointsDialog from "./MapboxImportPointsDialog.vue";
 import Loading from "../Loading.vue";
 import MapboxLayerTree from "./MapboxLayerTree.vue";
 import MapboxLoadCSV from "./MapboxLoadCSV.vue";
@@ -337,12 +358,14 @@ async function onBaseStyleReloaded() {
 }
 
 watch(
-  () => authStore.isLogin,
-  async (isLogin) => {
-    if (isLogin && authStore.user) {
+  () => authStore.user,
+  async (newUser) => {
+    if (newUser) {
       await loadWorks();
       await loadInbox();
       for (let pin of props.pins) pin.check = false;
+    } else {
+      activeTab.value = "my2";
     }
   },
 );
@@ -411,7 +434,8 @@ const loadInbox = async () => {
 };
 
 const drawInbox = async (idx) => {
-  const pin = inboxFiles.value[idx].MyWork;
+  const pin = inboxFiles.value[idx]?.MyWork;
+  if (!pin) return;
   try {
     await axios.post(SERVER + "/api/inbox/opened", {
       id: inboxFiles.value[idx].id,
@@ -423,16 +447,118 @@ const drawInbox = async (idx) => {
   }
 
   if (pin.show != undefined) {
-    pin.entity.show = !pin.entity.show;
+    if (pin.entity && pin.entity.show !== undefined) {
+      pin.entity.show = !pin.entity.show;
+      if (pin.shape) pin.shape.show = pin.entity.show;
+    } else if (pin.shape) {
+      const sourceId =
+        (pin.shape._sourceIds && pin.shape._sourceIds[0]) ||
+        "draw-pin-" + pin.id;
+      const visible = !pin.shape.show;
+      pin.shape.show = visible;
+      const layers = props.map
+        .getStyle()
+        .layers.filter((l) => l.id.startsWith(sourceId));
+      layers.forEach((l) =>
+        props.map.setLayoutProperty(
+          l.id,
+          "visibility",
+          visible ? "visible" : "none",
+        ),
+      );
+    }
     return;
   }
   if (pin.type == "draw") {
-    pin.shape = JSON.parse(pin.content);
-    drawShape(pin, "inbox");
-  } else if (pin.name) {
+    try {
+      pin.shape = JSON.parse(pin.content);
+    } catch (e) {
+      pin.shape = pin.content;
+    }
+    if (pin.shape && pin.shape.type) {
+      drawShape(pin, "inbox");
+      bringDrawingsToFront(props.map);
+    } else {
+      showMessage("لایه دریافتی قابلیت نمایش روی نقشه را ندارد", "warning");
+    }
+  } else if (pin.name || pin.content) {
     await drawKML(pin, "inbox");
+    bringDrawingsToFront(props.map);
   }
   pin.show = true;
+};
+
+// افزودن لایه دریافتی به میز کار تا قابل ویرایش و ذخیره باشد
+const addInboxToDesktop = async (idx) => {
+  const file = inboxFiles.value[idx];
+  const pin = file?.MyWork;
+  if (!pin) return;
+  loading.value = true;
+  try {
+    const newPin = {
+      id: crypto.randomUUID(),
+      name: pin.name || "بدون نام",
+      type: pin.type,
+      date: new Date(),
+      save: -1,
+    };
+    if (pin.type == "draw") {
+      let shape;
+      const content =
+        typeof pin.content === "string"
+          ? pin.content.replace(/^"|"$/g, "")
+          : pin.content;
+      try {
+        shape = JSON.parse(content);
+      } catch (e) {
+        shape = content;
+      }
+      if (!shape || !shape.type) {
+        showMessage("ترسیم دریافتی معتبر نیست", "error");
+        return;
+      }
+      shape.show = true;
+      newPin.shape = shape;
+    } else if (pin.type == "file") {
+      newPin.shape = { show: true };
+      newPin.content = pin.content;
+    } else {
+      newPin.shape = { show: true };
+    }
+
+    if (SelectGroup.value !== null && props.pins[SelectGroup.value]) {
+      newPin.parent_id = props.pins[SelectGroup.value].save ?? -1;
+      if (!props.pins[SelectGroup.value].children)
+        props.pins[SelectGroup.value].children = [];
+      props.pins[SelectGroup.value].children.push(newPin);
+    } else {
+      newPin.parent_id = -1;
+      props.pins.push(newPin);
+    }
+
+    if (newPin.type == "draw") {
+      drawShape(newPin, "draw", true);
+    } else if (newPin.type == "file" && newPin.content) {
+      // فایل KML/KMZ: بایت‌های فایل را از سرور گرفته و برای ذخیره در میز کار جاری آپلود می‌کنیم
+      const url = SERVER + "/uploads/pins/" + newPin.content;
+      const res = await fetch(url);
+      const blob = await res.blob();
+      newPin.file = new File(
+        [blob],
+        String(newPin.content).replace(/^.*[\\/]/, ""),
+        { type: blob.type || "application/vnd.google-earth.kml+xml" },
+      );
+      await drawKML(newPin, true);
+    }
+    bringDrawingsToFront(props.map);
+    await saveOneWorks(newPin);
+    showMessage("لایه دریافتی به میز کار اضافه شد", "success");
+  } catch (e) {
+    console.error("خطا در افزودن به میز کار:", e);
+    showMessage("خطا در افزودن به میز کار", "error");
+  } finally {
+    loading.value = false;
+  }
 };
 
 const loadWorks = async () => {
@@ -571,7 +697,9 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
   const sourceId = "draw-pin-" + pin.id;
 
   if (shape.type === "polyline") {
-    const coords = shape.positions.map((p) => [(p.lon ?? p.lng), p.lat]).filter(c => Number.isFinite(c[0]) && Number.isFinite(c[1]));
+    const coords = shape.positions
+      .map((p) => [p.lon ?? p.lng, p.lat])
+      .filter((c) => Number.isFinite(c[0]) && Number.isFinite(c[1]));
     if (!map.getSource(sourceId))
       map.addSource(sourceId, {
         type: "geojson",
@@ -584,6 +712,7 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       paint: {
         "line-color": shape.color || "#ff0000",
         "line-width": shape.width || 3,
+        "line-opacity": shape.opacity ?? 1,
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
@@ -614,7 +743,10 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       id: sourceId + "-fill",
       type: "fill",
       source: sourceId,
-      paint: { "fill-color": shape.color || "#ff0000", "fill-opacity": 0.5 },
+      paint: {
+        "fill-color": shape.color || "#ff0000",
+        "fill-opacity": shape.opacity ?? 0.5,
+      },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
       },
@@ -625,7 +757,8 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       source: sourceId,
       paint: {
         "line-color": shape.outlineColor || shape.color || "#ff0000",
-        "line-width": shape.outlineWidth || 2,
+        "line-width": shape.outlineWidth || shape.width || 2,
+        "line-opacity": shape.opacity ?? 1,
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
@@ -658,8 +791,10 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       paint: {
         "circle-radius": shape.pixelSize || 8,
         "circle-color": shape.color || "#ff0000",
+        "circle-opacity": shape.opacity ?? 1,
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": shape.outlineWidth || 1,
+        "circle-stroke-opacity": shape.opacity ?? 1,
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
@@ -697,8 +832,10 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       paint: {
         "circle-radius": 5,
         "circle-color": ["get", "color"],
+        "circle-opacity": shape.opacity ?? 1,
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 1,
+        "circle-stroke-opacity": shape.opacity ?? 1,
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
@@ -730,7 +867,7 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       source: sourceId,
       paint: {
         "fill-color": shape.fillColor || shape.color || "#0000ff",
-        "fill-opacity": 0.3,
+        "fill-opacity": shape.opacity ?? 0.3,
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
@@ -741,8 +878,9 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       type: "line",
       source: sourceId,
       paint: {
-        "line-color": shape.outlineColor || "#0000ff",
-        "line-width": shape.outlineWidth || 2,
+        "line-color": shape.outlineColor || shape.color || "#0000ff",
+        "line-width": shape.outlineWidth || shape.width || 2,
+        "line-opacity": shape.opacity ?? 1,
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
@@ -770,7 +908,8 @@ async function drawKML(pin, visible = false) {
   try {
     const url = SERVER + "/uploads/pins/" + pin.content;
     const response = await fetch(url);
-    const text = await response.text();
+    const blob = await response.blob();
+    const text = await readKmlText(blob, pin.content);
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, "application/xml");
     const geojson = kmlToGeoJSON(doc);
@@ -861,6 +1000,55 @@ function parseKMLCoords(el) {
       return [lon, lat];
     })
     .filter((c) => !isNaN(c[0]) && !isNaN(c[1]));
+}
+
+// ----- پشتیبانی از فایل KMZ (زیپ حاوی doc.kml) -----
+const readU16 = (buf, o) => buf[o] | (buf[o + 1] << 8);
+const readU32 = (buf, o) =>
+  buf[o] | (buf[o + 1] << 8) | (buf[o + 2] << 16) | (buf[o + 3] << 24);
+
+async function inflateRawZipEntry(data) {
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error("مرورگر شما از فایل KMZ پشتیبانی نمی‌کند");
+  }
+  const stream = new Blob([data]).stream().pipeThrough(
+    new DecompressionStream("deflate-raw"),
+  );
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+async function extractKmlFromZip(buf) {
+  const decoder = new TextDecoder("latin1");
+  let offset = 0;
+  while (offset + 30 <= buf.length) {
+    const sig = readU32(buf, offset);
+    if (sig !== 0x04034b50) break;
+    const method = buf[offset + 8];
+    const compSize = readU32(buf, offset + 18);
+    const nameLen = readU16(buf, offset + 26);
+    const extraLen = readU16(buf, offset + 28);
+    const name = decoder
+      .decode(buf.subarray(offset + 30, offset + 30 + nameLen))
+      .toLowerCase();
+    const dataStart = offset + 30 + nameLen + extraLen;
+    if (name.endsWith(".kml")) {
+      const comp = buf.subarray(dataStart, dataStart + compSize);
+      if (method === 0) return comp;
+      if (method === 8) return await inflateRawZipEntry(comp);
+      throw new Error("روش فشرده‌سازی KMZ پشتیبانی نمی‌شود");
+    }
+    offset = dataStart + compSize;
+  }
+  throw new Error("فایل doc.kml داخل KMZ یافت نشد");
+}
+
+async function readKmlText(blob, name = "") {
+  const isKmz = /\.kmz$/i.test(name);
+  if (!isKmz) return await blob.text();
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const kmlBytes = await extractKmlFromZip(buf);
+  return new TextDecoder().decode(kmlBytes);
 }
 
 const drawPins = async () => {
@@ -954,12 +1142,14 @@ const send = async (data) => {
   form.append("document_id", pin.save);
   form.append("descr", data.description);
   if (pin.save < 0) {
+    let content = pin.content;
+    if (pin.type == "draw" && pin.shape) content = JSON.stringify(pin.shape);
     form.append("name", pin.name);
     form.append(
       "pin",
       JSON.stringify({
         name: pin.name,
-        content: pin.content,
+        content,
         type: pin.type,
         obj_id: pin.id,
       }),
@@ -977,6 +1167,11 @@ function showMessage(msg, type) {
   $toast.open({ message: msg, type, duration: 4000 });
 }
 
+const importCsvRef = ref(null);
+function onCsvImported({ count, skipped }) {
+  // اختیاری: نوتیفیکیشن موفقیت
+}
+
 const handleFileUpload = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -984,27 +1179,14 @@ const handleFileUpload = async (event) => {
   loading.value = true;
 
   if (fileName.endsWith(".csv") || fileName.endsWith(".txt")) {
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete(results) {
-        csvRows.value = results.data;
-      },
-      error(error) {
-        console.error(error);
-      },
-    });
     loading.value = false;
-    csvRef.value?.open(fileName);
+    importCsvRef.value?.open(file); // به‌جای Papa.parse + csvRef.value?.open(fileName)
     return;
   }
 
   if (fileName.endsWith(".kml") || fileName.endsWith(".kmz")) {
     try {
-      const url = URL.createObjectURL(file);
-      const response = await fetch(url);
-      const text = await response.text();
-      URL.revokeObjectURL(url);
+      const text = await readKmlText(file, file.name);
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, "application/xml");
       const geojson = kmlToGeoJSON(doc);
@@ -1134,21 +1316,24 @@ const handleFileUpload = async (event) => {
 };
 
 function Export(filename, exportType) {
+  // فقط ترسیم‌های فعال (تیک‌خورده / visible روی نقشه)
+  const activePins = props.pins.filter(
+    (pin) => pin.type === "draw" && pin.shape && pin.shape.show === true,
+  );
+
   if (exportType == "csv") {
     let csvContent = "";
-    props.pins.forEach((pin) => {
-      if (
-        !pin.shape?.positions ||
-        !Array.isArray(pin.shape.positions) ||
-        !pin.shape.show ||
-        pin.type !== "draw"
-      )
-        return;
-      csvContent += pin.name + "\n" + "polygon :\n" + "lat,lon\n";
-      pin.shape.positions.forEach((pos) => {
-        csvContent += `${pos.lat},${pos.lon}\n`;
-      });
-      csvContent += "\n";
+    activePins.forEach((pin) => {
+      if (pin.shape?.positions && Array.isArray(pin.shape.positions)) {
+        csvContent += pin.name + "\n" + (pin.shape.type || "shape") + " :\n" + "lat,lon\n";
+        pin.shape.positions.forEach((pos) => {
+          csvContent += `${pos.lat},${pos.lon}\n`;
+        });
+        csvContent += "\n";
+      } else if (pin.shape?.type === "point" && pin.shape.lon != null && pin.shape.lat != null) {
+        csvContent += pin.name + "\npoint :\nlat,lon\n";
+        csvContent += `${pin.shape.lat},${pin.shape.lon}\n\n`;
+      }
     });
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -1160,22 +1345,26 @@ function Export(filename, exportType) {
   } else {
     let kml =
       '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
-    props.pins.forEach((pin) => {
-      if (!pin.shape?.show) return;
-      if (pin.type !== "draw") return;
+    activePins.forEach((pin) => {
       const name = (pin.name || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       if (pin.shape.type === "polyline") {
-        const coords = pin.shape.positions
+        const coords = (pin.shape.positions || [])
           .map((p) => `${p.lon},${p.lat},0`)
           .join(" ");
         kml += `  <Placemark><name>${name}</name><LineString><coordinates>${coords}</coordinates></LineString></Placemark>\n`;
       } else if (pin.shape.type === "polygon") {
-        const coords = pin.shape.positions
+        const coords = (pin.shape.positions || [])
           .map((p) => `${p.lon},${p.lat},0`)
           .join(" ");
         kml += `  <Placemark><name>${name}</name><Polygon><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>\n`;
       } else if (pin.shape.type === "point") {
         kml += `  <Placemark><name>${name}</name><Point><coordinates>${pin.shape.lon},${pin.shape.lat},0</coordinates></Point></Placemark>\n`;
+      } else if (pin.shape.type === "multi_point") {
+        (pin.shape.positions || []).forEach((p, idx) => {
+          kml += `  <Placemark><name>${name} (${idx + 1})</name><Point><coordinates>${p.lon},${p.lat},0</coordinates></Point></Placemark>\n`;
+        });
+      } else if (pin.shape.type === "circle" && pin.shape.center) {
+        kml += `  <Placemark><name>${name}</name><Point><coordinates>${pin.shape.center.lng ?? pin.shape.center.lon},${pin.shape.center.lat},0</coordinates></Point></Placemark>\n`;
       }
     });
     kml += "</Document>\n</kml>";

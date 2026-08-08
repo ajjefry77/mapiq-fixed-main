@@ -75,7 +75,8 @@
       <!-- لیست گروه‌بندی‌شده به‌ازای هر لایه -->
       <div
         v-if="layerOverlapGroups.length"
-        class="max-h-64 overflow-y-auto border rounded divide-y mb-2"
+        class="max-h-64 overflow-y-auto border border-gray-200 rounded divide-y divide-gray-100 mb-2 bg-white"
+        dir="rtl"
       >
         <div
           v-for="(grp, gi) in layerOverlapGroups"
@@ -85,7 +86,7 @@
           <div class="font-semibold text-gray-800 text-xs mb-1 flex items-center gap-1">
             <i class="fas fa-vector-square text-orange-500"></i>
             {{ grp.layerName }}
-            <span class="text-[10px] font-normal text-gray-400">
+            <span class="text-[10px] font-normal text-gray-400" dir="ltr">
               (مساحت کل: {{ formatArea(grp.totalArea) }})
             </span>
           </div>
@@ -93,11 +94,11 @@
             <li
               v-for="(item, ii) in grp.items"
               :key="'i-' + ii"
-              class="text-[11px] text-gray-600 bg-orange-50/60 rounded px-2 py-1"
+              class="text-[11px] text-gray-700 bg-gray-50 rounded px-2 py-1.5 leading-relaxed"
             >
               همپوشانی با
-              <span class="font-medium text-gray-800">«{{ item.otherName }}»</span>:
-              <span class="text-orange-600 font-semibold">
+              <span class="font-medium text-gray-900">«{{ item.otherName }}»</span>:
+              <span class="text-orange-600 font-semibold" dir="ltr">
                 {{ item.detail || formatArea(item.overlapArea) }}
               </span>
             </li>
@@ -108,7 +109,8 @@
       <!-- نتایج عادی (نقطه/خط یا وقتی گروه‌بندی لایه نداریم) -->
       <div
         v-else
-        class="max-h-56 overflow-y-auto border rounded divide-y"
+        class="max-h-56 overflow-y-auto border border-gray-200 rounded divide-y divide-gray-100 bg-white"
+        dir="rtl"
       >
         <div
           v-if="!intersectResults.length"
@@ -116,24 +118,34 @@
         >
           هیچ عنصری در محدوده همپوشانی نیست
         </div>
-        <div v-for="(r, i) in intersectResults" :key="i" class="p-2 text-xs">
-          <div class="font-semibold text-gray-700">{{ r.pinName }}</div>
-          <div v-if="r.kind === 'point'" class="text-gray-500">
+        <div
+          v-for="(r, i) in intersectResults"
+          :key="i"
+          class="p-2 text-xs"
+        >
+          <div class="font-semibold text-gray-800">{{ r.pinName }}</div>
+
+          <div v-if="r.kind === 'point'" class="text-gray-500 mt-0.5" dir="ltr">
             نقطه — {{ r.lat.toFixed(6) }}, {{ r.lon.toFixed(6) }} | UTM:
             {{ r.utmX.toFixed(1) }}, {{ r.utmY.toFixed(1) }} (Z{{ r.utmZone }})
           </div>
-          <div v-else-if="r.kind === 'line'" class="text-gray-500">
-            خط — {{ formatDistance(r.insideLengthMeters) }} از
-            {{ formatDistance(r.totalLengthMeters) }} ({{
-              r.percentage.toFixed(1)
-            }}%)
+
+          <div v-else-if="r.kind === 'line'" class="text-gray-500 mt-0.5">
+            خط —
+            <span dir="ltr">
+              {{ formatDistance(r.insideLengthMeters) }} از
+              {{ formatDistance(r.totalLengthMeters) }}
+              ({{ r.percentage.toFixed(1) }}%)
+            </span>
           </div>
-          <div v-else-if="r.kind === 'polygon'" class="text-gray-500">
+
+          <div v-else-if="r.kind === 'polygon'" class="text-gray-500 mt-0.5">
             {{ r.isCircle ? "دایره" : "پلیگان" }} —
-            {{ formatArea(r.insideAreaSqMeters) }} از
-            {{ formatArea(r.totalAreaSqMeters) }} ({{
-              r.percentage.toFixed(1)
-            }}%)
+            <span dir="ltr">
+              {{ formatArea(r.insideAreaSqMeters) }} از
+              {{ formatArea(r.totalAreaSqMeters) }}
+              ({{ r.percentage.toFixed(1) }}%)
+            </span>
           </div>
         </div>
       </div>
@@ -413,6 +425,7 @@ const layerOverlapGroups = computed(() => {
       detail: detailText(r, true),
       kind: r.kind,
     });
+
     // برای پلیگان متقارن؛ برای نقطه/خط فقط یک‌بار از دید لایهٔ اول کافی است
     // ولی برای خوانایی هر دو طرف را می‌آوریم
     const pctB =

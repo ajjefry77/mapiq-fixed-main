@@ -514,6 +514,529 @@ export function createIntersectHandler(ctx) {
     });
   }
 
+  /**
+   * همپوشانی متقابل لایه‌های انتخاب‌شده در Pinlist
+   * شامل نقطه، خط، پلیگان و دایره — فقط قسمت‌هایی که تماس/روی‌هم دارند.
+   */
+  function pinToTurfFeature(pin) {
+    const s = pin?.shape;
+    if (!s || !s.type) return null;
+    const name = pin.name || "(بدون نام)";
+    try {
+      if (s.type === "point" && s.lon != null && s.lat != null) {
+        return {
+          kind: "point",
+          name,
+          pin,
+          feature: turf.point([s.lon, s.lat]),
+          coords: [[s.lon, s.lat]],
+        };
+      }
+      if (s.type === "multi_point" && Array.isArray(s.positions) && s.positions.length) {
+        const coords = s.positions
+          .filter((p) => p && p.lon != null && p.lat != null)
+          .map((p) => [p.lon, p.lat]);
+        if (!coords.length) return null;
+        return {
+          kind: "point",
+          name,
+          pin,
+          feature: coords.length === 1
+            ? turf.point(coords[0])
+            : turf.multiPoint(coords),
+          coords,
+          isMulti: true,
+        };
+      }
+      if (s.type === "polyline" && Array.isArray(s.positions) && s.positions.length >= 2) {
+        const coords = s.positions.map((p) => [p.lon, p.lat]);
+        const line = turf.lineString(coords);
+        return {
+          kind: "line",
+          name,
+          pin,
+          feature: line,
+          length: turf.length(line, { units: "meters" }),
+        };
+      }
+      if (s.type === "polygon" && Array.isArray(s.positions) && s.positions.length >= 3) {
+        const ring = s.positions.map((p) => [p.lon, p.lat]);
+        const f = ring[0], l = ring[ring.length - 1];
+        if (f[0] !== l[0] || f[1] !== l[1]) ring.push([...f]);
+        const poly = turf.polygon([ring]);
+        return {
+          kind: "polygon",
+          name,
+          pin,
+          feature: poly,
+          area: turf.area(poly),
+          isCircle: false,
+        };
+      }
+      if (s.type === "circle" && s.center && s.radius) {
+        const ring = computeCircleCoords(s.center, s.radius);
+        if (ring.length < 3) return null;
+        const closed = [...ring];
+        const f = closed[0], l = closed[closed.length - 1];
+        if (f[0] !== l[0] || f[1] !== l[1]) closed.push([...f]);
+        const poly = turf.polygon([closed]);
+        return {
+          kind: "polygon",
+          name,
+          pin,
+          feature: poly,
+          area: turf.area(poly),
+          isCircle: true,
+        };
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
+  }
+
+  function findPinsByIds(list, ids, out = []) {
+    const idSet = new Set((ids || []).map((x) => String(x)));
+    (list || []).forEach((pin) => {
+      if (!pin) return;
+      if (pin.type === "group") {
+        findPinsByIds(pin.children, ids, out);
+        return;
+      }
+      if (idSet.has(String(pin.id))) out.push(pin);
+    });
+    return out;
+  }
+
+  function safeIntersect(a, b) {
+    try {
+      if (!turf.booleanIntersects(a, b)) return null;
+      return turf.intersect(turf.featureCollection([a, b]));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** طول بخشی از خط که داخل پلیگان است */
+  function lineInsidePolygon(line, polygon) {
+    const totalLength = turf.length(line, { units: "meters" });
+    if (totalLength <= 0) return { insideLength: 0, segments: [] };
+    if (!turf.booleanIntersects(line, polygon)) {
+      return { insideLength: 0, segments: [] };
+    }
+    let insideLength = 0;
+    const insideSegments = [];
+    try {
+      const boundary = turf.polygonToLine(polygon);
+      const boundaryLines =
+        boundary.type === "FeatureCollection" ? boundary.features : [boundary];
+      let pieces = [line];
+      boundaryLines.forEach((bl) => {
+        const nextPieces = [];
+        pieces.forEach((piece) => {
+          try {
+            const split = turf.lineSplit(piece, bl);
+            if (split.features.length) nextPieces.push(...split.features);
+            else nextPieces.push(piece);
+          } catch (e) {
+            nextPieces.push(piece);
+          }
+        });
+        pieces = nextPieces;
+      });
+      pieces.forEach((piece) => {
+        const len = turf.length(piece, { units: "meters" });
+        if (len === 0) return;
+        const mid = turf.along(piece, len / 2, { units: "meters" });
+        if (turf.booleanPointInPolygon(mid, polygon)) {
+          insideLength += len;
+          insideSegments.push(piece);
+        }
+      });
+    } catch (e) {
+      const mid = turf.along(line, totalLength / 2, { units: "meters" });
+      if (turf.booleanPointInPolygon(mid, polygon)) {
+        insideLength = totalLength;
+        insideSegments.push(line);
+      }
+    }
+    return { insideLength, segments: insideSegments, totalLength };
+  }
+
+  function analyzePair(a, b, rows, overlapParts) {
+    const ka = a.kind;
+    const kb = b.kind;
+
+    // پلیگان ∩ پلیگان
+    if (ka === "polygon" && kb === "polygon") {
+      const inter = safeIntersect(a.feature, b.feature);
+      if (!inter) return;
+      const interArea = turf.area(inter);
+      if (interArea <= 0) return;
+      overlapParts.push(inter);
+      rows.push({
+        kind: "polygon",
+        pinId: a.pin.id,
+        pinName: `${a.name} ∩ ${b.name}`,
+        insideAreaSqMeters: interArea,
+        totalAreaSqMeters: a.area,
+        otherTotalArea: b.area,
+        percentage: a.area ? (interArea / a.area) * 100 : 0,
+        insideGeometry: inter,
+        isCircle: false,
+        description: `همپوشانی پلیگان «${a.name}» با «${b.name}»`,
+        pairNames: [a.name, b.name],
+        pairIds: [String(a.pin.id), String(b.pin.id)],
+        pairKinds: ["polygon", "polygon"],
+      });
+      return;
+    }
+
+    // نقطه داخل پلیگان
+    if (ka === "point" && kb === "polygon") {
+      const pts = a.coords || [];
+      pts.forEach((c, idx) => {
+        if (!turf.booleanPointInPolygon(c, b.feature)) return;
+        const utm = toUTM(c[0], c[1]);
+        overlapParts.push(turf.point(c));
+        rows.push({
+          kind: "point",
+          pinId: a.pin.id,
+          pinName: a.name,
+          pointIndex: idx,
+          lon: c[0],
+          lat: c[1],
+          utmX: utm.x,
+          utmY: utm.y,
+          utmZone: utm.zone,
+          description: `نقطه داخل پلیگان «${b.name}»`,
+          pairNames: [a.name, b.name],
+          pairIds: [String(a.pin.id), String(b.pin.id)],
+          pairKinds: ["point", "polygon"],
+          insideAreaSqMeters: 0,
+          totalAreaSqMeters: b.area,
+          otherTotalArea: b.area,
+          percentage: 100,
+        });
+      });
+      return;
+    }
+    if (ka === "polygon" && kb === "point") {
+      analyzePair(b, a, rows, overlapParts);
+      return;
+    }
+
+    // خط ∩ پلیگان
+    if (ka === "line" && kb === "polygon") {
+      const { insideLength, segments, totalLength } = lineInsidePolygon(
+        a.feature,
+        b.feature,
+      );
+      if (insideLength <= 0) return;
+      segments.forEach((seg) => overlapParts.push(seg));
+      rows.push({
+        kind: "line",
+        pinId: a.pin.id,
+        pinName: a.name,
+        insideLengthMeters: insideLength,
+        totalLengthMeters: totalLength || a.length,
+        percentage:
+          (totalLength || a.length)
+            ? (insideLength / (totalLength || a.length)) * 100
+            : 0,
+        insideSegments: segments,
+        description: `بخشی از خط داخل پلیگان «${b.name}»`,
+        pairNames: [a.name, b.name],
+        pairIds: [String(a.pin.id), String(b.pin.id)],
+        pairKinds: ["line", "polygon"],
+        insideAreaSqMeters: 0,
+        totalAreaSqMeters: b.area,
+        otherTotalArea: b.area,
+      });
+      return;
+    }
+    if (ka === "polygon" && kb === "line") {
+      analyzePair(b, a, rows, overlapParts);
+      return;
+    }
+
+    // خط ∩ خط (تقاطع)
+    if (ka === "line" && kb === "line") {
+      try {
+        if (!turf.booleanIntersects(a.feature, b.feature)) return;
+        let cross = null;
+        try {
+          cross = turf.lineIntersect(a.feature, b.feature);
+        } catch (e) {
+          cross = null;
+        }
+        const n =
+          cross && cross.features ? cross.features.length : 1;
+        if (cross && cross.features) {
+          cross.features.forEach((f) => overlapParts.push(f));
+        }
+        rows.push({
+          kind: "line",
+          pinId: a.pin.id,
+          pinName: `${a.name} ∩ ${b.name}`,
+          insideLengthMeters: 0,
+          totalLengthMeters: a.length,
+          percentage: 0,
+          insideSegments: [],
+          description: `تقاطع خط «${a.name}» با «${b.name}» (${n} نقطه تقاطع)`,
+          pairNames: [a.name, b.name],
+          pairIds: [String(a.pin.id), String(b.pin.id)],
+          pairKinds: ["line", "line"],
+          crossCount: n,
+        });
+      } catch (e) {
+        /* ignore */
+      }
+      return;
+    }
+
+    // نقطه روی/نزدیک خط (آستانه ~1 متر)
+    if (ka === "point" && kb === "line") {
+      const pts = a.coords || [];
+      pts.forEach((c, idx) => {
+        try {
+          const pt = turf.point(c);
+          const dist = turf.pointToLineDistance(pt, b.feature, {
+            units: "meters",
+          });
+          if (dist > 1.5) return;
+          const utm = toUTM(c[0], c[1]);
+          overlapParts.push(pt);
+          rows.push({
+            kind: "point",
+            pinId: a.pin.id,
+            pinName: a.name,
+            pointIndex: idx,
+            lon: c[0],
+            lat: c[1],
+            utmX: utm.x,
+            utmY: utm.y,
+            utmZone: utm.zone,
+            description: `نقطه روی/نزدیک خط «${b.name}» (فاصله ${dist.toFixed(2)} m)`,
+            pairNames: [a.name, b.name],
+            pairIds: [String(a.pin.id), String(b.pin.id)],
+            pairKinds: ["point", "line"],
+            percentage: 100,
+          });
+        } catch (e) {
+          /* ignore */
+        }
+      });
+      return;
+    }
+    if (ka === "line" && kb === "point") {
+      analyzePair(b, a, rows, overlapParts);
+      return;
+    }
+
+    // نقطه روی نقطه (تقریباً یکسان — آستانه ~0.5 متر)
+    if (ka === "point" && kb === "point") {
+      const pa = a.coords || [];
+      const pb = b.coords || [];
+      pa.forEach((ca, ia) => {
+        pb.forEach((cb, ib) => {
+          try {
+            const d = turf.distance(turf.point(ca), turf.point(cb), {
+              units: "meters",
+            });
+            if (d > 0.5) return;
+            const utm = toUTM(ca[0], ca[1]);
+            overlapParts.push(turf.point(ca));
+            rows.push({
+              kind: "point",
+              pinId: a.pin.id,
+              pinName: `${a.name} ≈ ${b.name}`,
+              lon: ca[0],
+              lat: ca[1],
+              utmX: utm.x,
+              utmY: utm.y,
+              utmZone: utm.zone,
+              description: `نقاط تقریباً منطبق (فاصله ${d.toFixed(2)} m)`,
+              pairNames: [a.name, b.name],
+              pairIds: [String(a.pin.id), String(b.pin.id)],
+              pairKinds: ["point", "point"],
+              percentage: 100,
+            });
+          } catch (e) {
+            /* ignore */
+          }
+        });
+      });
+    }
+  }
+
+  function loadIntersectFromPins(pinIds) {
+    if (!pinIds || !pinIds.length) {
+      if (ctx.$toast) ctx.$toast.warning("هیچ لایه‌ای انتخاب نشده است");
+      return;
+    }
+    const pinsList = Array.isArray(ctx.pins) ? ctx.pins : ctx.pins.value || [];
+    const selected = findPinsByIds(pinsList, pinIds);
+
+    const items = [];
+    selected.forEach((pin) => {
+      if (pin.shape && pin.shape.show === false) return;
+      const item = pinToTurfFeature(pin);
+      if (item) items.push(item);
+    });
+
+    if (!items.length) {
+      if (ctx.$toast)
+        ctx.$toast.error("از لایه‌های انتخاب‌شده هیچ هندسه معتبری ساخته نشد");
+      return;
+    }
+
+    if (ctx.editingPin?.value) {
+      ctx.renderUpdatedShape(ctx.editingPin.value);
+      ctx.disableVertexEditing();
+      ctx.editingPin.value = null;
+    }
+    ctx.cleanupHandlers();
+    ctx.clearTempLayers();
+    ctx.drawMode.value = "";
+    ctx.positions.length = 0;
+
+    // یک لایهٔ پلیگونی: محدوده در برابر بقیه پین‌های نقشه
+    if (items.length === 1 && items[0].kind === "polygon") {
+      applyOverlapPolygon(items[0].feature, `لایه: ${items[0].name}`);
+      return;
+    }
+    if (items.length === 1) {
+      if (ctx.$toast)
+        ctx.$toast.warning(
+          "برای همپوشانی متقابل حداقل ۲ لایه انتخاب کنید (یا یک پلیگان به‌عنوان محدوده)",
+        );
+      return;
+    }
+
+    analyzing.value = true;
+    const rows = [];
+    const overlapParts = [];
+
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        analyzePair(items[i], items[j], rows, overlapParts);
+      }
+    }
+
+    // تقاطع مشترک همه پلیگان‌ها (در صورت وجود ≥۳ پلیگان)
+    const polys = items.filter((it) => it.kind === "polygon");
+    if (polys.length >= 3) {
+      let multi = polys[0].feature;
+      let ok = true;
+      for (let i = 1; i < polys.length; i++) {
+        const next = safeIntersect(multi, polys[i].feature);
+        if (!next) {
+          ok = false;
+          break;
+        }
+        multi = next;
+      }
+      if (ok && multi) {
+        const multiArea = turf.area(multi);
+        if (multiArea > 0) {
+          overlapParts.push(multi);
+          rows.push({
+            kind: "polygon",
+            pinId: "multi-all",
+            pinName: `تقاطع مشترک همه پلیگان‌ها (${polys.length})`,
+            insideAreaSqMeters: multiArea,
+            totalAreaSqMeters: multiArea,
+            percentage: 100,
+            insideGeometry: multi,
+            isCircle: false,
+            description: polys.map((it) => it.name).join(" ∩ "),
+          });
+        }
+      }
+    }
+
+    // نمایش محدوده از اجتماع قسمت‌های پلیگونی هم‌پوشان
+    const polyParts = overlapParts.filter(
+      (f) =>
+        f &&
+        f.geometry &&
+        (f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon"),
+    );
+    let displayPoly = null;
+    if (polyParts.length === 1) displayPoly = polyParts[0];
+    else if (polyParts.length > 1) {
+      displayPoly = polyParts[0];
+      for (let i = 1; i < polyParts.length; i++) {
+        try {
+          const u = turf.union(
+            turf.featureCollection([displayPoly, polyParts[i]]),
+          );
+          if (u) displayPoly = u;
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    }
+
+    const label = `همپوشانی متقابل لایه‌ها (${items.length}): ${items
+      .slice(0, 3)
+      .map((it) => it.name)
+      .join("، ")}${items.length > 3 ? "…" : ""}`;
+
+    overlapPolygon.value = displayPoly;
+    overlapSourceLabel.value = label;
+    intersectPanelOpen.value = true;
+    setIntersectActive(true);
+
+    if (displayPoly) renderOverlapPolygon(displayPoly);
+    else removeOverlapLayers();
+
+    // ردیف‌های highlight از point/line/polygon
+    const highlightRows = rows.map((r) => {
+      if (r.kind === "point" && r.lon != null) return r;
+      if (r.kind === "line" && r.insideSegments) return r;
+      if (r.kind === "polygon" && r.insideGeometry) return r;
+      // نقاط تقاطع خط-خط در overlapParts هستند؛ برای highlight نقطه بساز
+      return r;
+    });
+    // نقاط تقاطع اضافه‌شده در overlapParts که در rows نیستند را هم هایلایت کن
+    overlapParts.forEach((f) => {
+      if (!f || !f.geometry) return;
+      if (f.geometry.type === "Point") {
+        const [lon, lat] = f.geometry.coordinates;
+        highlightRows.push({
+          kind: "point",
+          lon,
+          lat,
+          pinName: "",
+        });
+      } else if (f.geometry.type === "LineString") {
+        highlightRows.push({
+          kind: "line",
+          insideSegments: [f],
+          pinName: "",
+        });
+      }
+    });
+
+    intersectResults.value = rows;
+    renderHighlights(highlightRows);
+    analyzing.value = false;
+
+    if (ctx.$toast) {
+      if (rows.length) {
+        ctx.$toast.success(
+          `${rows.length} مورد هم‌پوشانی بین لایه‌های انتخاب‌شده یافت شد`,
+        );
+      } else {
+        ctx.$toast.warning(
+          "لایه‌های انتخاب‌شده با هم هم‌پوشانی یا تماس ندارند",
+        );
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------
   // پاکسازی
   // ---------------------------------------------------------------------
@@ -585,11 +1108,36 @@ ${lineRows.length ? `
 <table><thead><tr><th>#</th><th>نام</th><th>طول کل</th><th>طول داخل محدوده</th><th>درصد همپوشانی</th><th>توضیحات</th></tr></thead><tbody>
 ${lineRows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.pinName)}</td><td>${formatDistance(r.totalLengthMeters)}</td><td>${formatDistance(r.insideLengthMeters)}</td><td>${r.percentage.toFixed(1)}%</td><td>${esc(r.description)}</td></tr>`).join("")}
 </tbody></table>` : ""}
-${polyRows.length ? `
-<h2>پلیگان‌ها / دایره‌های دارای همپوشانی</h2>
+${(() => {
+  const pairRows = polyRows.filter((r) => Array.isArray(r.pairNames) && r.pairNames.length === 2);
+  if (pairRows.length) {
+    const byLayer = new Map();
+    const ensure = (name, area) => {
+      if (!byLayer.has(name)) byLayer.set(name, { area: area || 0, items: [] });
+      return byLayer.get(name);
+    };
+    pairRows.forEach((r) => {
+      const [a, b] = r.pairNames;
+      ensure(a, r.totalAreaSqMeters).items.push({ other: b, area: r.insideAreaSqMeters, pct: r.percentage });
+      const pctB = r.otherTotalArea ? (r.insideAreaSqMeters / r.otherTotalArea) * 100 : 0;
+      ensure(b, r.otherTotalArea).items.push({ other: a, area: r.insideAreaSqMeters, pct: pctB });
+    });
+    let html = "<h2>همپوشانی لایه‌ها (به‌ازای هر لایه)</h2>";
+    for (const [name, g] of byLayer) {
+      html += `<h3 style="font-size:14px;margin-top:16px;color:#9a3412">لایه: ${esc(name)} <span style="font-weight:normal;color:#666;font-size:12px">(مساحت کل: ${formatArea(g.area)})</span></h3><ul>`;
+      g.items.forEach((it) => {
+        html += `<li>همپوشانی با «${esc(it.other)}»: <b>${formatArea(it.area)}</b> (${it.pct.toFixed(1)}٪ از این لایه)</li>`;
+      });
+      html += "</ul>";
+    }
+    return html;
+  }
+  if (!polyRows.length) return "";
+  return `<h2>پلیگان‌ها / دایره‌های دارای همپوشانی</h2>
 <table><thead><tr><th>#</th><th>نام</th><th>مساحت کل</th><th>مساحت داخل محدوده</th><th>درصد همپوشانی</th><th>توضیحات</th></tr></thead><tbody>
 ${polyRows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.pinName)}</td><td>${formatArea(r.totalAreaSqMeters)}</td><td>${formatArea(r.insideAreaSqMeters)}</td><td>${r.percentage.toFixed(1)}%</td><td>${esc(r.description)}</td></tr>`).join("")}
-</tbody></table>` : ""}
+</tbody></table>`;
+})()}
 ${rows.length === 0 ? "<p>هیچ عنصری در محدوده همپوشانی یافت نشد.</p>" : ""}
 <button class="no-print" onclick="window.print()" style="margin-top:24px;padding:8px 20px;background:#f97316;color:#fff;border:none;border-radius:6px;cursor:pointer">چاپ / ذخیره PDF</button>
 </body></html>`;
@@ -605,19 +1153,28 @@ ${rows.length === 0 ? "<p>هیچ عنصری در محدوده همپوشانی �
       return;
     }
     const header = [
-      "نوع", "نام", "طول_جغرافیایی", "عرض_جغرافیایی", "UTM_X", "UTM_Y",
+      "نوع", "نام", "لایه_۱", "لایه_۲",
+      "طول_جغرافیایی", "عرض_جغرافیایی", "UTM_X", "UTM_Y",
       "طول_کل_متر", "طول_داخل_متر", "مساحت_کل_مترمربع", "مساحت_داخل_مترمربع",
-      "درصد", "توضیحات",
+      "مساحت_لایه_دوم", "درصد_از_لایه_۱", "درصد_از_لایه_۲", "توضیحات",
     ];
     const lines = [header.join(",")];
     rows.forEach((r) => {
+      const pair = Array.isArray(r.pairNames) ? r.pairNames : ["", ""];
+      const pct2 =
+        r.otherTotalArea > 0 && r.insideAreaSqMeters != null
+          ? ((r.insideAreaSqMeters / r.otherTotalArea) * 100).toFixed(1)
+          : "";
       lines.push([
         r.kind, r.pinName || "",
+        pair[0] || "", pair[1] || "",
         r.lon ?? "", r.lat ?? "",
         r.utmX ?? "", r.utmY ?? "",
         r.totalLengthMeters ?? "", r.insideLengthMeters ?? "",
         r.totalAreaSqMeters ?? "", r.insideAreaSqMeters ?? "",
+        r.otherTotalArea ?? "",
         r.percentage != null ? r.percentage.toFixed(1) : "",
+        pct2,
         `"${(r.description || "").replace(/"/g, '""')}"`,
       ].join(","));
     });
@@ -639,6 +1196,7 @@ ${rows.length === 0 ? "<p>هیچ عنصری در محدوده همپوشانی �
     openIntersectPanel,
     startIntersectMode,
     loadIntersectFromKML,
+    loadIntersectFromPins,
     clearIntersect,
     generateIntersectReport,
     exportIntersectReportCSV,

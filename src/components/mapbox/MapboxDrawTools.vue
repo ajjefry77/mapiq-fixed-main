@@ -66,8 +66,10 @@
     :intersectSummary="intersectSummary"
     :overlapSourceLabel="overlapSourceLabel"
     :analyzing="intersectAnalyzing"
+    :pins="pins"
     @startIntersectMode="startIntersectMode"
     @uploadKML="loadIntersectFromKML"
+    @usePinLayers="loadIntersectFromPins"
     @clearIntersect="clearIntersect"
     @generateReport="generateIntersectReport"
     @exportCSV="exportIntersectReportCSV"
@@ -142,6 +144,7 @@ const {
   openIntersectPanel,
   startIntersectMode,
   loadIntersectFromKML,
+  loadIntersectFromPins,
   clearIntersect,
   generateIntersectReport,
   exportIntersectReportCSV,

@@ -69,7 +69,7 @@
           </button>
           <label
             class="text-gray-500 w-8 py-1 rounded px-0 text-center cursor-pointer transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110"
-            title="باز کردن kml"
+            title="باز کردن KML / CSV / DXF / DWG / Shapefile"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -88,7 +88,7 @@
               type="file"
               class="hidden"
               @change="handleFileUpload"
-              accept=".kml,.kmz,.csv,.txt"
+              accept=".kml,.kmz,.csv,.txt,.dxf,.dwg,.zip"
             />
           </label>
           <button
@@ -277,6 +277,7 @@ import {
   registerLayersForSource,
   bringDrawingsToFront,
 } from "../../utils/layerOrder";
+import { dxfToGeoJSON } from "../../utils/dxfToGeoJSON";
 
 const {
   getExtendedIds,
@@ -1177,6 +1178,7 @@ const handleFileUpload = async (event) => {
   if (!file) return;
   const fileName = file.name.toLowerCase();
   loading.value = true;
+  event.target.value = "";
 
   if (fileName.endsWith(".csv") || fileName.endsWith(".txt")) {
     loading.value = false;
@@ -1309,11 +1311,116 @@ const handleFileUpload = async (event) => {
       }
     };
     reader.readAsArrayBuffer(file);
+  } else if (fileName.endsWith(".dxf") || fileName.endsWith(".dwg")) {
+    try {
+      const textContent = await readDxfText(file, fileName);
+      const geojson = dxfToGeoJSON(textContent);
+      if (!geojson.features.length) {
+        showMessage(
+          fileName.endsWith(".dwg")
+            ? "فایل DWG باینری پشتیبانی نمی‌شود. لطفاً از AutoCAD به‌صورت DXF ذخیره کنید."
+            : "هیچ هندسه‌ای در فایل DXF پیدا نشد",
+          "error",
+        );
+        loading.value = false;
+        return;
+      }
+      await addGeoJsonFileToMap(geojson, fileName, file);
+    } catch (error) {
+      console.error("خطا در بارگذاری DXF/DWG:", error);
+      showMessage(
+        fileName.endsWith(".dwg")
+          ? "فایل DWG باینری در مرورگر قابل‌خواندن نیست. فایل را به DXF تبدیل کنید."
+          : "خطا در خواندن فایل DXF",
+        "error",
+      );
+      loading.value = false;
+    }
   } else {
-    alert("فقط فایل‌های KML/KMZ و SHP (ZIP) و CSV پشتیبانی می‌شوند.");
+    alert(
+      "فقط فایل‌های KML/KMZ، SHP (ZIP)، CSV، DXF و DWG (ASCII) پشتیبانی می‌شوند.",
+    );
     loading.value = false;
   }
 };
+
+/** اضافه کردن GeoJSON فایل به نقشه و لیست پین‌ها */
+async function addGeoJsonFileToMap(geojson, fileName, file) {
+  const sourceId = "file-" + crypto.randomUUID();
+  props.map.addSource(sourceId, { type: "geojson", data: geojson });
+  props.map.addLayer({
+    id: sourceId + "-fill",
+    type: "fill",
+    source: sourceId,
+    paint: { "fill-color": "#ff0000", "fill-opacity": 0.3 },
+    filter: ["==", "$type", "Polygon"],
+  });
+  props.map.addLayer({
+    id: sourceId + "-line",
+    type: "line",
+    source: sourceId,
+    paint: { "line-color": "#ff0000", "line-width": 2 },
+    filter: ["in", "$type", "LineString", "Polygon"],
+  });
+  props.map.addLayer({
+    id: sourceId + "-point",
+    type: "circle",
+    source: sourceId,
+    paint: { "circle-radius": 6, "circle-color": "#ff0000" },
+    filter: ["==", "$type", "Point"],
+  });
+  registerLayersForSource(props.map, sourceId);
+
+  const bounds = new mapboxgl.LngLatBounds();
+  const addCoords = (coords) => {
+    if (typeof coords[0] === "number") bounds.extend(coords);
+    else coords.forEach(addCoords);
+  };
+  (geojson.features || []).forEach((f) => {
+    if (f.geometry?.coordinates) addCoords(f.geometry.coordinates);
+  });
+  if (!bounds.isEmpty())
+    props.map.fitBounds(bounds, { padding: 50, duration: 2000 });
+
+  loading.value = false;
+  let pin = {
+    id: crypto.randomUUID(),
+    name: fileName,
+    shape: { show: true, _sourceIds: [sourceId] },
+    date: new Date(),
+    save: -1,
+    type: "file",
+    file,
+  };
+  if (SelectGroup.value !== null) {
+    pin.parent_id = props.pins[SelectGroup.value].save ?? -1;
+    props.pins[SelectGroup.value].children.push(pin);
+  } else {
+    pin.parent_id = -1;
+    props.pins.push(pin);
+  }
+  await saveOneWorks(pin);
+  showMessage(`فایل ${fileName} با موفقیت بارگذاری شد`, "success");
+}
+
+/**
+ * خواندن متن DXF. برای DWG باینری خطا می‌دهد مگر اینکه در واقع ASCII DXF باشد.
+ */
+async function readDxfText(file, name = "") {
+  const lower = (name || file.name || "").toLowerCase();
+
+  if (lower.endsWith(".dwg")) {
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    const sig = String.fromCharCode(...bytes.slice(0, 6));
+    if (sig.startsWith("AC10")) {
+      throw new Error("binary DWG not supported");
+    }
+    return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  }
+
+  return await file.text();
+}
 
 function Export(filename, exportType) {
   const activePins = props.pins.filter(

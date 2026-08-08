@@ -2,9 +2,11 @@
   <div class="flex flex-col min-h-0">
     <div class="flex gap-1 mb-2">
       <button
-        class="px-2 py-1 text-sm rounded"
+        class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
-          activeTab === 'my2' ? 'bg-accent text-white' : 'bg-white border'
+          activeTab === 'my2'
+            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
+            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
         "
         @click="activeTab = 'my2'"
       >
@@ -12,24 +14,28 @@
       </button>
       <button
         v-if="authStore.user"
-        class="relative px-2 py-1 text-sm rounded"
+        class="relative px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
-          activeTab === 'in' ? 'bg-accent text-white' : 'bg-white border'
+          activeTab === 'in'
+            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
+            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
         "
         @click="activeTab = 'in'"
       >
         فضای اشتراکی
         <span
           v-if="unreadCount > 0"
-          class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full px-1 min-w-[16px] text-center"
+          class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full px-1 min-w-[16px] text-center animate-pulse"
           >{{ unreadCount }}</span
         >
       </button>
       <button
         v-if="authStore.user"
-        class="px-2 py-1 text-sm rounded"
+        class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
-          activeTab === 'out' ? 'bg-accent text-white' : 'bg-white border'
+          activeTab === 'out'
+            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
+            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
         "
         @click="activeTab = 'out'"
       >
@@ -44,7 +50,7 @@
       <div class="flex items-center justify-between mt-0 mb-2">
         <div class="flex gap-1 text-sm">
           <button
-            class="text-gray-500 w-8 py-1 rounded"
+            class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
             @click="exportDialog = true"
             title="خروجی kml"
           >
@@ -62,7 +68,7 @@
             </svg>
           </button>
           <label
-            class="text-gray-500 w-8 py-1 rounded px-0 text-center cursor-pointer"
+            class="text-gray-500 w-8 py-1 rounded px-0 text-center cursor-pointer transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110"
             title="باز کردن kml"
           >
             <svg
@@ -86,14 +92,14 @@
             />
           </label>
           <button
-            class="text-gray-500 w-8 py-1 rounded"
+            class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
             @click="createFolderDialog = true"
             title="ایجاد گروه"
           >
             <i class="fas fa-folder-tree"></i>
           </button>
           <button
-            class="text-gray-500 w-8 py-1 rounded"
+            class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
             @click="ArchiveDesktop"
             title="بایگانی میز کار"
           >
@@ -119,22 +125,22 @@
     >
       <div class="flex gap-1 mb-2">
         <button
-          class="px-2 py-0.5 text-xs rounded"
+          class="px-2 py-0.5 text-xs rounded transition-all duration-200 ease-out cursor-pointer"
           :class="
             sharedSubTab === 'files'
-              ? 'bg-orange-500 text-white'
-              : 'bg-white border'
+              ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
+              : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
           "
           @click="sharedSubTab = 'files'"
         >
           فایل‌ها (پوشه ورودی)
         </button>
         <button
-          class="px-2 py-0.5 text-xs rounded"
+          class="px-2 py-0.5 text-xs rounded transition-all duration-200 ease-out cursor-pointer"
           :class="
             sharedSubTab === 'groups'
-              ? 'bg-orange-500 text-white'
-              : 'bg-white border'
+              ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
+              : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
           "
           @click="sharedSubTab = 'groups'"
         >
@@ -147,10 +153,10 @@
             <li
               v-for="(file, index) in inboxFiles"
               :key="index"
-              class="flex items-center justify-between bg-white px-2 border rounded"
+              class="flex items-center justify-between bg-white px-2 rounded transition-all duration-150 ease-out hover:bg-gray-50 hover:shadow-sm group"
             >
               <div
-                class="flex items-center gap-1 cursor-pointer"
+                class="flex items-center gap-1 cursor-pointer flex-1 min-w-0"
                 @click="drawInbox(index)"
               >
                 <i
@@ -159,13 +165,14 @@
                       ? 'fas fa-envelope-open text-gray-400'
                       : 'fas fa-envelope text-accent'
                   "
+                  class="transition-transform duration-200 group-hover:scale-110"
                 ></i>
                 <span class="text-sm truncate">{{ getTitle(file) }}</span>
               </div>
               <div class="flex items-center gap-1">
                 <button
                   @click.stop="addInboxToDesktop(index)"
-                  class="text-accent hover:text-accent px-1"
+                  class="text-accent px-1 rounded transition-all duration-200 ease-out hover:bg-accent hover:text-white hover:scale-110 cursor-pointer opacity-70 group-hover:opacity-100"
                   title="افزودن به میز کار"
                 >
                   <i class="fas fa-plus text-sm"></i>
@@ -190,10 +197,10 @@
             <li
               v-for="(group, index) in userGroups"
               :key="index"
-              class="flex items-center justify-between bg-white px-2 py-1 border rounded"
+              class="flex items-center justify-between bg-white px-2 py-1 rounded transition-all duration-150 ease-out hover:bg-gray-50 hover:shadow-sm cursor-pointer"
             >
               <div class="flex items-center gap-2">
-                <i class="fas fa-users text-gray-600"></i>
+                <i class="fas fa-users text-gray-600 transition-colors duration-200 group-hover:text-accent"></i>
                 <span class="text-sm truncate w-48">{{ group.name }}</span>
               </div>
               <span v-if="authStore.isAdmin" class="text-xs text-gray-500"
@@ -345,8 +352,6 @@ onUnmounted(() => {
 
 let redrawScheduled = false;
 async function onBaseStyleReloaded() {
-  // setStyle یک style کاملا جدید را جایگزین می‌کند و تمام sourceها/layerهای دستی
-  // (پین‌ها/ترسیم‌ها) از بین می‌روند؛ اینجا دوباره‌شان می‌سازیم و بالای بیس‌مپ می‌بریم.
   if (redrawScheduled) return;
   redrawScheduled = true;
   try {
@@ -488,7 +493,6 @@ const drawInbox = async (idx) => {
   pin.show = true;
 };
 
-// افزودن لایه دریافتی به میز کار تا قابل ویرایش و ذخیره باشد
 const addInboxToDesktop = async (idx) => {
   const file = inboxFiles.value[idx];
   const pin = file?.MyWork;
@@ -539,7 +543,6 @@ const addInboxToDesktop = async (idx) => {
     if (newPin.type == "draw") {
       drawShape(newPin, "draw", true);
     } else if (newPin.type == "file" && newPin.content) {
-      // فایل KML/KMZ: بایت‌های فایل را از سرور گرفته و برای ذخیره در میز کار جاری آپلود می‌کنیم
       const url = SERVER + "/uploads/pins/" + newPin.content;
       const res = await fetch(url);
       const blob = await res.blob();
@@ -1002,7 +1005,6 @@ function parseKMLCoords(el) {
     .filter((c) => !isNaN(c[0]) && !isNaN(c[1]));
 }
 
-// ----- پشتیبانی از فایل KMZ (زیپ حاوی doc.kml) -----
 const readU16 = (buf, o) => buf[o] | (buf[o + 1] << 8);
 const readU32 = (buf, o) =>
   buf[o] | (buf[o + 1] << 8) | (buf[o + 2] << 16) | (buf[o + 3] << 24);
@@ -1168,9 +1170,7 @@ function showMessage(msg, type) {
 }
 
 const importCsvRef = ref(null);
-function onCsvImported({ count, skipped }) {
-  // اختیاری: نوتیفیکیشن موفقیت
-}
+function onCsvImported({ count, skipped }) {}
 
 const handleFileUpload = async (event) => {
   const file = event.target.files[0];
@@ -1180,7 +1180,7 @@ const handleFileUpload = async (event) => {
 
   if (fileName.endsWith(".csv") || fileName.endsWith(".txt")) {
     loading.value = false;
-    importCsvRef.value?.open(file); // به‌جای Papa.parse + csvRef.value?.open(fileName)
+    importCsvRef.value?.open(file);
     return;
   }
 
@@ -1316,7 +1316,6 @@ const handleFileUpload = async (event) => {
 };
 
 function Export(filename, exportType) {
-  // فقط ترسیم‌های فعال (تیک‌خورده / visible روی نقشه)
   const activePins = props.pins.filter(
     (pin) => pin.type === "draw" && pin.shape && pin.shape.show === true,
   );

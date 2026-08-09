@@ -23,7 +23,7 @@
         ></div>
 
         <div
-          class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col md:h-[70vh] max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto"
+          class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col md:h-[calc(100vh-70px)] max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto"
         >
           <button
             @click="isOpen = false"
@@ -40,33 +40,8 @@
             :openDia="openMyDialog"
             @clearPins="clearPins"
             :close="isOpen"
+            @show-tile="ShowTile"
           />
-        </div>
-
-        <div
-          id="layer-panel"
-          class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded-lg shadow-lg p-3 z-50 max-md:hidden"
-        >
-          <div class="overflow-y-auto h-[95%]">
-            <h3 class="mb-2 text-sm font-bold" style="color: var(--text)">لایه ها :</h3>
-            <hr style="border-top: 1px solid var(--border); margin-bottom: 10px" />
-            <span
-              v-if="
-                authStore?.user?.phone == '09153333989' ||
-                authStore?.user?.phone == '09156620866'
-              "
-              class="text-xs truncate flex items-center gap-2"
-              style="color: var(--text)"
-            >
-              <input
-                type="checkbox"
-                class="accent-green-600"
-                @change="ShowTile"
-              />
-              <i class="text-accent" />
-              عکس هوایی طرقبه 1340
-            </span>
-          </div>
         </div>
       </div>
 

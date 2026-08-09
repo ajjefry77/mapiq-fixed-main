@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col min-h-0">
-    <div class="flex gap-1 mb-2">
+    <div class="flex gap-1 mb-3">
       <button
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
@@ -40,6 +40,17 @@
         @click="activeTab = 'out'"
       >
         تاریخچه
+      </button>
+      <button
+        class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
+        :class="
+          activeTab === 'layers'
+            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
+            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+        "
+        @click="activeTab = 'layers'"
+      >
+        لایه‌ها
       </button>
     </div>
 
@@ -234,6 +245,35 @@
       </div>
     </div>
 
+    <div
+      v-if="activeTab === 'layers'"
+      class="text-xs flex flex-col h-full min-h-0"
+    >
+      
+      <hr style="border-top: 1px solid #aaa; margin-bottom: 10px" />
+      <div class="overflow-y-auto">
+        <span
+          v-if="
+            authStore?.user?.phone == '09153333989' ||
+            authStore?.user?.phone == '09156620866'
+          "
+          class="text-xs truncate flex items-center gap-2"
+          style="color: var(--text)"
+        >
+          <input
+            type="checkbox"
+            class="accent-green-600"
+            @change="emit('show-tile', $event)"
+          />
+          <i class="text-accent" />
+          عکس هوایی طرقبه 1340
+        </span>
+        <p v-else class="text-center text-gray-400 py-4">
+          لایه‌ای برای نمایش وجود ندارد
+        </p>
+      </div>
+    </div>
+
     <ExportDialog v-model="exportDialog" @confirm="Export" />
     <SaveDialog v-model="createFolderDialog" @confirm="createFolder" />
     <SendDialog :show="OpenSend" @submit="send" @cancel="OpenSend = false" />
@@ -312,7 +352,7 @@ const SelectGroup = inject("SelectGroup", null);
 let intervalId = null;
 const index_pin_id = ref(-1);
 
-const emit = defineEmits(["update:openDia", "clearPins", "close"]);
+const emit = defineEmits(["update:openDia", "clearPins", "close", "show-tile"]);
 const props = defineProps({
   pins: { type: Object, required: true },
   map: { type: Object, required: true },

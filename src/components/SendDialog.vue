@@ -52,8 +52,11 @@ const workflows = ref([]);
 const search = ref("");
 
 onMounted(async () => {
-  // لیست کاربران برای همه نقش‌ها (از جمله کاربر عادی) لازم است تا ارسال کار کند
-  await Promise.all([load_Users()/*, load_Works()*/]);
+  // فقط برای نقش‌هایی که به /api/users دسترسی دارند لیست را می‌گیریم.
+  // کاربر عادی با شماره همراه (rec_phone) ارسال می‌کند و نیازی به این لیست ندارد.
+  if (authStore.isAdmin || authStore.isGroupManager) {
+    await load_Users();
+  }
 });
 
 const load_Users = async () => {
@@ -61,7 +64,8 @@ const load_Users = async () => {
     const response = await axios.get(SERVER + '/api/users');
     users.value = response.data;
   } catch (error) {
-    console.log('Error loading users:', error);
+    // 403 برای کاربر عادی طبیعی است؛ نادیده می‌گیریم
+    console.log('Error loading users (permission denied is expected for normal users):', error?.response?.status || error);
   }
 };
 
@@ -99,19 +103,22 @@ watch(
 )
 
 const onSubmit = () => {
-  let fnd = users.value.find(a=> a.phone == search.value)
-  if (fnd) {
-    const payload = {
-      tab: tab.value,
-      description: description.value,
-      selected : fnd.id
-      //selected:
-      //    tab.value === 'user' ? selectedUser.value : selectedWorkflow.value,
-    }
-    emit('submit', payload)
-  } else {
-    alert('کاربر مورد نظر پیدا نشد')
+  const phone = (search.value || '').trim()
+  if (!phone) {
+    alert('شماره همراه را وارد کنید')
+    return
   }
+  // اگر لیست کاربران لود شده باشد (مثلاً ادمین/مدیر) از id استفاده می‌کنیم،
+  // در غیر این صورت فقط شماره را می‌فرستیم تا بک‌اند با rec_phone کار کند
+  // (کاربر عادی به /api/users دسترسی ندارد و 403 می‌گیرد)
+  const fnd = users.value.find(a => a.phone == phone)
+  const payload = {
+    tab: tab.value,
+    description: description.value,
+    selected: fnd ? fnd.id : null,
+    phone: phone,
+  }
+  emit('submit', payload)
 }
 
 const onCancel = () => {

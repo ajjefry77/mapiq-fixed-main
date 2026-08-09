@@ -728,7 +728,15 @@ const send = async (data) => {
   let pin = props.pins[index_pin_id.value];
   const form = new FormData();
   form.append("sender_id", authStore.user.id);
-  form.append("receiver_id", data.selected);
+  // کاربر عادی به لیست کاربران دسترسی ندارد؛ در این حالت با شماره همراه (rec_phone) ارسال می‌شود
+  if (data.selected) {
+    form.append("receiver_id", data.selected);
+  } else if (data.phone) {
+    form.append("rec_phone", data.phone);
+  } else {
+    showMessage('گیرنده مشخص نشده است', 'error');
+    return;
+  }
   form.append("document_id", pin.save);
   form.append("descr", data.description);
   if (pin.save < 0) {

@@ -203,31 +203,127 @@
         v-else-if="sharedSubTab === 'groups'"
         class="flex flex-col h-full min-h-0"
       >
+        <div class="flex items-center justify-between mt-0 mb-2">
+          <p class="text-sm text-gray-600">گروه‌های من:</p>
+        </div>
         <div class="overflow-y-auto">
           <ul class="space-y-1">
             <li
               v-for="(group, index) in userGroups"
-              :key="index"
-              class="flex items-center justify-between bg-white px-2 py-1 rounded transition-all duration-150 ease-out hover:bg-gray-50 hover:shadow-sm cursor-pointer"
+              :key="group.id || index"
+              class="bg-white border rounded overflow-hidden"
             >
-              <div class="flex items-center gap-2">
-                <i class="fas fa-users text-gray-600 transition-colors duration-200 group-hover:text-accent"></i>
-                <span class="text-sm truncate w-48">{{ group.name }}</span>
-              </div>
-              <span v-if="authStore.isAdmin" class="text-xs text-gray-500"
-                >{{ group.member_count ?? 0 }} عضو</span
+              <div
+                class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-gray-50"
+                @click="toggleGroupExpand(group)"
               >
+                <div class="flex items-center gap-2 min-w-0">
+                  <i
+                    class="fas text-xs text-gray-500"
+                    :class="expandedGroups[group.id] ? 'fa-chevron-down' : 'fa-chevron-left'"
+                  ></i>
+                  <i class="fas fa-users text-gray-600"></i>
+                  <span class="text-sm truncate">{{ group.name }}</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <span v-if="authStore.isAdmin || group.member_count != null" class="text-xs text-gray-500">
+                    {{ group.member_count ?? 0 }} عضو
+                  </span>
+                  <button
+                    class="text-green-600 hover:text-green-800 p-1"
+                    title="ایجاد پروژه در گروه"
+                    @click.stop="openCreateGroupProject(group)"
+                  >
+                    <i class="fas fa-plus text-xs"></i>
+                  </button>
+                  <button
+                    class="text-blue-600 hover:text-blue-800 p-1"
+                    title="وارد کردن از میز کار"
+                    @click.stop="openImportFromDesktop(group)"
+                  >
+                    <i class="fas fa-file-import text-xs"></i>
+                  </button>
+                </div>
+              </div>
+              <div v-if="expandedGroups[group.id]" class="border-t bg-gray-50 px-2 py-1">
+                <div v-if="loadingGroupProjects[group.id]" class="text-center text-gray-400 py-2 text-xs">
+                  در حال بارگذاری...
+                </div>
+                <ul v-else-if="(groupProjects[group.id] || []).length" class="space-y-0.5">
+                  <li
+                    v-for="proj in groupProjects[group.id]"
+                    :key="proj.id || proj.save"
+                    class="flex items-center justify-between px-1 py-1 rounded hover:bg-white"
+                  >
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <i
+                        class="fas text-xs"
+                        :class="proj.type === 'group' || proj.type === 'folder' ? 'fa-folder text-amber-500' : 'fa-map text-blue-500'"
+                      ></i>
+                      <span class="text-xs truncate">{{ proj.name }}</span>
+                    </div>
+                    <div class="flex items-center gap-0.5 shrink-0">
+                      <button
+                        class="text-gray-600 hover:text-accent p-1"
+                        title="نمایش روی نقشه"
+                        @click.stop="loadGroupProject(proj, group)"
+                      >
+                        <i class="fas fa-search text-xs"></i>
+                      </button>
+                      <button
+                        v-if="isGroupManagerOf(group)"
+                        class="text-green-600 hover:text-green-800 p-1"
+                        title="اشتراک‌گذاری (فقط مدیر گروه)"
+                        @click.stop="shareGroupProject(proj, group)"
+                      >
+                        <i class="fas fa-share text-xs"></i>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+                <div v-else class="text-center text-gray-400 py-2 text-xs">
+                  هنوز پروژه‌ای در این گروه نیست
+                </div>
+              </div>
             </li>
-            <li
-              v-if="!userGroups.length"
-              class="text-center text-gray-400 py-4"
-            >
+            <li v-if="!userGroups.length" class="text-center text-gray-400 py-4">
               شما در هیچ گروهی عضو نیستید
             </li>
           </ul>
         </div>
       </div>
     </div>
+
+    <!-- مودال‌های پروژه‌های گروهی (Mapbox) -->
+    <SaveDialog v-model="createGroupProjectDialog" @confirm="createGroupProject" />
+    <Transition name="modal">
+      <div v-if="showImportDialog" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50" @click.self="showImportDialog = false">
+        <div class="bg-white rounded-2xl p-5 w-96 max-h-[70vh] shadow-xl flex flex-col">
+          <h2 class="text-base font-bold mb-3">وارد کردن از میز کار به «{{ importTargetGroup?.name }}»</h2>
+          <div class="overflow-y-auto flex-1 border rounded p-2 mb-3">
+            <label
+              v-for="(item, idx) in desktopItemsForImport"
+              :key="item.save || idx"
+              class="flex items-center gap-2 py-1.5 px-1 hover:bg-gray-50 rounded cursor-pointer"
+            >
+              <input type="checkbox" v-model="selectedImportIds" :value="item.save" class="accent-accent" />
+              <span class="text-sm truncate">{{ item.name }}</span>
+            </label>
+            <div v-if="!desktopItemsForImport.length" class="text-center text-gray-400 py-4 text-xs">آیتمی در میز کار نیست</div>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button class="px-3 py-1.5 bg-gray-200 rounded-md text-sm" @click="showImportDialog = false">انصراف</button>
+            <button
+              class="px-3 py-1.5 bg-accent text-white rounded-md text-sm disabled:opacity-50"
+              :disabled="!selectedImportIds.length || importing"
+              @click="importSelectedToGroup"
+            >
+              {{ importing ? '...' : 'وارد کردن به گروه' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <div
       v-if="activeTab === 'out' && authStore.user"
@@ -342,6 +438,17 @@ const activeTab = ref("my2");
 const sharedSubTab = ref("files");
 const inboxFiles = ref([]);
 const userGroups = ref([]);
+// پروژه‌های گروهی (شبیه Figma)
+const expandedGroups = ref({});
+const groupProjects = ref({});
+const loadingGroupProjects = ref({});
+const createGroupProjectDialog = ref(false);
+const createProjectTargetGroup = ref(null);
+const showImportDialog = ref(false);
+const importTargetGroup = ref(null);
+const selectedImportIds = ref([]);
+const importing = ref(false);
+const desktopItemsForImport = ref([]);
 const users = ref([]);
 const unreadCount = ref(0);
 const csvRows = ref([]);
@@ -455,6 +562,141 @@ const loadUserGroups = async () => {
     userGroups.value = [];
   }
 };
+
+function isGroupManagerOf(group) {
+  if (!group || !authStore.user) return false;
+  if (authStore.isAdmin) return true;
+  if (authStore.isGroupManager) {
+    const uid = authStore.user.id;
+    if (group.owner_id == uid || group.created_by == uid || group.manager_id == uid) return true;
+    return true;
+  }
+  return false;
+}
+
+async function toggleGroupExpand(group) {
+  const id = group.id;
+  expandedGroups.value[id] = !expandedGroups.value[id];
+  if (expandedGroups.value[id] && !groupProjects.value[id]) {
+    await loadGroupProjects(group);
+  }
+}
+
+async function loadGroupProjects(group) {
+  const id = group.id;
+  loadingGroupProjects.value[id] = true;
+  try {
+    const res = await axios.get(SERVER + `/api/groups/${id}/projects`);
+    const list = res.data?.data ?? res.data ?? [];
+    groupProjects.value[id] = Array.isArray(list)
+      ? list.map((i) => ({
+          id: i.obj_id ?? i.id,
+          name: i.name,
+          type: i.type || "draw",
+          save: i.id,
+          parent_id: i.parent_id,
+          content: i.content,
+          date: i.createdAt,
+          group_id: id,
+        }))
+      : [];
+  } catch (err) {
+    console.warn("پروژه‌های گروه بارگذاری نشد:", err?.response?.status || err.message);
+    groupProjects.value[id] = [];
+  } finally {
+    loadingGroupProjects.value[id] = false;
+  }
+}
+
+function openCreateGroupProject(group) {
+  createProjectTargetGroup.value = group;
+  createGroupProjectDialog.value = true;
+}
+
+async function createGroupProject(name) {
+  const group = createProjectTargetGroup.value;
+  if (!group || !name?.trim()) return;
+  try {
+    const payload = { type: "group", name: name.trim(), group_id: group.id };
+    const res = await axios.post(SERVER + `/api/groups/${group.id}/projects`, payload);
+    const created = res.data?.data ?? res.data;
+    if (!groupProjects.value[group.id]) groupProjects.value[group.id] = [];
+    groupProjects.value[group.id].unshift({
+      id: created?.obj_id ?? created?.id,
+      name: name.trim(),
+      type: "group",
+      save: created?.id,
+      group_id: group.id,
+    });
+    expandedGroups.value[group.id] = true;
+    $toast?.success?.("پروژه در گروه ایجاد شد");
+  } catch (err) {
+    try {
+      await axios.post(SERVER + "/api/createFolder/" + authStore.user?.id, {
+        type: "group",
+        name: name.trim(),
+        group_id: group.id,
+      });
+      if (!groupProjects.value[group.id]) groupProjects.value[group.id] = [];
+      groupProjects.value[group.id].unshift({ name: name.trim(), type: "group", group_id: group.id });
+      expandedGroups.value[group.id] = true;
+    } catch {
+      $toast?.error?.("خطا در ایجاد پروژه گروه");
+    }
+  } finally {
+    createGroupProjectDialog.value = false;
+    createProjectTargetGroup.value = null;
+  }
+}
+
+function openImportFromDesktop(group) {
+  importTargetGroup.value = group;
+  selectedImportIds.value = [];
+  desktopItemsForImport.value = (props.pins || []).filter((p) => p && p.save != null);
+  showImportDialog.value = true;
+}
+
+async function importSelectedToGroup() {
+  const group = importTargetGroup.value;
+  if (!group || !selectedImportIds.value.length) return;
+  importing.value = true;
+  try {
+    await axios.post(SERVER + `/api/groups/${group.id}/projects/import`, {
+      work_ids: selectedImportIds.value,
+    });
+    $toast?.success?.("پروژه‌ها به گروه منتقل شدند");
+    showImportDialog.value = false;
+    await loadGroupProjects(group);
+    expandedGroups.value[group.id] = true;
+  } catch {
+    $toast?.error?.("خطا در وارد کردن به گروه");
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function loadGroupProject(proj, group) {
+  try {
+    if (proj.content || proj.type === "draw") {
+      // در Mapbox معمولاً از مکانیزم لایه‌های موجود استفاده می‌شود
+      console.log("load group project", proj, group);
+    } else {
+      const res = await axios.get(SERVER + `/api/load/myWork/item/${proj.save || proj.id}`);
+      console.log("loaded item", res.data);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function shareGroupProject(proj, group) {
+  if (!isGroupManagerOf(group)) {
+    $toast?.error?.("فقط مدیر گروه می‌تواند پروژه را به اشتراک بگذارد");
+    return;
+  }
+  OpenSend.value = true;
+  $toast?.info?.("اشتراک‌گذاری پروژه گروهی (فقط مدیر گروه)");
+}
 
 const load_Users = async () => {
   try {

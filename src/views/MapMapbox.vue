@@ -214,6 +214,13 @@ const baseMaps = [
     thumbnail: "dark2D.jpg",
     style: "mapbox://styles/mapbox/dark-v11",
   },
+  {
+    name: "Mapbox 3D",
+    thumbnail: "dark3D.png",
+    style: "mapbox://styles/mapbox/standard",
+    is3D: true,
+    night: true,
+  },
   { name: "Satellite", thumbnail: "smap.jpg", style: "satellite" },
   {
     name: "Google Maps",
@@ -276,11 +283,122 @@ function openMyDialog() {
   openDialog.value = true;
 }
 
+const is3DMode = ref(false);
+
+function preventContextMenu(e) {
+  e.preventDefault();
+}
+
+function enable3DView() {
+  if (!map) return;
+  is3DMode.value = true;
+
+  map.setMaxPitch(85);
+  map.dragRotate.enable();
+  map.touchZoomRotate.enableRotation();
+  if (map.touchPitch) map.touchPitch.enable();
+
+  map.getCanvas().addEventListener("contextmenu", preventContextMenu);
+
+  const apply3DLayers = () => {
+    if (!map.getSource("mapbox-dem")) {
+      map.addSource("mapbox-dem", {
+        type: "raster-dem",
+        url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+        tileSize: 512,
+        maxzoom: 14,
+      });
+    }
+    map.setTerrain({ source: "mapbox-dem", exaggeration: 1.8 });
+
+    if (!map.getLayer("sky")) {
+      try {
+        map.addLayer({
+          id: "sky",
+          type: "sky",
+          paint: {
+            "sky-type": "atmosphere",
+            "sky-atmosphere-sun": [0.0, 90.0],
+            "sky-atmosphere-sun-intensity": 15,
+          },
+        });
+      } catch (_) {}
+    }
+
+    try {
+      map.setFog({
+        color: "rgb(186, 210, 235)",
+        "high-color": "rgb(36, 92, 223)",
+        "horizon-blend": 0.02,
+        "space-color": "rgb(11, 11, 25)",
+        "star-intensity": 0.6,
+      });
+    } catch (_) {}
+
+    map.easeTo({ pitch: 60, bearing: map.getBearing(), duration: 1000 });
+  };
+
+  if (map.isStyleLoaded && map.isStyleLoaded()) {
+    apply3DLayers();
+  } else {
+    map.once("style.load", apply3DLayers);
+    try {
+      map.setConfigProperty("basemap", "lightPreset", "night");
+    } catch (_) {}
+  }
+}
+
+function lock2DView() {
+  if (!map) return;
+  is3DMode.value = false;
+
+  try {
+    map.getCanvas().removeEventListener("contextmenu", preventContextMenu);
+  } catch (_) {}
+
+  const styleLoaded = map.isStyleLoaded && map.isStyleLoaded();
+  if (styleLoaded) {
+    try {
+      map.setFog(null);
+    } catch (_) {}
+    try {
+      map.setTerrain(null);
+    } catch (_) {}
+    if (map.getLayer("sky")) {
+      try {
+        map.removeLayer("sky");
+      } catch (_) {}
+    }
+    if (map.getSource("mapbox-dem")) {
+      try {
+        map.removeSource("mapbox-dem");
+      } catch (_) {}
+    }
+  }
+
+  map.setMaxPitch(0);
+  map.dragRotate.disable();
+  map.touchZoomRotate.disableRotation();
+  if (map.touchPitch) map.touchPitch.disable();
+  try {
+    if (map.getPitch() !== 0) map.setPitch(0);
+    if (map.getBearing() !== 0) map.setBearing(0);
+  } catch (_) {}
+}
+
 function setBaseLayer(basemap) {
   if (!map) return;
+  const applyViewMode = () => {
+    if (basemap.is3D) {
+      enable3DView();
+    } else {
+      lock2DView();
+    }
+    bringDrawingsToFront(map);
+  };
+
   if (basemap.tiles) {
-    // قبل از افزودن بیس‌مپ جدید، سبک قبلی نقشه (مثلا ست‌لایت یا OSM) را کامل پاک می‌کنیم
-    // وگرنه لایه‌ی جدید زیر لایه‌ی قبلی اضافه می‌شود و دیده نمی‌شود
+    // قبل از افزودن بیس‌مپ جدید، سبک قبلی نقشه را کامل پاک می‌کنیم
     map.setStyle({ version: 8, sources: {}, layers: [] });
     map.once("style.load", () => {
       const sourceId = "basemap-custom";
@@ -294,7 +412,7 @@ function setBaseLayer(basemap) {
         attribution: "",
       });
       map.addLayer({ id: layerId, type: "raster", source: sourceId });
-      bringDrawingsToFront(map);
+      applyViewMode();
     });
   } else if (basemap.style === "satellite") {
     const satelliteLayer = {
@@ -318,8 +436,10 @@ function setBaseLayer(basemap) {
       ],
     };
     map.setStyle(satelliteLayer);
+    map.once("style.load", applyViewMode);
   } else {
     map.setStyle(basemap.style);
+    map.once("style.load", applyViewMode);
   }
 }
 
@@ -404,8 +524,13 @@ function onMapPointPicked({ lat, lng }) {
     .setLngLat([lng, lat])
     .addTo(map);
 
-  // نقشه ۲بعدی است؛ pitch صفر بماند تا دید کج نشود
-  map.flyTo({ center: [lng, lat], zoom: 16, pitch: 0, bearing: 0, duration: 1500 });
+  map.flyTo({
+    center: [lng, lat],
+    zoom: 16,
+    pitch: is3DMode.value ? 60 : 0,
+    bearing: is3DMode.value ? map.getBearing() : 0,
+    duration: 1500,
+  });
   showPickerPanel.value = true;
 }
 
@@ -496,21 +621,14 @@ function initMap() {
     bearing: 0,
     maxPitch: 0,
     dragRotate: false,
-    pitchWithRotate: false,
+    pitchWithRotate: true,
     touchPitch: false,
     attributionControl: false,
     preserveDrawingBuffer: true, // ✅ این خط را اضافه کنید تا تصویر نقشه قابل ذخیره باشد
   });
-  // قفل کامل زاویه دید ۲بعدی — بدون تیلت و چرخش با راست‌کلیک/لمس
-  const lock2DView = () => {
-    map.dragRotate.disable();
-    map.touchZoomRotate.disableRotation();
-    if (map.touchPitch) map.touchPitch.disable();
-    if (map.getPitch() !== 0) map.setPitch(0);
-    if (map.getBearing() !== 0) map.setBearing(0);
-  };
+  // پیش‌فرض: قفل کامل زاویه دید ۲بعدی — بدون تیلت و چرخش با راست‌کلیک/لمس
+  // (با انتخاب basemap سه‌بعدی «Mapbox 3D» این قفل برداشته می‌شود)
   lock2DView();
-  map.on("style.load", lock2DView);
 
   map.on("mousemove", (e) => {
     const { lng, lat } = e.lngLat;

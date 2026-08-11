@@ -7,7 +7,7 @@
         </button>
         <div>
           <h1 class="title">شارژ کیف پول</h1>
-          <p class="sub">انتخاب مبلغ و پرداخت (فعلاً به‌صورت محلی)</p>
+          <p class="sub">انتخاب مبلغ، پرداخت و مشاهده تاریخچه</p>
         </div>
       </div>
 
@@ -19,73 +19,107 @@
         </div>
       </div>
 
-      <div class="card">
-        <h2 class="card-title">مبلغ شارژ</h2>
-        <div class="presets">
-          <button
-            v-for="p in presets"
-            :key="p"
-            type="button"
-            class="preset"
-            :class="{ active: amount === p }"
-            @click="amount = p"
-          >
-            {{ formatMoney(p) }}
-          </button>
-        </div>
-        <label class="field-label">مبلغ دلخواه (ریال)</label>
-        <input
-          v-model.number="amount"
-          type="number"
-          min="10000"
-          step="10000"
-          class="input amount-input"
-          dir="ltr"
-          placeholder="مثلاً 100000"
-        />
-        <p class="hint">حداقل مبلغ: ۱۰٬۰۰۰ ریال</p>
+      <!-- تب‌ها -->
+      <div class="tabs">
+        <button type="button" class="tab" :class="{ active: tab === 'charge' }" @click="tab = 'charge'">
+          شارژ
+        </button>
+        <button type="button" class="tab" :class="{ active: tab === 'history' }" @click="tab = 'history'; loadHistory()">
+          تاریخچه تراکنش
+        </button>
       </div>
 
-      <div class="card">
-        <h2 class="card-title">روش پرداخت</h2>
-        <label class="pay-option">
-          <input type="radio" value="local" v-model="method" />
-          <span>
-            <strong>پرداخت آزمایشی (محلی)</strong>
-            <small>بدون درگاه واقعی — موجودی در همین مرورگر ذخیره می‌شود</small>
-          </span>
-        </label>
-        <label class="pay-option disabled">
-          <input type="radio" value="gateway" disabled />
-          <span>
-            <strong>درگاه بانکی</strong>
-            <small>به‌زودی فعال می‌شود</small>
-          </span>
-        </label>
-      </div>
-
-      <div class="summary">
-        <div>
-          <span>مبلغ قابل پرداخت</span>
-          <strong dir="ltr">{{ formatMoney(amount || 0) }} ریال</strong>
+      <!-- تب شارژ -->
+      <template v-if="tab === 'charge'">
+        <div class="card">
+          <h2 class="card-title">مبلغ شارژ</h2>
+          <div class="presets">
+            <button
+              v-for="p in presets"
+              :key="p"
+              type="button"
+              class="preset"
+              :class="{ active: amount === p }"
+              @click="amount = p"
+            >
+              {{ formatMoney(p) }}
+            </button>
+          </div>
+          <label class="field-label">مبلغ دلخواه (ریال)</label>
+          <input
+            v-model.number="amount"
+            type="number"
+            min="10000"
+            step="10000"
+            class="input amount-input"
+            dir="ltr"
+            placeholder="مثلاً 100000"
+          />
+          <p class="hint">حداقل مبلغ: ۱۰٬۰۰۰ ریال</p>
         </div>
-        <div>
-          <span>موجودی پس از شارژ</span>
-          <strong dir="ltr">{{ formatMoney((walletBalance || 0) + (Number(amount) || 0)) }} ریال</strong>
+
+        <div class="card">
+          <h2 class="card-title">روش پرداخت</h2>
+          <label class="pay-option">
+            <input type="radio" value="local" v-model="method" />
+            <span>
+              <strong>پرداخت آزمایشی (محلی)</strong>
+              <small>بدون درگاه واقعی — موجودی در همین مرورگر ذخیره می‌شود</small>
+            </span>
+          </label>
+          <label class="pay-option disabled">
+            <input type="radio" value="gateway" disabled />
+            <span>
+              <strong>درگاه بانکی</strong>
+              <small>به‌زودی فعال می‌شود</small>
+            </span>
+          </label>
         </div>
-      </div>
 
-      <button
-        type="button"
-        class="pay-btn"
-        :disabled="paying || !validAmount"
-        @click="pay"
-      >
-        <i class="fas fa-credit-card"></i>
-        {{ paying ? 'در حال پرداخت...' : 'پرداخت و افزایش موجودی' }}
-      </button>
+        <div class="summary">
+          <div>
+            <span>مبلغ قابل پرداخت</span>
+            <strong dir="ltr">{{ formatMoney(amount || 0) }} ریال</strong>
+          </div>
+          <div>
+            <span>موجودی پس از شارژ</span>
+            <strong dir="ltr">{{ formatMoney((walletBalance || 0) + (Number(amount) || 0)) }} ریال</strong>
+          </div>
+        </div>
 
-      <p v-if="message" class="msg" :class="messageType">{{ message }}</p>
+        <button
+          type="button"
+          class="pay-btn"
+          :disabled="paying || !validAmount"
+          @click="pay"
+        >
+          <i class="fas fa-credit-card"></i>
+          {{ paying ? 'در حال پرداخت...' : 'پرداخت و افزایش موجودی' }}
+        </button>
+
+        <p v-if="message" class="msg" :class="messageType">{{ message }}</p>
+      </template>
+
+      <!-- تب تاریخچه -->
+      <template v-else>
+        <div class="card history-card">
+          <div v-if="!history.length" class="empty-history">
+            هنوز تراکنشی ثبت نشده است
+          </div>
+          <ul v-else class="history-list">
+            <li v-for="item in history" :key="item.id" class="history-item">
+              <div class="history-main">
+                <span class="history-type">{{ item.typeLabel || 'شارژ' }}</span>
+                <span class="history-amount" dir="ltr">+{{ formatMoney(item.amount) }}</span>
+              </div>
+              <div class="history-meta">
+                <span>{{ formatDate(item.at) }}</span>
+                <span class="history-status" :class="item.status">{{ statusLabel(item.status) }}</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -100,23 +134,66 @@ const router = useRouter()
 const authStore = useAuthStore()
 const SERVER = import.meta.env.VITE_SERVER
 
+const tab = ref('charge')
 const walletBalance = ref(0)
 const amount = ref(100000)
 const method = ref('local')
 const paying = ref(false)
 const message = ref('')
 const messageType = ref('ok')
+const history = ref([])
 
 const presets = [50000, 100000, 200000, 500000, 1000000]
-
 const validAmount = computed(() => Number(amount.value) >= 10000)
 
 function formatMoney(n) {
   return (Number(n) || 0).toLocaleString('fa-IR')
 }
 
+function formatDate(iso) {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleString('fa-IR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
+}
+
+function statusLabel(s) {
+  if (s === 'success') return 'موفق'
+  if (s === 'pending') return 'در انتظار'
+  if (s === 'failed') return 'ناموفق'
+  return s || 'موفق'
+}
+
 function walletKey() {
   return 'wallet_' + (authStore.user?.id || 'guest')
+}
+
+function historyKey() {
+  return 'wallet_history_' + (authStore.user?.id || 'guest')
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(historyKey())
+    history.value = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(history.value)) history.value = []
+  } catch {
+    history.value = []
+  }
+}
+
+function pushHistory(entry) {
+  loadHistory()
+  history.value.unshift(entry)
+  localStorage.setItem(historyKey(), JSON.stringify(history.value.slice(0, 100)))
 }
 
 async function loadWallet() {
@@ -153,6 +230,15 @@ async function pay() {
   paying.value = true
   message.value = ''
   const add = Number(amount.value)
+  const entry = {
+    id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+    amount: add,
+    type: 'charge',
+    typeLabel: 'شارژ کیف پول',
+    status: 'success',
+    method: method.value,
+    at: new Date().toISOString(),
+  }
 
   try {
     await axios.post(
@@ -165,6 +251,7 @@ async function pay() {
       },
     )
     await loadWallet()
+    pushHistory(entry)
     message.value = 'شارژ با موفقیت انجام شد'
     messageType.value = 'ok'
   } catch {
@@ -172,6 +259,7 @@ async function pay() {
     const next = cur + add
     localStorage.setItem(walletKey(), String(next))
     walletBalance.value = next
+    pushHistory(entry)
     message.value = 'پرداخت آزمایشی انجام شد و موجودی به‌صورت محلی افزایش یافت'
     messageType.value = 'ok'
   } finally {
@@ -179,7 +267,10 @@ async function pay() {
   }
 }
 
-onMounted(loadWallet)
+onMounted(() => {
+  loadWallet()
+  loadHistory()
+})
 </script>
 
 <style scoped>
@@ -249,6 +340,33 @@ onMounted(loadWallet)
   font-size: 13px;
   color: #e8843c;
 }
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  background: #12141c;
+  border: 1px solid #2a2d38;
+  border-radius: 12px;
+  padding: 4px;
+}
+.tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 8px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.tab.active {
+  background: #1a1d27;
+  color: #fb923c;
+  box-shadow: 0 0 0 1px rgba(232, 132, 60, 0.35);
+}
+
 .card {
   background: #1a1d27;
   border: 1px solid #2a2d38;
@@ -276,9 +394,6 @@ onMounted(loadWallet)
   font-size: 12px;
   cursor: pointer;
   color: #d4d4d8;
-}
-.preset:hover {
-  border-color: #3f3f46;
 }
 .preset.active {
   border-color: #e8843c;
@@ -372,9 +487,6 @@ onMounted(loadWallet)
   justify-content: center;
   gap: 8px;
 }
-.pay-btn:hover:not(:disabled) {
-  background: #f59a55;
-}
 .pay-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -388,6 +500,58 @@ onMounted(loadWallet)
   color: #4ade80;
 }
 .msg.err {
+  color: #f87171;
+}
+
+.empty-history {
+  text-align: center;
+  color: #71717a;
+  font-size: 13px;
+  padding: 28px 8px;
+}
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.history-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #2a2d38;
+}
+.history-item:last-child {
+  border-bottom: none;
+}
+.history-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.history-type {
+  font-size: 13px;
+  color: #f4f4f5;
+  font-weight: 600;
+}
+.history-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4ade80;
+}
+.history-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: #71717a;
+}
+.history-status.success {
+  color: #4ade80;
+}
+.history-status.pending {
+  color: #fbbf24;
+}
+.history-status.failed {
   color: #f87171;
 }
 </style>

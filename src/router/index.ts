@@ -23,6 +23,7 @@ const FormSubmissions = () => import('../views/formbuilder/FormSubmissions.vue')
 
 const PermissionLayers = () => import('../views/PermissionLayers.vue');
 const WorksLayers = () => import('../views/WorksLayers.vue');
+const WalletCharge = () => import('../views/WalletCharge.vue');
 
 const PUBLIC_ROUTES = ['/login', '/register', '/mapbox'];
 
@@ -45,6 +46,12 @@ const routes = [
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true, permission: 'view_dashboard' }
+  },
+  {
+    path: '/wallet/charge',
+    name: 'WalletCharge',
+    component: WalletCharge,
+    meta: { requiresAuth: true }
   },
   {
     path: '/users',

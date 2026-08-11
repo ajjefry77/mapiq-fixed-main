@@ -20,6 +20,8 @@ import {
   formatVertexLabel,
   getDrawTypeName,
   toUTM,
+  fromUTM,
+  computeCentroid,
   computeCircleCoords,
 } from "./useDrawingHelpers";
 import { createCutHandler } from "./useDrawingCut";
@@ -76,10 +78,20 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   const cs = { radius: 0, center: null };
   const drawDataSourceId = "pins-draw-" + crypto.randomUUID();
   // Tabs
-  const tabs = computed(() => [
-    { key: "measurements", label: "ترسیم" },
-    { key: "style", label: "استایل" },
-  ]);
+  const tabs = computed(() => {
+    const list = [
+      { key: "measurements", label: "ترسیم" },
+      { key: "style", label: "استایل" },
+    ];
+    if (
+      drawMode.value === "polygon" ||
+      drawMode.value === "polyline" ||
+      drawMode.value === "multi_point"
+    ) {
+      list.splice(1, 0, { key: "manual", label: "مختصات دستی" });
+    }
+    return list;
+  });
   // Computed
   const livePoints = computed(() => {
     if (shape.value) return getAllPoints();
@@ -164,6 +176,59 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       return formatDistance(shape.value.radius);
     if (tempCircle.value) return formatDistance(tempCircle.value.radius);
     return "0 m";
+  });
+  const liveCenter = computed(() => {
+    if (shape.value?.type === "circle" && shape.value.center) {
+      const c = shape.value.center;
+      const lon = c.lng ?? c.lon;
+      const lat = c.lat;
+      if (coordinateSystem.value === "utm") {
+        const { x, y, zone } = toUTM(lon, lat);
+        return { lon, lat, displayX: x, displayY: y, zone, system: "utm" };
+      }
+      return { lon, lat, displayX: lon, displayY: lat, system: "latlon" };
+    }
+    if (tempCircle.value?.center) {
+      const c = tempCircle.value.center;
+      const lon = c.lng ?? c.lon;
+      const lat = c.lat;
+      if (coordinateSystem.value === "utm") {
+        const { x, y, zone } = toUTM(lon, lat);
+        return { lon, lat, displayX: x, displayY: y, zone, system: "utm" };
+      }
+      return { lon, lat, displayX: lon, displayY: lat, system: "latlon" };
+    }
+    const pts = livePoints.value;
+    if (!pts || pts.length < 1) return null;
+    const c = computeCentroid(pts);
+    if (!c) return null;
+    if (coordinateSystem.value === "utm") {
+      const { x, y, zone } = toUTM(c.lon, c.lat);
+      return {
+        lon: c.lon,
+        lat: c.lat,
+        displayX: x,
+        displayY: y,
+        zone,
+        system: "utm",
+      };
+    }
+    return {
+      lon: c.lon,
+      lat: c.lat,
+      displayX: c.lon,
+      displayY: c.lat,
+      system: "latlon",
+    };
+  });
+  const canFinishDrawing = computed(() => {
+    if (shape.value) return false;
+    const mode = drawMode.value;
+    if (mode === "polyline") return positions.length >= 2;
+    if (mode === "polygon") return positions.length >= 3;
+    if (mode === "multi_point") return positions.length >= 1;
+    if (mode === "circle") return !!(cs.center && cs.radius > 0);
+    return false;
   });
   const isSaveEnabled = computed(() => {
     if (drawMode.value === "multi_point") return positions.length > 0;
@@ -285,6 +350,22 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     updatePolygonLabels(pts);
     updateLineLabels(pts);
   }
+  function midCoord(a, b) {
+    const alng = a.lng ?? a.lon;
+    const blng = b.lng ?? b.lon;
+    return [(alng + blng) / 2, (a.lat + b.lat) / 2];
+  }
+  function edgeFeature(a, b) {
+    const dist = measureDistance(
+      [a.lng ?? a.lon, a.lat],
+      [b.lng ?? b.lon, b.lat],
+    );
+    return {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: midCoord(a, b) },
+      properties: { kind: "edge", label: formatDistance(dist) },
+    };
+  }
   function updatePolygonLabels(pts) {
     if (drawMode.value !== "polygon" || !ts.polygonLabelSourceId) return;
     const labelSrc = map.getSource(ts.polygonLabelSourceId);
@@ -302,23 +383,24 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       });
     });
     for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1];
-      const b = pts[i];
-      const dist = measureDistance(
-        [a.lng || a.lon, a.lat],
-        [b.lng || b.lon, b.lat],
+      features.push(edgeFeature(pts[i - 1], pts[i]));
+    }
+    // ضلع بسته‌کننده پلی‌گان
+    if (pts.length >= 3) {
+      features.push(edgeFeature(pts[pts.length - 1], pts[0]));
+    }
+    // نقطه مرکز (برچسب لاتین تا فونت Mapbox درست رندر شود)
+    if (pts.length >= 1) {
+      const c = computeCentroid(
+        pts.map((p) => ({ lon: p.lng ?? p.lon, lat: p.lat })),
       );
-      features.push({
-        type: "Feature",
-        geometry: {
-          type: "Point",
-          coordinates: [
-            (a.lng + b.lng) / 2 || (a.lon + b.lon) / 2,
-            (a.lat + b.lat) / 2,
-          ],
-        },
-        properties: { kind: "edge", label: formatDistance(dist) },
-      });
+      if (c) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [c.lon, c.lat] },
+          properties: { kind: "center", label: "C" },
+        });
+      }
     }
     labelSrc.setData({ type: "FeatureCollection", features });
   }
@@ -328,23 +410,19 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     if (!labelSrc) return;
     const features = [];
     for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1];
-      const b = pts[i];
-      const dist = measureDistance(
-        [a.lng || a.lon, a.lat],
-        [b.lng || b.lon, b.lat],
+      features.push(edgeFeature(pts[i - 1], pts[i]));
+    }
+    if (pts.length >= 2) {
+      const c = computeCentroid(
+        pts.map((p) => ({ lon: p.lng ?? p.lon, lat: p.lat })),
       );
-      features.push({
-        type: "Feature",
-        geometry: {
-          type: "Point",
-          coordinates: [
-            (a.lng + b.lng) / 2 || (a.lon + b.lon) / 2,
-            (a.lat + b.lat) / 2,
-          ],
-        },
-        properties: { label: formatDistance(dist) },
-      });
+      if (c) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [c.lon, c.lat] },
+          properties: { kind: "center", label: "C" },
+        });
+      }
     }
     labelSrc.setData({ type: "FeatureCollection", features });
   }
@@ -411,6 +489,36 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         "text-halo-width": 2,
       },
     });
+    addTempLayer(ts.sourceId + "-center-point", {
+      type: "circle",
+      source: labelSrcId,
+      filter: ["==", ["get", "kind"], "center"],
+      paint: {
+        "circle-radius": 5,
+        "circle-color": "#2563eb",
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2,
+      },
+    });
+    addTempLayer(ts.sourceId + "-center-label", {
+      type: "symbol",
+      source: labelSrcId,
+      filter: ["==", ["get", "kind"], "center"],
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": 10,
+        "text-offset": [0, 1.2],
+        "text-anchor": "top",
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+        "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
+      },
+      paint: {
+        "text-color": "#1d4ed8",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 2,
+      },
+    });
   }
   function addPolylineLayers() {
     addTempLayer(ts.sourceId + "-line", {
@@ -437,6 +545,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     addTempLayer(ts.sourceId + "-edge-label", {
       type: "symbol",
       source: labelSrcId,
+      filter: ["==", ["get", "kind"], "edge"],
       layout: {
         "text-field": ["get", "label"],
         "text-size": 11,
@@ -446,6 +555,36 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       },
       paint: {
         "text-color": "#b45309",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 2,
+      },
+    });
+    addTempLayer(ts.sourceId + "-center-point", {
+      type: "circle",
+      source: labelSrcId,
+      filter: ["==", ["get", "kind"], "center"],
+      paint: {
+        "circle-radius": 5,
+        "circle-color": "#2563eb",
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2,
+      },
+    });
+    addTempLayer(ts.sourceId + "-center-label", {
+      type: "symbol",
+      source: labelSrcId,
+      filter: ["==", ["get", "kind"], "center"],
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": 10,
+        "text-offset": [0, 1.2],
+        "text-anchor": "top",
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+        "text-font": ["Droid Sans", "Arial Unicode MS Bold"],
+      },
+      paint: {
+        "text-color": "#1d4ed8",
         "text-halo-color": "#ffffff",
         "text-halo-width": 2,
       },
@@ -494,12 +633,26 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         cleanupHandlers();
         finishDrawing("multi_point", [...positions]);
       };
+      hs.key = (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          finishCurrentDrawing();
+        } else if (event.key === "Delete" && positions.length > 0) {
+          positions.pop();
+          updateSource();
+        }
+      };
+      window.addEventListener("keydown", hs.key);
       m.on("click", hs.click);
       m.on("contextmenu", hs.rightClick);
     } else if (drawMode.value === "polyline") {
       addTempSource();
       addPolylineLayers();
+      let lastClickTs = 0;
       hs.click = (e) => {
+        const now = Date.now();
+        if (now - lastClickTs < 280) return;
+        lastClickTs = now;
         positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
         updateTempSource(positions);
       };
@@ -518,17 +671,20 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           if (positions.length < 2) cleanupHandlers();
         }
       };
-      hs.dblClick = () => {
-        if (positions.length < 2) return;
-        if (positions.length > 1) positions.pop();
-        cleanupHandlers();
-        finishDrawing("polyline", [...positions]);
+      // اتمام فقط با Enter یا دکمه پنل — دابل‌کلیک نقطه اضافه نمی‌کند
+      hs.dblClick = (e) => {
+        e.preventDefault();
+        e.originalEvent?.preventDefault?.();
+        e.originalEvent?.stopPropagation?.();
       };
       hs.key = (event) => {
         if (event.key === "Delete" && positions.length > 0) {
           positions.pop();
           updateTempSource(positions);
           if (positions.length < 2) cleanupHandlers();
+        } else if (event.key === "Enter") {
+          event.preventDefault();
+          finishCurrentDrawing();
         }
       };
       window.addEventListener("keydown", hs.key);
@@ -539,7 +695,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     } else if (drawMode.value === "polygon") {
       addTempSource();
       addPolygonLayers();
+      let lastClickTs = 0;
       hs.click = (e) => {
+        const now = Date.now();
+        if (now - lastClickTs < 280) return;
+        lastClickTs = now;
         positions.push({ lng: e.lngLat.lng, lat: e.lngLat.lat });
         updateTempSource(positions, true);
       };
@@ -558,17 +718,19 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           if (positions.length < 3) cleanupHandlers();
         }
       };
-      hs.dblClick = () => {
-        if (positions.length < 3) return;
-        if (positions.length > 0) positions.pop();
-        cleanupHandlers();
-        finishDrawing("polygon", [...positions]);
+      hs.dblClick = (e) => {
+        e.preventDefault();
+        e.originalEvent?.preventDefault?.();
+        e.originalEvent?.stopPropagation?.();
       };
       hs.key = (event) => {
         if (event.key === "Delete" && positions.length > 0) {
           positions.pop();
           updateTempSource(positions, true);
           if (positions.length < 3) cleanupHandlers();
+        } else if (event.key === "Enter") {
+          event.preventDefault();
+          finishCurrentDrawing();
         }
       };
       window.addEventListener("keydown", hs.key);
@@ -779,6 +941,89 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       };
     }
     positions.length = 0;
+  }
+  /** اتمام ترسیم از پنل یا Enter — در صورت داشتن نام، ذخیره هم می‌شود */
+  function finishCurrentDrawing() {
+    if (shape.value) {
+      // شکل آماده است؛ اگر نام دارد ذخیره کن
+      if (formData.value?.name?.trim()) {
+        handleSave();
+      } else {
+        nameError.value = true;
+        $toast?.warning?.("برای ذخیره، نام ترسیم را وارد کنید", {
+          position: "top-left",
+        });
+      }
+      return;
+    }
+    const mode = drawMode.value;
+    let finished = false;
+    if (mode === "polyline" && positions.length >= 2) {
+      cleanupHandlers();
+      finishDrawing("polyline", [...positions]);
+      finished = true;
+    } else if (mode === "polygon" && positions.length >= 3) {
+      cleanupHandlers();
+      finishDrawing("polygon", [...positions]);
+      finished = true;
+    } else if (mode === "multi_point" && positions.length >= 1) {
+      cleanupHandlers();
+      finishDrawing("multi_point", [...positions]);
+      finished = true;
+    } else if (mode === "circle" && cs.center && cs.radius > 0) {
+      cleanupHandlers();
+      finishDrawing("circle", {
+        center: { lng: cs.center[0], lat: cs.center[1] },
+      });
+      finished = true;
+    }
+    if (finished) {
+      nextTick(() => {
+        if (formData.value?.name?.trim() && shape.value) {
+          handleSave();
+        } else if (!formData.value?.name?.trim()) {
+          nameError.value = true;
+          $toast?.info?.(
+            "ترسیم تمام شد. نام را وارد کنید و ذخیره را بزنید",
+            { position: "top-left" },
+          );
+        }
+      });
+    }
+  }
+  /**
+   * ساخت شکل از مختصات دستی UTM
+   * rows: [{ easting, northing, zone }]
+   */
+  function applyManualUTMCoords(rows) {
+    if (!rows || !rows.length) return;
+    const mode = drawMode.value;
+    if (!mode || mode === "circle") return;
+    const pts = [];
+    for (const r of rows) {
+      const e = Number(r.easting);
+      const n = Number(r.northing);
+      const z = Number(r.zone) || 39;
+      if (!isFinite(e) || !isFinite(n)) continue;
+      const { lng, lat } = fromUTM(e, n, z, true);
+      pts.push({ lng, lat });
+    }
+    if (!pts.length) return;
+    if (mode === "multi_point") {
+      cleanupHandlers();
+      finishDrawing(
+        "multi_point",
+        pts.map((p) => ({ ...p, color: color.value })),
+      );
+    } else if (mode === "polyline") {
+      if (pts.length < 2) return;
+      cleanupHandlers();
+      finishDrawing("polyline", pts);
+    } else if (mode === "polygon") {
+      if (pts.length < 3) return;
+      cleanupHandlers();
+      finishDrawing("polygon", pts);
+    }
   }
   function setDrawMode(mode) {
     pickForForm.value = false;
@@ -1720,6 +1965,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     liveTotalLength,
     liveArea,
     liveRadius,
+    liveCenter,
+    canFinishDrawing,
     isSaveEnabled,
     togglePointPick,
     setDrawMode,
@@ -1727,6 +1974,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     cancelForm,
     handleSave,
     onFileChange,
+    finishCurrentDrawing,
+    applyManualUTMCoords,
     formatCoordinate,
     copyCoordinates,
     getDrawTypeName: () =>

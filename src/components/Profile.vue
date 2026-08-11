@@ -32,6 +32,21 @@
             </button>
           </div>
 
+
+          <!-- کیف پول — نمایش فشرده -->
+          <div class="wallet-inline" v-if="authStore.user">
+            <div class="wallet-inline-info">
+              <i class="fas fa-wallet"></i>
+              <span class="wallet-inline-label">موجودی:</span>
+              <span class="wallet-inline-amount" dir="ltr">{{ formatMoney(walletBalance) }}</span>
+              <span class="wallet-inline-unit">ریال</span>
+            </div>
+            <button type="button" class="wallet-charge-btn" @click="goToCharge" title="افزایش موجودی">
+              <i class="fas fa-plus"></i>
+              افزایش
+            </button>
+          </div>
+
           <form @submit.prevent="saveUser">
             <div class="panel-form">
               <div>
@@ -95,6 +110,34 @@ const router = useRouter()
 const emit = defineEmits(['location-selected'])
 
 const isOpen = ref(false)
+const walletBalance = ref(0)
+
+function formatMoney(n) {
+  const v = Number(n) || 0
+  return v.toLocaleString('fa-IR')
+}
+
+async function loadWallet() {
+  if (!authStore.user?.id) return
+  try {
+    const res = await axios.get(SERVER + '/api/wallet/' + authStore.user.id, {
+      headers: {
+        Authorization:
+          'Bearer ' + (authStore.token || localStorage.getItem('token') || ''),
+      },
+    })
+    walletBalance.value = res.data?.balance ?? res.data?.amount ?? 0
+  } catch (e) {
+    const key = 'wallet_' + authStore.user.id
+    const stored = localStorage.getItem(key)
+    walletBalance.value = stored ? Number(stored) : 0
+  }
+}
+
+function goToCharge() {
+  closePanel()
+  router.push('/wallet/charge')
+}
 
 const initials = computed(() => {
   const name = authStore.user?.name?.trim()
@@ -137,9 +180,10 @@ const logout = async () => {
 }
 
 const togglePanel = () => {
-  if (authStore.user)
+  if (authStore.user) {
     isOpen.value = !isOpen.value
-  else
+    if (isOpen.value) loadWallet()
+  } else
     router.push('/login');
 }
 
@@ -342,5 +386,57 @@ function showMessage(msg, type) {
   flex-direction: column;
   gap: 8px;
   background: var(--bg-elevated);
+}
+
+.wallet-inline {
+  margin: 10px 16px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border: 1px solid #fed7aa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wallet-inline-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: #9a3412;
+}
+.wallet-inline-info i {
+  color: #c2410c;
+}
+.wallet-inline-label {
+  white-space: nowrap;
+}
+.wallet-inline-amount {
+  font-weight: 700;
+  font-size: 13px;
+  color: #c2410c;
+}
+.wallet-inline-unit {
+  font-size: 11px;
+  color: #9a3412;
+}
+.wallet-charge-btn {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: #ea580c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.wallet-charge-btn:hover {
+  background: #c2410c;
 }
 </style>

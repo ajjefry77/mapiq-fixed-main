@@ -11,6 +11,7 @@
           <option disabled value="">انتخاب نوع خروجی</option>
           <option value="kml">خروجی با فرمت KML</option>
           <option value="csv">خروجی نقاط با فرمت CSV</option>
+          <option value="dxf">خروجی با فرمت DXF</option>
         </select>
 
         <div class="flex justify-end gap-3 mt-4">

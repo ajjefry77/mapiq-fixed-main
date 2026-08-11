@@ -145,6 +145,15 @@
             <span class="text-gray-400">شعاع:</span>
             <span class="font-bold text-accent">{{ liveRadius }}</span>
           </div>
+          <div
+            v-if="liveCenter && centerText"
+            class="flex justify-between items-center border-t border-gray-700 pt-1.5 gap-2"
+          >
+            <span class="text-gray-400 shrink-0">مرکز:</span>
+            <span class="font-mono text-[10px] text-blue-300 text-left break-all" dir="ltr">
+              {{ centerText }}
+            </span>
+          </div>
         </div>
 
         <!-- بخش جدول مختصات -->
@@ -236,6 +245,117 @@
         </div>
       </div>
 
+      <!-- تب مختصات دستی UTM -->
+      <div v-if="activeTab === 'manual'" class="space-y-3">
+        <p class="text-xs text-gray-600 leading-relaxed">
+          مختصات UTM نقاط را وارد کنید. پس از تکمیل، شکل روی نقشه ترسیم می‌شود.
+        </p>
+        <div class="flex items-center gap-2 text-xs">
+          <label class="text-gray-600 shrink-0">Zone پیش‌فرض:</label>
+          <input
+            v-model.number="manualDefaultZone"
+            type="number"
+            min="1"
+            max="60"
+            class="w-16 border rounded px-1.5 py-1 text-xs font-mono focus:border-orange-500 outline-none"
+          />
+        </div>
+        <div class="border rounded overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-gray-100 text-gray-600">
+              <tr>
+                <th class="p-1.5 border-b text-center w-8">#</th>
+                <th class="p-1.5 border-b text-center">Easting (X)</th>
+                <th class="p-1.5 border-b text-center">Northing (Y)</th>
+                <th class="p-1.5 border-b text-center w-14">Zone</th>
+                <th class="p-1.5 border-b text-center w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, idx) in manualRows"
+                :key="idx"
+                class="border-b last:border-b-0"
+              >
+                <td class="p-1 text-center text-gray-500">{{ idx + 1 }}</td>
+                <td class="p-1">
+                  <input
+                    v-model="row.easting"
+                    type="text"
+                    inputmode="decimal"
+                    placeholder="easting"
+                    class="w-full border rounded px-1 py-0.5 text-[11px] font-mono focus:border-orange-500 outline-none"
+                    dir="ltr"
+                  />
+                </td>
+                <td class="p-1">
+                  <input
+                    v-model="row.northing"
+                    type="text"
+                    inputmode="decimal"
+                    placeholder="northing"
+                    class="w-full border rounded px-1 py-0.5 text-[11px] font-mono focus:border-orange-500 outline-none"
+                    dir="ltr"
+                  />
+                </td>
+                <td class="p-1">
+                  <input
+                    v-model.number="row.zone"
+                    type="number"
+                    min="1"
+                    max="60"
+                    class="w-full border rounded px-1 py-0.5 text-[11px] font-mono focus:border-orange-500 outline-none"
+                    dir="ltr"
+                  />
+                </td>
+                <td class="p-1 text-center">
+                  <button
+                    type="button"
+                    @click="removeManualRow(idx)"
+                    class="text-gray-400 hover:text-red-500"
+                    title="حذف ردیف"
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            @click="addManualRow"
+            class="flex-1 px-2 py-1.5 text-xs border rounded hover:bg-gray-50 transition"
+          >
+            + افزودن نقطه
+          </button>
+          <button
+            type="button"
+            @click="applyManual"
+            :disabled="!canApplyManual"
+            :class="[
+              'flex-1 px-2 py-1.5 text-xs rounded transition shadow',
+              canApplyManual
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+            ]"
+          >
+            اعمال و ترسیم
+          </button>
+        </div>
+        <p class="text-[10px] text-gray-400">
+          حداقل نقاط:
+          {{
+            drawMode === 'polygon'
+              ? '۳'
+              : drawMode === 'polyline'
+                ? '۲'
+                : '۱'
+          }}
+        </p>
+      </div>
+
       <div v-if="activeTab === 'style'" class="space-y-3">
         <div v-if="shape">
           <label class="block text-xs mb-1 text-gray-600">رنگ</label>
@@ -302,7 +422,7 @@
     </div>
 
     <div
-      class="px-3 py-2 bg-gray-50 border-t flex justify-between items-center"
+      class="px-3 py-2 bg-gray-50 border-t flex justify-between items-center gap-2"
     >
       <button
         @click="$emit('cancel')"
@@ -310,28 +430,88 @@
       >
         انصراف
       </button>
-      <button
-        @click="$emit('save')"
-        :disabled="!isSaveEnabled"
-        :class="[
-          'px-4 py-1.5 rounded text-xs transition shadow',
-          isSaveEnabled
-            ? 'bg-orange-500 text-white hover:bg-orange-600'
-            : 'bg-gray-300 text-gray-500 cursor-not-allowed',
-        ]"
-      >
-        ذخیره ترسیم
-      </button>
+      <div class="flex gap-2">
+        <button
+          v-if="!shape && canFinishDrawing"
+          type="button"
+          @click="$emit('finish')"
+          class="px-3 py-1.5 rounded text-xs transition shadow bg-blue-600 text-white hover:bg-blue-700"
+          title="اتمام ترسیم (Enter)"
+        >
+          اتمام ترسیم
+        </button>
+        <button
+          @click="$emit('save')"
+          :disabled="!isSaveEnabled"
+          :class="[
+            'px-4 py-1.5 rounded text-xs transition shadow',
+            isSaveEnabled
+              ? 'bg-orange-500 text-white hover:bg-orange-600'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+          ]"
+        >
+          ذخیره ترسیم
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
 
 const panelEl = ref(null);
 
-// تابع کمکی برای استخراج هوشمند مختصات از ساختارهای مختلف آبجکت
+const props = defineProps({
+  panelReady: { type: Boolean, default: false },
+  panelPositioned: { type: Boolean, default: false },
+  panelTranslate: { type: Object, default: () => ({ x: 0, y: 0 }) },
+  title: { type: String, default: "ترسیم جدید" },
+  tabs: { type: Array, default: () => [] },
+  activeTab: { type: String, default: "measurements" },
+  drawMode: { type: String, default: "" },
+  shape: { type: Object, default: null },
+  coordinateSystem: { type: String, default: "latlon" },
+  livePointCount: { type: Number, default: 0 },
+  liveTotalLength: { type: String, default: "0 m" },
+  liveArea: { type: String, default: "0 m²" },
+  liveRadius: { type: String, default: "0 m" },
+  liveCenter: { type: Object, default: null },
+  canFinishDrawing: { type: Boolean, default: false },
+  displayPoints: { type: Array, default: () => [] },
+  formData: { type: Object, default: () => ({ name: "", description: "" }) },
+  attchFileName: { type: String, default: "" },
+  nameError: { type: Boolean, default: false },
+  isSaveEnabled: { type: Boolean, default: false },
+  formatCoordinate: { type: Function, default: () => "" },
+});
+
+const emit = defineEmits([
+  "startDrag",
+  "cancel",
+  "save",
+  "finish",
+  "applyManualCoords",
+  "update:activeTab",
+  "update:coordinateSystem",
+  "update:formData",
+  "fileChange",
+  "update:shapeColor",
+  "update:shapeOpacity",
+  "update:shapeWidth",
+  "copyCoordinates",
+]);
+
+const centerText = computed(() => {
+  const c = props.liveCenter;
+  if (!c) return "";
+  const x = Number(c.displayX);
+  const y = Number(c.displayY);
+  if (!isFinite(x) || !isFinite(y)) return "";
+  if (c.system === "utm") return `${x.toFixed(2)} E, ${y.toFixed(2)} N`;
+  return `${x.toFixed(6)}, ${y.toFixed(6)}`;
+});
+
 const getCoordValue = (point, type) => {
   if (!point) return "-";
   if (type === "x")
@@ -357,41 +537,71 @@ const getCoordValue = (point, type) => {
   return "-";
 };
 
-defineProps({
-  panelReady: { type: Boolean, default: false },
-  panelPositioned: { type: Boolean, default: false },
-  panelTranslate: { type: Object, default: () => ({ x: 0, y: 0 }) },
-  title: { type: String, default: "ترسیم جدید" },
-  tabs: { type: Array, default: () => [] },
-  activeTab: { type: String, default: "measurements" },
-  drawMode: { type: String, default: "" },
-  shape: { type: Object, default: null },
-  coordinateSystem: { type: String, default: "latlon" },
-  livePointCount: { type: Number, default: 0 },
-  liveTotalLength: { type: String, default: "0 m" },
-  liveArea: { type: String, default: "0 m²" },
-  liveRadius: { type: String, default: "0 m" },
-  displayPoints: { type: Array, default: () => [] },
-  formData: { type: Object, default: () => ({ name: "", description: "" }) },
-  attchFileName: { type: String, default: "" },
-  nameError: { type: Boolean, default: false },
-  isSaveEnabled: { type: Boolean, default: false },
-  formatCoordinate: { type: Function, default: () => "" },
+const manualDefaultZone = ref(39);
+const manualRows = ref([
+  { easting: "", northing: "", zone: 39 },
+  { easting: "", northing: "", zone: 39 },
+  { easting: "", northing: "", zone: 39 },
+]);
+
+watch(manualDefaultZone, (z) => {
+  manualRows.value.forEach((r) => {
+    if (r.zone == null || r.zone === "") r.zone = z;
+  });
 });
 
-defineEmits([
-  "startDrag",
-  "cancel",
-  "save",
-  "update:activeTab",
-  "update:coordinateSystem",
-  "update:formData",
-  "fileChange",
-  "update:shapeColor",
-  "update:shapeOpacity",
-  "update:shapeWidth",
-  "copyCoordinates",
-]);
+function addManualRow() {
+  manualRows.value.push({
+    easting: "",
+    northing: "",
+    zone: manualDefaultZone.value || 39,
+  });
+}
+
+function removeManualRow(idx) {
+  if (manualRows.value.length <= 1) {
+    manualRows.value[0] = {
+      easting: "",
+      northing: "",
+      zone: manualDefaultZone.value || 39,
+    };
+    return;
+  }
+  manualRows.value.splice(idx, 1);
+}
+
+const canApplyManual = computed(() => {
+  const valid = manualRows.value.filter(
+    (r) =>
+      r.easting !== "" &&
+      r.northing !== "" &&
+      isFinite(Number(r.easting)) &&
+      isFinite(Number(r.northing)),
+  );
+  const mode = props.drawMode;
+  if (mode === "polygon") return valid.length >= 3;
+  if (mode === "polyline") return valid.length >= 2;
+  if (mode === "multi_point") return valid.length >= 1;
+  return false;
+});
+
+function applyManual() {
+  if (!canApplyManual.value) return;
+  const rows = manualRows.value
+    .filter(
+      (r) =>
+        r.easting !== "" &&
+        r.northing !== "" &&
+        isFinite(Number(r.easting)) &&
+        isFinite(Number(r.northing)),
+    )
+    .map((r) => ({
+      easting: Number(r.easting),
+      northing: Number(r.northing),
+      zone: Number(r.zone) || manualDefaultZone.value || 39,
+    }));
+  emit("applyManualCoords", rows);
+}
 
 defineExpose({ panelEl });
 </script>

@@ -63,7 +63,7 @@
           <button
             class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
             @click="exportDialog = true"
-            title="خروجی kml"
+            title="خروجی (KML / CSV / DXF)"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -105,7 +105,7 @@
           <button
             class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
             @click="createFolderDialog = true"
-            title="ایجاد گروه"
+            title="ایجاد پوشه"
           >
             <i class="fas fa-folder-tree"></i>
           </button>
@@ -183,7 +183,7 @@
               <div class="flex items-center gap-1">
                 <button
                   @click.stop="addInboxToDesktop(index)"
-                  class="text-accent px-1 rounded transition-all duration-200 ease-out hover:bg-accent hover:text-white hover:scale-110 cursor-pointer opacity-70 group-hover:opacity-100"
+                  class="text-accent px-1 rounded transition-all duration-200 ease-out hover:bg-accent hover:text-white hover:scale-110 cursor-pointer"
                   title="افزودن به میز کار"
                 >
                   <i class="fas fa-plus text-sm"></i>
@@ -414,6 +414,7 @@ import {
   bringDrawingsToFront,
 } from "../../utils/layerOrder";
 import { dxfToGeoJSON } from "../../utils/dxfToGeoJSON";
+import { pinsToDXF } from "../../utils/geoJSONToDXF";
 
 const {
   getExtendedIds,
@@ -898,9 +899,9 @@ function groupByCreatedAtDay(items) {
         children: [],
       });
     const group = map.get(dayKey);
-    if (item.type == "group") {
+    if (item.type == "group" || item.type == "folder") {
       const chd = [];
-      for (const row of item.children) {
+      for (const row of item.children || []) {
         row.shape.show = false;
         chd.push({
           id: row.id,
@@ -1398,13 +1399,49 @@ const getData = async (token) => {
 };
 
 const createFolder = async (name) => {
+  if (!name || !String(name).trim()) return;
+  const folderName = String(name).trim();
   try {
-    await axios.post(SERVER + "/api/createFolder/" + authStore.user?.id, {
-      type: "group",
-      name,
+    const res = await axios.post(SERVER + "/api/createFolder/" + authStore.user?.id, {
+      type: "folder",
+      name: folderName,
     });
+    const data = res.data || {};
+    const newFolder = {
+      id: data.obj_id || data.id || crypto.randomUUID(),
+      name: folderName,
+      type: "folder",
+      save: data.id ?? data.save ?? -1,
+      parent_id: -1,
+      children: [],
+      expanded: true,
+      show: true,
+      shape: { show: true },
+      date: new Date(),
+      archive: null,
+    };
+    // اگر سرور type را group برگرداند، برای سازگاری در درخت هم کار می‌کند
+    props.pins.unshift(newFolder);
+    showMessage("پوشه «" + folderName + "» ایجاد شد", "success");
+    // همگام‌سازی با سرور
+    try { await loadWorks(); } catch (_) {}
   } catch (err) {
     console.error(err);
+    // fallback محلی اگر API خطا داد
+    props.pins.unshift({
+      id: crypto.randomUUID(),
+      name: folderName,
+      type: "folder",
+      save: -1,
+      parent_id: -1,
+      children: [],
+      expanded: true,
+      show: true,
+      shape: { show: true },
+      date: new Date(),
+      archive: null,
+    });
+    showMessage("پوشه به‌صورت محلی ایجاد شد (خطای سرور)", "warning");
   }
 };
 
@@ -1713,9 +1750,33 @@ async function readDxfText(file, name = "") {
 }
 
 function Export(filename, exportType) {
-  const activePins = props.pins.filter(
-    (pin) => pin.type === "draw" && pin.shape && pin.shape.show === true,
+  const flatten = (list, out = []) => {
+    for (const p of list || []) {
+      if ((p.type === "group" || p.type === "folder") && Array.isArray(p.children)) flatten(p.children, out);
+      else out.push(p);
+    }
+    return out;
+  };
+  const activePins = flatten(props.pins).filter(
+    (pin) => pin.type === "draw" && pin.shape && pin.shape.show !== false,
   );
+
+  if (exportType === "dxf") {
+    if (!activePins.length) {
+      showMessage("ترسیم فعالی برای خروجی DXF یافت نشد", "error");
+      return;
+    }
+    const dxf = pinsToDXF(activePins);
+    const blob = new Blob([dxf], { type: "application/dxf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}.dxf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showMessage("فایل DXF با موفقیت ذخیره شد", "success");
+    return;
+  }
 
   if (exportType == "csv") {
     let csvContent = "";

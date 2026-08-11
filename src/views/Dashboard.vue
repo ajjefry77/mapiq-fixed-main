@@ -49,6 +49,20 @@
       </div>
     </div>
 
+
+    <!-- کیف پول -->
+    <!-- <div class="card" style="margin-top: 16px; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+        <i class="fas fa-wallet" style="color:#c2410c;"></i>
+        <span style="color:#71717a;">موجودی:</span>
+        <strong style="color:#c2410c; direction:ltr;">{{ formatMoney(walletBalance) }}</strong>
+        <span style="color:#9a3412; font-size:12px;">ریال</span>
+      </div>
+      <button class="btn btn-primary btn-sm" @click="$router.push('/wallet/charge')">
+        <i class="fas fa-plus" style="margin-left:4px;"></i> افزایش موجودی
+      </button>
+    </div> -->
+
     <!-- ADMIN -->
     <div v-if="isAdmin">
       <div class="info-row">
@@ -302,6 +316,65 @@ const profileForm = reactive({ name: "", phone: "", code: "", password: "" });
 
 const usersCount = ref(0);
 const rolesCount = ref(0);
+const walletBalance = ref(0);
+const walletLoading = ref(false);
+const showCharge = ref(false);
+const chargeAmount = ref(100000);
+
+function formatMoney(n) {
+  return (Number(n) || 0).toLocaleString("fa-IR");
+}
+
+async function loadWallet() {
+  if (!authStore.user?.id) return;
+  walletLoading.value = true;
+  try {
+    const res = await axios.get(SERVER + "/api/wallet/" + authStore.user.id, {
+      headers: {
+        Authorization:
+          "Bearer " + (authStore.token || localStorage.getItem("token") || ""),
+      },
+    });
+    walletBalance.value = res.data?.balance ?? res.data?.amount ?? 0;
+  } catch (e) {
+    const key = "wallet_" + authStore.user.id;
+    walletBalance.value = Number(localStorage.getItem(key) || 0);
+  } finally {
+    walletLoading.value = false;
+  }
+}
+
+async function requestCharge() {
+  if (!chargeAmount.value || chargeAmount.value < 1000) {
+    handleError?.(new Error("مبلغ نامعتبر"));
+    return;
+  }
+  walletLoading.value = true;
+  try {
+    await axios.post(
+      SERVER + "/api/wallet/charge",
+      { amount: chargeAmount.value, userId: authStore.user?.id },
+      {
+        headers: {
+          Authorization:
+            "Bearer " + (authStore.token || localStorage.getItem("token") || ""),
+        },
+      },
+    );
+    success?.("درخواست شارژ ثبت شد");
+    showCharge.value = false;
+    await loadWallet();
+  } catch (e) {
+    const key = "wallet_" + authStore.user.id;
+    const cur = Number(localStorage.getItem(key) || 0);
+    localStorage.setItem(key, String(cur + Number(chargeAmount.value)));
+    walletBalance.value = cur + Number(chargeAmount.value);
+    success?.("موجودی به‌صورت محلی به‌روز شد");
+    showCharge.value = false;
+  } finally {
+    walletLoading.value = false;
+  }
+}
 
 async function loadProfile() {
   profileForm.name = authStore.user?.name || "";
@@ -436,6 +509,7 @@ async function updateProfile() {
 
 onMounted(() => {
   loadProfile();
+  loadWallet();
   loadMyData();
 });
 </script>

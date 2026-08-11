@@ -169,6 +169,15 @@
       </button>
       <!-- ================================= -->
 
+      <!-- آدرس‌یاب -->
+      <button
+        @click="$emit('openAddressFinder')"
+        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200"
+        title="آدرس‌یاب (شهر، خیابان، ...)"
+      >
+        <i class="fas fa-map-marker-alt"></i>
+      </button>
+
       <div class="relative">
         <button
           @click.stop="expanded = !expanded"
@@ -251,6 +260,7 @@ defineEmits([
   "startCutMode",
   "openKroki",
   "openIntersectPanel",
+  "openAddressFinder",
 ]);
 
 defineExpose({ toolbarEl });

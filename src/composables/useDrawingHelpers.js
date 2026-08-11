@@ -33,9 +33,37 @@ export function formatVertexLabel(lng, lat, coordinateSystem) {
       `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs${hemisphere}`,
       [lng, lat],
     );
-    return `${x.toFixed(2)}, ${y.toFixed(2)} (Z${zone})`;
+    // بدون نمایش zone روی نقشه
+    return `${x.toFixed(2)}, ${y.toFixed(2)}`;
   }
   return `${lng.toFixed(6)}, ${lat.toFixed(6)}`;
+}
+
+export function fromUTM(easting, northing, zone, northern = true) {
+  const hemisphere = northern ? "" : "+south";
+  const [lng, lat] = proj4(
+    `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs${hemisphere}`,
+    "EPSG:4326",
+    [Number(easting), Number(northing)],
+  );
+  return { lng, lat };
+}
+
+export function computeCentroid(positions) {
+  if (!positions || !positions.length) return null;
+  let sumLon = 0;
+  let sumLat = 0;
+  let count = 0;
+  for (const p of positions) {
+    const lon = p.lon ?? p.lng;
+    const lat = p.lat;
+    if (lon == null || lat == null) continue;
+    sumLon += lon;
+    sumLat += lat;
+    count++;
+  }
+  if (!count) return null;
+  return { lon: sumLon / count, lat: sumLat / count, lng: sumLon / count };
 }
 
 export function getDrawTypeName(type, isEditing) {

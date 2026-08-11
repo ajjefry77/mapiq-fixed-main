@@ -11,18 +11,20 @@
       @drop.stop="onReorderDrop($event, idx)"
       @dragend="onDragEnd"
       :class="{
-        'opacity-50': draggedItemId === item.id,
+        'opacity-80 ring-1 ring-orange-300': draggedItemId === item.id,
         'drop-before': dragOverIdx === idx && dropSide === 'before',
         'drop-after': dragOverIdx === idx && dropSide === 'after',
       }"
     >
-      <div v-if="item.type === 'group'" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
+      <div v-if="isContainer(item)" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
            :style="{ ['paddingRight']: `${depth * 8}px` }" @click.stop="handleSelectGroup(item, idx)"
            :class="{ 'bg-accent/15': selectedGroup === item }" @dragover.prevent.stop @drop.stop="onDrop($event, item)">
-        <div>
-          <i @click.stop="toggleGroup(item)" class="text-sm"
+        <div class="flex items-center gap-1 min-w-0">
+          <i @click.stop="toggleGroup(item)" class="text-sm shrink-0"
              :class="item.expanded ? 'fas fa-caret-down text-black' : 'fas fa-caret-left text-black'"></i>
-          <span class="font-semibold text-xs leading-8 mr-1">{{ item.name }}</span>
+          <i class="text-sm shrink-0"
+             :class="(item.type === 'group' && item.group_id) ? 'fas fa-users text-blue-600' : 'fas fa-folder text-amber-500'"></i>
+          <span class="font-semibold text-xs leading-8 truncate text-gray-900">{{ item.name }}</span>
         </div>
         <div class="flex ml-0.5">
           <input v-if="!item.history" type="checkbox" @click="selectedItems(item)" v-model="item.show" class="ml-2 accent-green-600"/>
@@ -38,7 +40,7 @@
                         :parentGroup="parentGroup" :setSelectedGroup="selectGroup" :idx="idx" :Icons="Icons"/>
       </div>
 
-      <MapboxLayerTree v-if="item.type === 'group' && item.expanded && item.children"
+      <MapboxLayerTree v-if="isContainer(item) && item.expanded && item.children"
                       :items="item.children" :depth="depth + 1" :map="map"
                       :selectedGroup="selectedGroup" :selectGroup="selectGroup" :parentGroup="item" :Icons="Icons"/>
     </li>
@@ -51,6 +53,7 @@ import MapboxLayerItem from "./MapboxLayerItem.vue";
 import { useToast } from "vue-toast-notification";
 import { useSharedArray } from '../../stores/app';
 import axios from "axios";
+import { useAuthStore } from '../../stores/auth';
 const { toggleExtended, toggleVisible } = useSharedArray();
 
 const $toast = useToast();
@@ -70,12 +73,28 @@ const props = defineProps({
   Icons: Array
 });
 
-function remove(item, index) {
+function isContainer(item) {
+  return item && (item.type === 'group' || item.type === 'folder');
+}
+
+async function remove(item, index) {
   if (item.children && item.children.length > 0) {
     showMessage('برای حذف پوشه باید خالی باشد', 'warning');
     return;
   }
-  props.items.splice(index, 1);
+  const confirmed = window.confirm('آیا از حذف این پوشه مطمئن هستید؟');
+  if (!confirmed) return;
+  try {
+    const store = useAuthStore();
+    if (item.save != null && Number(item.save) > -1 && store.user?.id) {
+      await axios.delete(SERVER + '/api/delWork?id=' + item.save + '&userId=' + store.user.id);
+    }
+    props.items.splice(index, 1);
+    showMessage('پوشه حذف شد', 'success');
+  } catch (e) {
+    console.error(e);
+    showMessage('خطا در حذف پوشه از سرور', 'error');
+  }
 }
 
 function selectedItems(item) {

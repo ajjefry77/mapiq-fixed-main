@@ -13,23 +13,80 @@
       
       <!-- Body -->
       <div class="overflow-y-auto px-5 py-4 flex-1 min-h-0">
-        <!-- انتخاب پلی‌گان/خط -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <div class="md:col-span-2">
-            <label class="block mb-1 font-medium">انتخاب ترسیم (پلی‌گان / خط)</label>
-            <select v-model="selectedPinId" class="w-full border rounded px-2 py-1.5">
-              <option v-if="!eligiblePins.length" value="">— ترسیمی یافت نشد —</option>
-              <option v-for="p in eligiblePins" :key="p.id" :value="p.id">
-                {{ p.name || 'بدون نام' }} ({{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }} - {{ p.shape.positions.length }} نقطه)
-              </option>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button @click="generate" :disabled="!selectedPin || generating"
-                    class="btn btn-primary w-full py-1.5 disabled:opacity-50">
-              <i class="fas fa-sync-alt ml-1" :class="generating ? 'fa-spin' : ''"></i>
-              تولید کروکی
-            </button>
+        <!-- انتخاب ترسیم‌ها -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <button
+            type="button"
+            @click="openSelectModal"
+            class="px-3 py-1.5 border border-dashed border-orange-400 text-orange-600 rounded hover:bg-orange-50 transition text-xs font-medium"
+          >
+            <i class="fas fa-plus ml-1"></i>
+            افزودن ترسیم
+          </button>
+          <span v-if="!selectedPins.length" class="text-gray-400 text-[11px]">هنوز ترسیمی انتخاب نشده</span>
+        </div>
+        <!-- چیپ‌های ترسیم‌های انتخاب‌شده -->
+        <div v-if="selectedPins.length" class="flex flex-wrap gap-1.5 mb-4">
+          <span
+            v-for="p in selectedPins"
+            :key="p.id"
+            class="inline-flex items-center gap-1.5 bg-orange-50 text-orange-800 border border-orange-200 rounded-full px-2.5 py-0.5 text-[11px]"
+          >
+            {{ p.name || 'بدون نام' }}
+            <span class="text-orange-400">({{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }})</span>
+            <button type="button" class="text-orange-500 hover:text-red-600 leading-none" @click="removeSelected(p.id)" title="حذف">×</button>
+          </span>
+        </div>
+
+        <!-- مودال انتخاب ترسیم -->
+        <div
+          v-if="selectModalOpen"
+          class="fixed inset-0 z-[1000] bg-black/50 flex items-center justify-center p-4"
+          @click.self="selectModalOpen = false"
+        >
+          <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" dir="rtl">
+            <div class="flex items-center justify-between px-4 py-3 border-b">
+              <h3 class="font-semibold text-sm">انتخاب ترسیم‌ها</h3>
+              <button type="button" class="text-gray-500 hover:text-gray-800" @click="selectModalOpen = false">✕</button>
+            </div>
+            <div class="px-4 py-2 border-b">
+              <input
+                v-model="selectSearch"
+                type="text"
+                placeholder="جستجوی نام ترسیم..."
+                class="w-full border rounded px-2 py-1.5 text-xs focus:border-orange-400 outline-none"
+              />
+            </div>
+            <div class="overflow-y-auto flex-1 p-3 space-y-1 min-h-[12rem]">
+              <div v-if="!filteredEligible.length" class="text-gray-400 text-center py-6 text-xs">ترسیمی یافت نشد</div>
+              <label
+                v-for="p in filteredEligible"
+                :key="p.id"
+                class="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-orange-50 border border-transparent hover:border-orange-100"
+              >
+                <input type="checkbox" :value="p.id" v-model="modalSelectedIds" class="accent-orange-500" />
+                <span class="text-xs">
+                  {{ p.name || 'بدون نام' }}
+                  <span class="text-gray-400">
+                    — {{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }}
+                    ({{ p.shape.positions.length }} نقطه)
+                  </span>
+                </span>
+              </label>
+            </div>
+            <div class="flex justify-between items-center gap-2 px-4 py-3 border-t bg-gray-50">
+              <button type="button" class="text-xs text-gray-500 hover:text-gray-700" @click="modalSelectedIds = []">پاک کردن</button>
+              <div class="flex gap-2">
+                <button type="button" class="px-3 py-1.5 border rounded text-xs" @click="selectModalOpen = false">انصراف</button>
+                <button
+                  type="button"
+                  class="px-4 py-1.5 bg-orange-500 text-white rounded text-xs hover:bg-orange-600"
+                  @click="confirmSelectModal"
+                >
+                  تأیید ({{ modalSelectedIds.length }})
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -88,13 +145,14 @@
           
           <!-- جدول مختصات UTM -->
           <div class="border rounded p-3">
-            <div class="font-medium mb-2">مختصات UTM</div>
+            <div class="font-medium mb-2">مختصات UTM — Zone: {{ utmZone || '—' }}</div>
             <table class="w-full text-[11px] border-collapse">
               <thead>
                 <tr class="bg-gray-100">
                   <th class="border px-2 py-1">شماره نقطه</th>
                   <th class="border px-2 py-1">Easting</th>
                   <th class="border px-2 py-1">Northing</th>
+                  <th class="border px-2 py-1">Zone</th>
                 </tr>
               </thead>
               <tbody>
@@ -102,6 +160,13 @@
                   <td class="border px-2 py-1 text-center">{{ i + 1 }}</td>
                   <td class="border px-2 py-1 text-center">{{ p.x.toFixed(2) }}</td>
                   <td class="border px-2 py-1 text-center">{{ p.y.toFixed(2) }}</td>
+                  <td class="border px-2 py-1 text-center">{{ p.zone ?? utmZone }}</td>
+                </tr>
+                <tr v-if="centerUtm" class="bg-blue-50 font-medium">
+                  <td class="border px-2 py-1 text-center">مرکز</td>
+                  <td class="border px-2 py-1 text-center">{{ centerUtm.x.toFixed(2) }}</td>
+                  <td class="border px-2 py-1 text-center">{{ centerUtm.y.toFixed(2) }}</td>
+                  <td class="border px-2 py-1 text-center">{{ centerUtm.zone ?? utmZone }}</td>
                 </tr>
               </tbody>
             </table>
@@ -113,7 +178,20 @@
       <!-- Footer -->
       <div class="flex justify-end gap-2 px-5 py-3 border-t flex-shrink-0">
         <button @click="close" class="px-4 py-1.5 border rounded">بستن</button>
-        <button @click="doPrint" :disabled="!ready" class="btn btn-primary px-4 py-1.5 disabled:opacity-50">
+        <button
+          v-if="!ready"
+          @click="generate"
+          :disabled="!selectedPins.length || generating"
+          class="btn btn-primary px-4 py-1.5 disabled:opacity-50"
+        >
+          <i class="fas fa-sync-alt ml-1" :class="generating ? 'fa-spin' : ''"></i>
+          {{ generating ? 'در حال تولید…' : 'تولید کروکی' }}
+        </button>
+        <button
+          v-else
+          @click="doPrint"
+          class="btn btn-primary px-4 py-1.5"
+        >
           <i class="fas fa-print ml-1"></i>
           چاپ
         </button>
@@ -124,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick } from 'vue'
+import { ref, reactive, computed, nextTick, watch } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import proj4 from 'proj4'
 
@@ -138,10 +216,16 @@ const generating = ref(false)
 const ready = ref(false)
 const errorMsg = ref('')
 
-const selectedPinId = ref('')
+const selectedPinIds = ref([])
 const mapImage = ref('')
 const utmPoints = ref([])
 const areaM2 = ref(0)
+const utmZone = ref(null)
+const centerUtm = ref(null)
+const selectedShapesMeta = ref([])
+const selectModalOpen = ref(false)
+const selectSearch = ref('')
+const modalSelectedIds = ref([])
 
 const sketchCanvasRef = ref(null)
 
@@ -200,9 +284,56 @@ const eligiblePins = computed(() =>
   )
 )
 
-const selectedPin = computed(() =>
-  eligiblePins.value.find(p => p.id === selectedPinId.value) || null
+const selectedPins = computed(() =>
+  eligiblePins.value.filter(p => selectedPinIds.value.includes(p.id))
 )
+
+watch(selectedPinIds, () => {
+  ready.value = false
+  mapImage.value = ''
+})
+
+
+const filteredEligible = computed(() => {
+  const q = (selectSearch.value || '').trim().toLowerCase()
+  if (!q) return eligiblePins.value
+  return eligiblePins.value.filter(p =>
+    (p.name || '').toLowerCase().includes(q)
+  )
+})
+
+function openSelectModal() {
+  modalSelectedIds.value = [...selectedPinIds.value]
+  selectSearch.value = ''
+  selectModalOpen.value = true
+}
+
+function confirmSelectModal() {
+  selectedPinIds.value = [...modalSelectedIds.value]
+  selectModalOpen.value = false
+}
+
+function removeSelected(id) {
+  selectedPinIds.value = selectedPinIds.value.filter(x => x !== id)
+}
+
+/** فعال‌سازی لایه ترسیم روی نقشه اگر مخفی باشد */
+function ensurePinVisible(pin) {
+  if (!pin) return
+  if (pin.shape) pin.shape.show = true
+  const sourceId = 'draw-pin-' + pin.id
+  const map = props.map
+  if (!map) return
+  const suffixes = ['-fill', '-line', '-point', '-points', '-outline']
+  for (const suf of suffixes) {
+    const layerId = sourceId + suf
+    try {
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', 'visible')
+      }
+    } catch (e) {}
+  }
+}
 
 /* -------------------- باز / بسته کردن دیالوگ -------------------- */
 function open(pin) {
@@ -210,12 +341,16 @@ function open(pin) {
   ready.value = false
   mapImage.value = ''
   utmPoints.value = []
+  centerUtm.value = null
+  utmZone.value = null
+  selectedShapesMeta.value = []
+  selectModalOpen.value = false
   dialog.value = true
 
   if (pin && pin.id) {
-    selectedPinId.value = pin.id
-  } else if (!selectedPinId.value || !eligiblePins.value.find(p => p.id === selectedPinId.value)) {
-    selectedPinId.value = eligiblePins.value.length ? eligiblePins.value[eligiblePins.value.length - 1].id : ''
+    selectedPinIds.value = [pin.id]
+  } else if (!selectedPinIds.value.length) {
+    selectedPinIds.value = []
   }
 }
 
@@ -226,12 +361,13 @@ function close() {
 /* -------------------- تبدیل به UTM -------------------- */
 function toUTM(positions) {
   if (!positions.length) return []
-  const lonAvg = positions.reduce((s, p) => s + p.lon, 0) / positions.length
+  const lonAvg = positions.reduce((s, p) => s + (p.lon ?? p.lng), 0) / positions.length
   const zone = Math.floor((lonAvg + 180) / 6) + 1
   const projStr = `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`
   return positions.map(p => {
-    const [x, y] = proj4('EPSG:4326', projStr, [p.lon, p.lat])
-    return { x, y }
+    const lon = p.lon ?? p.lng
+    const [x, y] = proj4('EPSG:4326', projStr, [lon, p.lat])
+    return { x, y, zone }
   })
 }
 
@@ -298,7 +434,8 @@ async function captureMapImage(positions) {
   }
 
   await new Promise(resolve => {
-    props.map.fitBounds(bounds, { padding: 60, duration: 0 })
+    // padding بیشتر و maxZoom کمتر = زوم دورتر
+    props.map.fitBounds(bounds, { padding: 280, maxZoom: 15, duration: 0 })
     props.map.once('idle', resolve)
     setTimeout(resolve, 1500)
   })
@@ -359,75 +496,102 @@ function drawSketch() {
   const cx = cpts.reduce((s, p) => s + p.x, 0) / cpts.length
   const cy = cpts.reduce((s, p) => s + p.y, 0) / cpts.length
 
-  const isClosed = selectedPin.value?.shape?.type === 'polygon'
+  const metas = selectedShapesMeta.value.length
+    ? selectedShapesMeta.value
+    : [{ type: 'polygon', isClosed: true, startIdx: 0, count: pts.length }]
 
-  ctx.beginPath()
-  cpts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
-  if (isClosed) ctx.closePath()
-  if (isClosed) {
-    ctx.fillStyle = 'rgba(122, 31, 31, 0.05)'
-    ctx.fill()
-  }
-  ctx.lineWidth = 2.5
-  ctx.strokeStyle = '#7a1f1f'
-  ctx.stroke()
+  let globalIdx = 0
+  for (const meta of metas) {
+    const slice = cpts.slice(meta.startIdx, meta.startIdx + meta.count)
+    const utmSlice = pts.slice(meta.startIdx, meta.startIdx + meta.count)
+    if (slice.length < 2) continue
+    const isClosed = meta.isClosed
 
-  const edgeCount = isClosed ? cpts.length : cpts.length - 1
-  for (let i = 0; i < edgeCount; i++) {
-    const a = cpts[i]
-    const b = cpts[(i + 1) % cpts.length]
-    const aUtm = pts[i]
-    const bUtm = pts[(i + 1) % pts.length]
-    const dx = bUtm.x - aUtm.x
-    const dy = bUtm.y - aUtm.y
-    const lenM = Math.sqrt(dx * dx + dy * dy)
-
-    const mx = (a.x + b.x) / 2
-    const my = (a.y + b.y) / 2
-
-    let nx = -(b.y - a.y)
-    let ny = (b.x - a.x)
-    const nlen = Math.sqrt(nx * nx + ny * ny) || 1
-    nx /= nlen
-    ny /= nlen
-
-    const toCx = mx - cx, toCy = my - cy
-    if (nx * toCx + ny * toCy < 0) { nx = -nx; ny = -ny }
-
-    const labelX = mx + nx * 22
-    const labelY = my + ny * 22
-
-    let angle = Math.atan2(b.y - a.y, b.x - a.x)
-    if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI
-
-    ctx.save()
-    ctx.translate(labelX, labelY)
-    ctx.rotate(angle)
-    ctx.font = '600 15px Vazirmatn, Tahoma, sans-serif'
-    ctx.fillStyle = '#222'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(lenM.toFixed(2), 0, 0)
-    ctx.restore()
-  }
-
-  cpts.forEach((p, i) => {
     ctx.beginPath()
-    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2)
-    ctx.fillStyle = '#7a1f1f'
+    slice.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
+    if (isClosed) ctx.closePath()
+    if (isClosed) {
+      ctx.fillStyle = 'rgba(122, 31, 31, 0.05)'
+      ctx.fill()
+    }
+    ctx.lineWidth = 2.5
+    ctx.strokeStyle = '#7a1f1f'
+    ctx.stroke()
+
+    const edgeCount = isClosed ? slice.length : slice.length - 1
+    for (let i = 0; i < edgeCount; i++) {
+      const a = slice[i]
+      const b = slice[(i + 1) % slice.length]
+      const aUtm = utmSlice[i]
+      const bUtm = utmSlice[(i + 1) % utmSlice.length]
+      const dx = bUtm.x - aUtm.x
+      const dy = bUtm.y - aUtm.y
+      const lenM = Math.sqrt(dx * dx + dy * dy)
+
+      const mx = (a.x + b.x) / 2
+      const my = (a.y + b.y) / 2
+
+      let nx = -(b.y - a.y)
+      let ny = (b.x - a.x)
+      const nlen = Math.sqrt(nx * nx + ny * ny) || 1
+      nx /= nlen
+      ny /= nlen
+
+      const toCx = mx - cx, toCy = my - cy
+      if (nx * toCx + ny * toCy < 0) { nx = -nx; ny = -ny }
+
+      const labelX = mx + nx * 22
+      const labelY = my + ny * 22
+
+      let angle = Math.atan2(b.y - a.y, b.x - a.x)
+      if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI
+
+      ctx.save()
+      ctx.translate(labelX, labelY)
+      ctx.rotate(angle)
+      ctx.font = '600 15px Vazirmatn, Tahoma, sans-serif'
+      ctx.fillStyle = '#222'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(lenM.toFixed(2), 0, 0)
+      ctx.restore()
+    }
+
+    slice.forEach((p) => {
+      globalIdx += 1
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2)
+      ctx.fillStyle = '#7a1f1f'
+      ctx.fill()
+
+      const toCx = p.x - cx, toCy = p.y - cy
+      const dlen = Math.sqrt(toCx * toCx + toCy * toCy) || 1
+      const lx = p.x + (toCx / dlen) * 24
+      const ly = p.y + (toCy / dlen) * 24
+
+      ctx.font = '700 17px Vazirmatn, Tahoma, sans-serif'
+      ctx.fillStyle = '#111'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(String(globalIdx), lx, ly)
+    })
+  }
+
+  // نقطه مرکز
+  if (centerUtm.value) {
+    const cp = toCanvas(centerUtm.value)
+    ctx.beginPath()
+    ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2)
+    ctx.fillStyle = '#2563eb'
     ctx.fill()
-
-    const toCx = p.x - cx, toCy = p.y - cy
-    const dlen = Math.sqrt(toCx * toCx + toCy * toCy) || 1
-    const lx = p.x + (toCx / dlen) * 24
-    const ly = p.y + (toCy / dlen) * 24
-
-    ctx.font = '700 17px Vazirmatn, Tahoma, sans-serif'
-    ctx.fillStyle = '#111'
+    ctx.strokeStyle = '#fff'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.font = '600 12px Vazirmatn, Tahoma, sans-serif'
+    ctx.fillStyle = '#1d4ed8'
     ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(String(i + 1), lx, ly)
-  })
+    ctx.fillText('مرکز', cp.x, cp.y + 16)
+  }
 
   const nax = W - 50, nay = 50
   ctx.save()
@@ -466,23 +630,68 @@ async function generate() {
   errorMsg.value = ''
   ready.value = false
 
-  const pin = selectedPin.value
-  if (!pin) {
-    errorMsg.value = 'یک ترسیم (پلی‌گان یا خط) را انتخاب کنید.'
+  const pins = selectedPins.value
+  if (!pins.length) {
+    errorMsg.value = 'حداقل یک ترسیم (پلی‌گان یا خط) را انتخاب کنید.'
     return
   }
 
-  const positions = pin.shape.positions
-  if (!positions || positions.length < 2) {
+  const allPositions = []
+  const metas = []
+  let areaSum = 0
+  for (const pin of pins) {
+    const positions = (pin.shape.positions || []).filter(
+      (p, i, arr) =>
+        !(
+          pin.shape.type === 'polygon' &&
+          i === arr.length - 1 &&
+          arr.length > 1 &&
+          p.lon === arr[0].lon &&
+          p.lat === arr[0].lat
+        ),
+    )
+    if (!positions || positions.length < 2) continue
+    const startIdx = allPositions.length
+    allPositions.push(...positions)
+    const isClosed = pin.shape.type === 'polygon'
+    metas.push({
+      type: pin.shape.type,
+      isClosed,
+      startIdx,
+      count: positions.length,
+    })
+  }
+
+  if (allPositions.length < 2) {
     errorMsg.value = 'حداقل ۲ نقطه لازم است.'
     return
   }
 
   generating.value = true
   try {
-    utmPoints.value = toUTM(positions)
-    areaM2.value = computeArea(utmPoints.value)
-    mapImage.value = await captureMapImage(positions)
+    // فعال‌سازی لایه‌های انتخاب‌شده روی نقشه
+    for (const pin of pins) {
+      ensurePinVisible(pin)
+    }
+
+    const utm = toUTM(allPositions)
+    utmPoints.value = utm
+    utmZone.value = utm[0]?.zone ?? null
+    selectedShapesMeta.value = metas
+
+    let totalArea = 0
+    for (const meta of metas) {
+      if (!meta.isClosed) continue
+      const slice = utm.slice(meta.startIdx, meta.startIdx + meta.count)
+      totalArea += computeArea(slice)
+    }
+    areaM2.value = totalArea
+
+    const avgX = utm.reduce((s, p) => s + p.x, 0) / utm.length
+    const avgY = utm.reduce((s, p) => s + p.y, 0) / utm.length
+    centerUtm.value = { x: avgX, y: avgY, zone: utmZone.value }
+
+    mapImage.value = await captureMapImage(allPositions)
 
     ready.value = true
     await nextTick()
@@ -541,6 +750,8 @@ figcaption { font-size: 12px; color: #444; margin-top: 6px; font-weight: 600; }
 @page { size: A4 portrait; margin: 12mm; }
 @media print {
   .sheet { padding: 0; }
+  /* جلوگیری از نمایش عنوان مرورگر در هدر چاپ تا حد امکان */
+  html, body { margin: 0; }
 }
 `
 
@@ -548,8 +759,12 @@ function buildPrintHtml() {
   const sketchImg = sketchCanvasRef.value?.toDataURL('image/png') || ''
 
   const rows = utmPoints.value.map((p, i) => `
-    <tr><td>${i + 1}</td><td>${p.x.toFixed(2)}</td><td>${p.y.toFixed(2)}</td></tr>
+    <tr><td>${i + 1}</td><td>${p.x.toFixed(2)}</td><td>${p.y.toFixed(2)}</td><td>${p.zone ?? utmZone.value ?? ''}</td></tr>
   `).join('')
+
+  const centerRow = centerUtm.value
+    ? `<tr style="background:#eff6ff;font-weight:600"><td>مرکز</td><td>${centerUtm.value.x.toFixed(2)}</td><td>${centerUtm.value.y.toFixed(2)}</td><td>${centerUtm.value.zone ?? utmZone.value ?? ''}</td></tr>`
+    : ''
 
   return `
     <div class="sheet">
@@ -564,7 +779,7 @@ function buildPrintHtml() {
           <td>نشانی ملک</td><td>${escapeHtml(form.address)}</td>
         </tr>
         <tr>
-          <td>سیستم مختصات</td><td>WGS 1984 / UTM</td>
+          <td>سیستم مختصات</td><td>WGS 1984 / UTM — Zone: ${utmZone.value ?? '—'}</td>
           <td>مساحت کل</td><td>${areaM2.value.toFixed(2)} متر مربع</td>
         </tr>
       </table>
@@ -582,10 +797,10 @@ function buildPrintHtml() {
 
       <table class="utm-table">
         <thead>
-          <tr><th colspan="3">مختصات UTM</th></tr>
-          <tr><th>شماره نقطه</th><th>Easting</th><th>Northing</th></tr>
+          <tr><th colspan="4">مختصات UTM — Zone: ${utmZone.value ?? '—'}</th></tr>
+          <tr><th>شماره نقطه</th><th>Easting</th><th>Northing</th><th>Zone</th></tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${rows}${centerRow}</tbody>
       </table>
 
       <div class="disclaimer">
@@ -616,7 +831,7 @@ function doPrint() {
 <html dir="rtl" lang="fa">
 <head>
   <meta charset="utf-8"/>
-  <title>${escapeHtml(form.title) || 'کروکی'}</title>
+  <title>&nbsp;</title>
   <style>${printCss}</style>
 </head>
 <body>${html}</body>

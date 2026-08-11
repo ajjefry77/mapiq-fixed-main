@@ -52,8 +52,17 @@
                         :class="r === 'admin' ? 'badge-active' : 'badge-inactive'"
                         style="width:fit-content">{{ roleLabel(r) }}</span>
                 </div>
+                <div class="wallet-row">
+                  <span class="wallet-label"><i class="fas fa-wallet"></i> موجودی:</span>
+                  <span class="wallet-amount" dir="ltr">{{ formatMoney(walletBalance) }}</span>
+                  <span class="wallet-unit">ریال</span>
+                  <button type="button" class="wallet-plus" title="افزایش موجودی" @click.stop="goToCharge">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
               <button v-if="!authStore.isAdmin" class="dropdown-item" @click="goToPanel">🖥 پنل کاربری</button>
+              <button class="dropdown-item" @click="goToCharge">💳 افزایش موجودی</button>
               <button class="dropdown-item" @click="handleLogout">🚪 خروج از حساب</button>
             </div>
           </teleport>
@@ -71,16 +80,47 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useAuthStore } from "../stores/auth"
+import axios from "axios"
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const SERVER = import.meta.env.VITE_SERVER
 
 const menuOpen = ref(false)
 const mobileOpen = ref(false)
 const userMenuRef = ref(null)
 const dropdownRef = ref(null)
 const dropdownStyle = ref({})
+const walletBalance = ref(0)
+
+function formatMoney(n) {
+  return (Number(n) || 0).toLocaleString("fa-IR")
+}
+
+async function loadWallet() {
+  const uid = authStore.user?.id || authStore.fbUser?.id
+  if (!uid) {
+    walletBalance.value = 0
+    return
+  }
+  try {
+    const res = await axios.get(SERVER + "/api/wallet/" + uid, {
+      headers: {
+        Authorization:
+          "Bearer " + (authStore.token || localStorage.getItem("token") || ""),
+      },
+    })
+    walletBalance.value = res.data?.balance ?? res.data?.amount ?? 0
+  } catch {
+    walletBalance.value = Number(localStorage.getItem("wallet_" + uid) || 0)
+  }
+}
+
+function goToCharge() {
+  menuOpen.value = false
+  router.push("/wallet/charge")
+}
 
 const isPublicRoute = computed(() => route.meta.public)
 
@@ -116,7 +156,10 @@ function positionDropdown() {
 }
 
 function toggleUserMenu() {
-  if (!menuOpen.value) positionDropdown()
+  if (!menuOpen.value) {
+    positionDropdown()
+    loadWallet()
+  }
   menuOpen.value = !menuOpen.value
 }
 
@@ -365,6 +408,56 @@ onUnmounted(() => {
 .user-phone {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.wallet-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(232, 132, 60, 0.12);
+  border: 1px solid rgba(232, 132, 60, 0.25);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.wallet-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.wallet-label i {
+  color: #e8843c;
+  font-size: 11px;
+}
+.wallet-amount {
+  font-weight: 700;
+  color: #e8843c;
+  font-size: 12px;
+}
+.wallet-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.wallet-plus {
+  margin-right: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: #e8843c;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wallet-plus:hover {
+  background: #d4732e;
 }
 
 .dropdown-item {

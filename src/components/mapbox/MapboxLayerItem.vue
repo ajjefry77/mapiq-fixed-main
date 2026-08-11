@@ -4,10 +4,9 @@
        :style="{ ['paddingRight']: `${depth * 20}px` }">
 
     <div class="flex items-center gap-1" @click.stop="zoomOnPin">
-      <i v-if="isGroup" class="fas fa-folder text-yellow-500"></i>
-      <span class="text-xs text-gray-800 truncate" :class="{ 'font-bold': isGroup }">
-        <input type="checkbox" :checked="item.shape?.show" @change="toggle" class="ml-2 accent-green-600"/>
-        <i :class="selectIcon(item)" class="text-accent"/>
+      <span class="text-xs text-gray-800 truncate flex items-center gap-1" :class="{ 'font-bold': isGroup }">
+        <input type="checkbox" :checked="item.shape?.show !== false" @change="toggle" class="ml-2 accent-green-600"/>
+        <i :class="selectIcon(item)"></i>
         {{ name }}
       </span>
     </div>
@@ -214,16 +213,21 @@ function findPinById(items, id) {
 }
 
 function selectIcon(item) {
+  if (item.type === 'folder') return 'fas fa-folder text-amber-500';
+  // گروه واقعی (با group_id) → آیکون کاربران؛ پوشه شخصی قدیمی با type=group → پوشه
+  if (item.type === 'group' && item.group_id) return 'fas fa-users text-blue-600';
+  if (item.type === 'group') return 'fas fa-folder text-amber-500';
   if (item.type == 'draw') {
     switch (item.shape?.type) {
-      case 'multi_point': return 'fas fa-map-pin';
-      case 'point': return 'fas fa-location-dot';
-      case 'polyline': return 'fas fa-bezier-curve';
-      case 'polygon': return 'fas fa-draw-polygon';
-      case 'circle': return 'fas fa-circle-dot';
+      case 'multi_point': return 'fas fa-map-pin text-accent';
+      case 'point': return 'fas fa-location-dot text-accent';
+      case 'polyline': return 'fas fa-bezier-curve text-accent';
+      case 'polygon': return 'fas fa-draw-polygon text-accent';
+      case 'circle': return 'fas fa-circle-dot text-accent';
     }
   }
-  return 'fas fa-file';
+  if (item.type === 'file') return 'fas fa-file text-gray-500';
+  return 'fas fa-file text-gray-500';
 }
 
 function showMessage(msg, type) {

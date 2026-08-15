@@ -266,7 +266,6 @@ const backToDesk = async () => {
     Pins.push(props.item)
     const res = await axios.post(SERVER + '/api/copyRecord/' + props.item.save)
     showMessage('آیتم به میزکار منتقل شد','success')
-    console.log(res.data)
   } else {
     showMessage('این آیتم در میزکار موجود هست', 'warning')
   }

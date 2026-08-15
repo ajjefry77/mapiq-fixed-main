@@ -298,8 +298,6 @@ onMounted(async () => {
     await getExtendedIds();
     await getVisibleIds();
 
-    console.log('Mounted : ' , authStore.user )
-
     await loadWorks();
     await loadInbox();
     await loadUserGroups();
@@ -356,7 +354,7 @@ async function getData(token) {
       });
 
     } else {
-      console.log(res.message)
+      console.warn(res.message)
     }
 
   } catch (err) {
@@ -372,7 +370,6 @@ onUnmounted(() => {
 watch(() => authStore.isLogin, async (isLogin) => {
   if (isLogin) {
     if (authStore.user) {
-      console.log('watch : ' , authStore.user )
       await loadWorks();
       await loadInbox();
       for (let pin of props.pins) {
@@ -493,7 +490,6 @@ const drawInbox = async (idx) => {
     await drawKML(viewer,pin, 'inbox')
   }
   pin.show = true;
-  console.log('run draw ')
 }
 
 const loadWorks = async () => {
@@ -655,8 +651,6 @@ const saveOneWorks = async (item) => {
     const res = await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
         { headers: { "Content-Type": "multipart/form-data" } })
 
-    console.log(res.data)
-
   } catch (err) {
     console.error(err)
   }
@@ -703,7 +697,6 @@ const createFolder = async (name) => {
       name: name,
     }
     const res = await axios.post(SERVER + '/api/createFolder/' + authStore.user?.id, payload)
-    console.log(res.data)
 
   } catch (err) {
     console.error(err)
@@ -719,7 +712,6 @@ const ArchiveDesktop = async () => {
     ids.push(item.save);
   }
   const res = await axios.post(SERVER + '/api/archive' , {ids : ids})
-  console.log(res)
   emit('clearPins')
 }
 
@@ -1164,7 +1156,6 @@ const handleFileUpload = async (event) => {
 
     Papa.parse(file, { header: true, skipEmptyLines: true, complete(results) {
         csvRows.value = results.data
-        console.log( 'rows count:', csvRows.value.length )
       },
       error(error) {
         console.error(error)
@@ -1208,7 +1199,6 @@ const handleFileUpload = async (event) => {
         };
 
         const id = crypto.randomUUID()
-        console.log(id);
         //loadedFiles.value.push(row);
         pin = {
           id : id ,
@@ -1272,7 +1262,6 @@ const handleFileUpload = async (event) => {
             dataSource : DataSource
           }
           const id = crypto.randomUUID()
-          console.log(id);
           //loadedFiles.value.push(row);
           pin = {
             id : id ,

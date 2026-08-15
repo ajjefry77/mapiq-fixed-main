@@ -225,7 +225,7 @@ function showFeatureInfo(entity) {
     let length = 0;
 
     for (let i = 1; i < positions.length; i++) {
-      length += Cesium.Cartesian3.distance(positions[i-1], positions[i]);
+      length += surfaceDistance(positions[i-1], positions[i]);
     }
 
     info.length = formatLength(length);
@@ -247,13 +247,13 @@ function showFeatureInfo(entity) {
     let perimeter = 0;
 
     for (let i = 1; i < positions.length; i++) {
-      perimeter += Cesium.Cartesian3.distance(
+      perimeter += surfaceDistance(
           positions[i - 1],
           positions[i]
       );
     }
 
-    perimeter += Cesium.Cartesian3.distance(
+    perimeter += surfaceDistance(
         positions[positions.length - 1],
         positions[0]
     );
@@ -406,6 +406,13 @@ function formatLength(lengthMeters) {
   }
 
   return lengthMeters.toFixed(2) + " متر";
+}
+
+function surfaceDistance(ca, cb) {
+  const cartoA = Cesium.Cartographic.fromCartesian(ca);
+  const cartoB = Cesium.Cartographic.fromCartesian(cb);
+  const geodesic = new Cesium.EllipsoidGeodesic(cartoA, cartoB);
+  return geodesic.surfaceDistance;
 }
 
 function formatArea(areaMeters) {

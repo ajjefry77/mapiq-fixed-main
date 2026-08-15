@@ -17,10 +17,11 @@ import {
   measureDistance,
   formatDistance,
   formatArea,
-  formatVertexLabel,
-  getDrawTypeName,
-  toUTM,
-  fromUTM,
+formatVertexLabel,
+    getDrawTypeName,
+    toUTM,
+    toUTMInZone,
+    fromUTM,
   computeCentroid,
   computeCircleCoords,
 } from "./useDrawingHelpers";
@@ -1900,8 +1901,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     if (!shape.value || shape.value.type !== "polygon") return "0 m²";
     const points = getAllPoints();
     if (points.length < 3) return "0 m²";
+    const centroid = computeCentroid(points);
+    const refZone = toUTM(centroid.lon, centroid.lat).zone;
     const coords = points.map((p) => {
-      const { x, y } = toUTM(p.lon, p.lat);
+      const { x, y } = toUTMInZone(p.lon, p.lat, refZone);
       return [x, y];
     });
     let area = 0;

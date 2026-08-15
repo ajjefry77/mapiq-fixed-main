@@ -517,10 +517,7 @@ function startDrawing() {
       if (!center) return;
       const pos = props.viewer.camera.pickEllipsoid(move.endPosition, props.viewer.scene.globe.ellipsoid);
       if (pos) {
-        const dx = pos.x - center.x;
-        const dy = pos.y - center.y;
-        const dz = pos.z - center.z;
-        radius = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        radius = surfaceDistance(center, pos);
       }
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
   }
@@ -641,6 +638,13 @@ function formatLength(m) {
   return m >= 1000 ? (m / 1000).toFixed(2) + ' کیلومتر' : m.toFixed(2) + ' متر';
 }
 
+function surfaceDistance(ca, cb) {
+  const cartoA = Cesium.Cartographic.fromCartesian(ca);
+  const cartoB = Cesium.Cartographic.fromCartesian(cb);
+  const geodesic = new Cesium.EllipsoidGeodesic(cartoA, cartoB);
+  return geodesic.surfaceDistance;
+}
+
 function formatArea(m2) {
   if (!m2) return '';
   return m2 >= 10000 ? (m2 / 10000).toFixed(2) + ' هکتار' : m2.toFixed(2) + ' متر مربع';
@@ -673,15 +677,15 @@ function buildMeasureInfo(draw, cartesianPositions) {
 
   if (draw === 'polyline') {
     for (let i = 1; i < cartesianPositions.length; i++) {
-      length += Cesium.Cartesian3.distance(cartesianPositions[i - 1], cartesianPositions[i]);
+      length += surfaceDistance(cartesianPositions[i - 1], cartesianPositions[i]);
     }
   }
 
   if (draw === 'polygon') {
     for (let i = 1; i < cartesianPositions.length; i++) {
-      perimeter += Cesium.Cartesian3.distance(cartesianPositions[i - 1], cartesianPositions[i]);
+      perimeter += surfaceDistance(cartesianPositions[i - 1], cartesianPositions[i]);
     }
-    perimeter += Cesium.Cartesian3.distance(cartesianPositions[cartesianPositions.length - 1], cartesianPositions[0]);
+    perimeter += surfaceDistance(cartesianPositions[cartesianPositions.length - 1], cartesianPositions[0]);
     area = polygonAreaFromLonLat(formPoints.value.map(p => [Number(p.lon), Number(p.lat)]));
   }
 
@@ -897,8 +901,6 @@ const saveOneWorks = async (item) => {
     const res = await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
         { headers: { "Content-Type": "multipart/form-data" } })
 
-    console.log(res.data)
-
   } catch (err) {
     console.error(err)
   }
@@ -927,7 +929,6 @@ const saveWork = async () => {
         })
 
     const res = await axios.post(SERVER + '/api/Save/myWork/' + authStore.user?.id, payload)
-    console.log(res.data)
 
   } catch (err) {
     console.error(err)
@@ -1034,7 +1035,7 @@ function startMeasure() {
 
       // محاسبه و نمایش فاصله بین آخرین دو نقطه
       const lastIndex = points.length - 1;
-      const distance = Cesium.Cartesian3.distance(
+      const distance = surfaceDistance(
           points[lastIndex - 1],
           points[lastIndex]
       );

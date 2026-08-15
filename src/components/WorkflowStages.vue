@@ -180,8 +180,6 @@ async function submitForm() {
   } catch (error) {
     console.error('Error saving workflow:', error);
   }
-
-  console.log('🚀 ارسال به سرور:', workflow)
 }
 
 onMounted(async () => {

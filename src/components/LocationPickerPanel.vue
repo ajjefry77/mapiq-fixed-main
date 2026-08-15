@@ -259,7 +259,7 @@ const props = defineProps({
   lat: { type: [Number, String], default: null },
   lng: { type: [Number, String], default: null },
 })
-const emit = defineEmits(['update:visible', 'close', 'savePoint'])
+const emit = defineEmits(['update:visible', 'close', 'savePoint', 'update:coords'])
 
 const SERVER = import.meta.env.VITE_SERVER
 const authStore = useAuthStore()
@@ -474,7 +474,7 @@ async function handleSubmit() {
   Object.assign(validationErrors, errs)
 
   if (!ok) {
-    snapTo('max')
+    scrollToFirstError()
     return
   }
 
@@ -545,6 +545,7 @@ const currentSnap = ref('mid')
 const dragging = ref(false)
 const dragY = ref(null)
 const sheetEl = ref(null)
+const sheetBodyEl = ref(null)
 
 const HANDLE_H = 64
 const windowH = ref(window.innerHeight)
@@ -571,6 +572,18 @@ function snapTo(snap) {
   currentSnap.value = snap
   dragging.value = false
   dragY.value = null
+}
+
+function scrollToFirstError() {
+  const body = sheetBodyEl.value
+  if (!body) return
+  const firstError = body.querySelector('.lpp-field-error')
+  const target = firstError ? firstError : body.querySelector('.error')
+  if (target) {
+    body.scrollTo({ top: target.offsetTop - body.offsetTop - 16, behavior: 'smooth' })
+  } else {
+    snapTo('max')
+  }
 }
 
 let dragStartClientY = 0

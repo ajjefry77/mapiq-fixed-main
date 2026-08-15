@@ -96,6 +96,16 @@ export function toUTM(lon, lat) {
   return { x, y, zone };
 }
 
+export function toUTMInZone(lon, lat, zone, northern = true) {
+  const hemisphere = northern ? "" : "+south";
+  const [x, y] = proj4(
+    "EPSG:4326",
+    `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs${hemisphere}`,
+    [lon, lat],
+  );
+  return { x, y };
+}
+
 export function computeCircleCoords(center, radius) {
   const coords = [];
   for (let i = 0; i <= 64; i++) {

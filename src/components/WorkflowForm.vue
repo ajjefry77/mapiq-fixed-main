@@ -32,7 +32,6 @@ const workflow = reactive({
 })
 
 function submitForm() {
-  console.log('workflow:', workflow)
   // می‌تونی API رو اینجا صدا بزنی
 }
 </script>

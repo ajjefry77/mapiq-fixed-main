@@ -1,5 +1,3 @@
-import axios from 'axios'
-
 const API_BASE_URL = import.meta.env.VITE_SERVER + '/api'
 
 export interface SecurityConfig {
@@ -31,32 +29,6 @@ export function escapeHtml(str: string): string {
   const div = document.createElement('div')
   div.appendChild(document.createTextNode(str))
   return div.innerHTML
-}
-
-export function generateCSRFToken(): string {
-  const array = new Uint8Array(32)
-  crypto.getRandomValues(array)
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
-}
-
-export function getCSRFToken(): string | null {
-  const metaTag = document.querySelector('meta[name="csrf-token"]')
-  return metaTag ? metaTag.getAttribute('content') : null
-}
-
-export function setupCSRFProtection(): void {
-  const csrfToken = generateCSRFToken()
-  const meta = document.createElement('meta')
-  meta.name = 'csrf-token'
-  meta.content = csrfToken
-  document.head.appendChild(meta)
-
-  axios.interceptors.request.use((config) => {
-    if (['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
-      config.headers['X-CSRF-Token'] = csrfToken
-    }
-    return config
-  })
 }
 
 export function trackActivity(): void {
@@ -147,38 +119,7 @@ export function clearAllSensitiveData(): void {
   }
 }
 
-export function detectDevTools(): void {
-  const threshold = 160
-
-  setInterval(() => {
-    const widthThreshold = window.outerWidth - window.innerWidth > threshold
-    const heightThreshold = window.outerHeight - window.innerHeight > threshold
-
-    if (widthThreshold || heightThreshold) {
-      console.warn('DevTools detected!')
-    }
-  }, 1000)
-
-  let devtoolsOpen = false
-  const element = new Image()
-  Object.defineProperty(element, 'id', {
-    get() {
-      devtoolsOpen = true
-      return 'devtools'
-    }
-  })
-
-  setInterval(() => {
-    devtoolsOpen = false
-    console.dir(element)
-    if (devtoolsOpen) {
-      console.warn('Developer tools detected!')
-    }
-  }, 1000)
-}
-
 export function initSecurity(): void {
-  setupCSRFProtection()
   setupSecurityHeaders()
   setupSecurityMonitoring()
   trackActivity()

@@ -181,6 +181,7 @@
       :lng="pickedPoint.lng"
       @close="closePickerPanel"
       @savePoint="savePickedPoint"
+      @update:coords="onPickerCoords"
   />
 
 </template>
@@ -438,7 +439,7 @@ const getLayersForSelectedWorkspace = computed(() => {
 
 const initMap_Cesium = async () => {
 
-  // Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3ZTA1ZDA4MC0xYTQ3LTQ2NzQtYTNiZi1jZDc4M2NmODE0NDUiLCJpZCI6MzI1ODA4LCJpYXQiOjE3NTM2MzE3Nzl9.51x5_pHSxsRast5qyeGS_JP49S_scRzmnPMN-VLbY-s";
+  // Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN;
   // const terrainProvider = await Cesium.createWorldTerrainAsync({
   //   requestWaterMask: true,
   //   requestVertexNormals: true
@@ -483,7 +484,7 @@ const initMap_Cesium = async () => {
 
   const controller = viewer.scene.screenSpaceCameraController;
   controller.maximumZoomDistance = 2600000;
-  Cesium.ImageryProvider.retryLoad = false;
+  Cesium.ImageryProvider.retryLoad = true;
   Cesium.Resource.maximumConcurrentRequests = 8;
 
   viewer.camera.flyTo({
@@ -1066,6 +1067,27 @@ function closePickerPanel() {
   pickedPoint.lng = null
 }
 
+function onPickerCoords({ lat, lng }) {
+  if (!viewer) return
+  pickedPoint.lat = lat
+  pickedPoint.lng = lng
+  if (pickMarker.value) {
+    pickMarker.value.position = Cesium.Cartesian3.fromDegrees(lng, lat)
+  } else {
+    pickMarker.value = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(lng, lat),
+      point: {
+        pixelSize: 12,
+        color: Cesium.Color.fromCssColorString('#e8843c'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 3,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+      }
+    })
+  }
+  viewer.flyTo(pickMarker.value, { offset: new Cesium.HeadingPitchRange(0, -45, 800) })
+}
+
 // ذخیره اطلاعات نقطه (نام/توضیحات/فایل + مختصات) به عنوان یک پین
 async function savePickedPoint(data) {
   try {
@@ -1133,7 +1155,7 @@ async function show3D_Layer() {
 function loadWfsChunk(start) {
   const url =
       GEOSERVER + `/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature` +
-      `&typeName=Amlak:اعیان` +
+      `&typeName=${encodeURIComponent('Amlak:اعیان')}` +
       `&outputFormat=application/json` +
       `&srsName=EPSG:4326` +
       `&startIndex=${start}` +
@@ -1190,7 +1212,6 @@ function loadWfsChunk(start) {
       }
     }
 
-    console.log(`Chunk starting at ${start} loaded (${entities.length} features)`);
     return entities.length;
   });
 }
@@ -1220,7 +1241,7 @@ async function loadAllChunks(totalCount) {
     await Promise.all(promises);
   }
 
-  console.log("تمام داده‌ها لود شدند ✅");
+  loading.value = false;
 }
 
 function getLocation() {
@@ -1229,8 +1250,6 @@ function getLocation() {
     navigator.geolocation.getCurrentPosition(
         (position) => {
           // موفقیت: موقعیت کاربر دریافت شد
-          console.log("عرض جغرافیایی: " + position.coords.latitude);
-          console.log("طول جغرافیایی: " + position.coords.longitude);
           try {
 
             const height = position.coords.altitude ?? 0;

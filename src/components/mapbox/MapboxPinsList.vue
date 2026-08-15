@@ -685,10 +685,8 @@ async function loadGroupProject(proj, group) {
   try {
     if (proj.content || proj.type === "draw") {
       // در Mapbox معمولاً از مکانیزم لایه‌های موجود استفاده می‌شود
-      console.log("load group project", proj, group);
     } else {
       const res = await axios.get(SERVER + `/api/load/myWork/item/${proj.save || proj.id}`);
-      console.log("loaded item", res.data);
     }
   } catch (err) {
     console.error(err);

@@ -3,7 +3,7 @@ import { createPinia } from 'pinia';
 import router from './router';
 import App from './App.vue';
 import axios from 'axios';
-import { initSecurity, sanitizeInput } from './utils/security';
+import { initSecurity } from './utils/security';
 
 import ToastPlugin from "vue-toast-notification";
 import "vue-toast-notification/dist/theme-sugar.css";
@@ -19,14 +19,6 @@ axios.interceptors.request.use(
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-    }
-
-    if (config.data && typeof config.data === 'object') {
-      for (const [key, value] of Object.entries(config.data)) {
-        if (typeof value === 'string') {
-          config.data[key] = sanitizeInput(value)
-        }
-      }
     }
 
     if (config.method && ['post', 'put', 'patch'].includes(config.method)) {

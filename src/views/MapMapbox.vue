@@ -171,6 +171,7 @@
     :lng="pickedPoint.lng"
     @close="closePickerPanel"
     @savePoint="savePickedPoint"
+    @update:coords="onPickerCoords"
   />
 </template>
 
@@ -550,6 +551,33 @@ function closePickerPanel() {
   }
   pickedPoint.lat = null;
   pickedPoint.lng = null;
+}
+
+function onPickerCoords({ lat, lng }) {
+  if (!map) return;
+  pickedPoint.lat = lat;
+  pickedPoint.lng = lng;
+  if (pickMarker.value) {
+    pickMarker.value.setLngLat([lng, lat]);
+  } else {
+    const el = document.createElement("div");
+    el.style.width = "24px";
+    el.style.height = "24px";
+    el.style.borderRadius = "50%";
+    el.style.background = "#e8843c";
+    el.style.border = "3px solid white";
+    el.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+    pickMarker.value = new mapboxgl.Marker({ element: el })
+      .setLngLat([lng, lat])
+      .addTo(map);
+  }
+  map.flyTo({
+    center: [lng, lat],
+    zoom: 14,
+    pitch: is3DMode.value ? 60 : 0,
+    bearing: is3DMode.value ? map.getBearing() : 0,
+    duration: 1200,
+  });
 }
 
 async function savePickedPoint(data) {

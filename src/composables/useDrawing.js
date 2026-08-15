@@ -67,6 +67,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   };
   const es = {
     sourceId: null,
+    haloLayerId: null,
     dragIndex: null,
     dragging: false,
     mouseDown: null,
@@ -1148,17 +1149,55 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       data: { type: "FeatureCollection", features: [] },
     });
     const handlesLayerId = es.sourceId + "-points";
-    map.addLayer({
-      id: handlesLayerId,
-      type: "circle",
-      source: es.sourceId,
-      paint: {
-        "circle-radius": 6,
-        "circle-color": "#ffffff",
-        "circle-stroke-color": "#2563eb",
-        "circle-stroke-width": 3,
-      },
-    });
+    if (type === "multi_point") {
+      // حاشیه آبی دور هر نماد (مطابق شکل) — لایه halo هم‌شکل با خود نماد، پشت لایه اصلی
+      const pin = editingPin.value
+      const mainSourceId = pin ? "draw-pin-" + pin.id : null
+      const mainIconLayerId = mainSourceId ? mainSourceId + "-points" : null
+      if (pin && mainIconLayerId && map.getLayer(mainIconLayerId)) {
+        es.haloLayerId = es.sourceId + "-halo"
+        map.addLayer(
+          {
+            id: es.haloLayerId,
+            type: "symbol",
+            source: mainSourceId,
+            layout: {
+              "icon-image": ["get", "icon"],
+              "icon-size": 0.62,
+              "icon-allow-overlap": true,
+            },
+            paint: {
+              "icon-color": "#2563eb",
+              "icon-opacity": shape.value?.opacity ?? 1,
+            },
+          },
+          mainIconLayerId,
+        )
+      }
+      // دستگیره شفاف فقط برای کشیدن
+      map.addLayer({
+        id: handlesLayerId,
+        type: "circle",
+        source: es.sourceId,
+        paint: {
+          "circle-radius": 17,
+          "circle-color": "rgba(37, 99, 235, 0)",
+          "circle-stroke-width": 0,
+        },
+      })
+    } else {
+      map.addLayer({
+        id: handlesLayerId,
+        type: "circle",
+        source: es.sourceId,
+        paint: {
+          "circle-radius": 6,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#2563eb",
+          "circle-stroke-width": 3,
+        },
+      })
+    }
     refreshEditHandles();
     es.mouseDown = (e) => {
       if (!e.features?.length) return;
@@ -1214,6 +1253,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       const handlesLayerId = es.sourceId + "-points";
       if (es.mouseDown) map.off("mousedown", handlesLayerId, es.mouseDown);
       if (map.getLayer(handlesLayerId)) map.removeLayer(handlesLayerId);
+      if (es.haloLayerId) {
+        if (map.getLayer(es.haloLayerId)) map.removeLayer(es.haloLayerId);
+        es.haloLayerId = null;
+      }
       if (map.getSource(es.sourceId)) map.removeSource(es.sourceId);
       es.sourceId = null;
     }

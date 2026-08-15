@@ -37,62 +37,28 @@ export function pointIcon(symbol) {
 
 const ICON_SIZE = 64;
 
+// مسیر SVG آیکن‌های Iconify (Material Design Icons) — viewBox 0 0 24 24
+const POINT_ICON_PATHS = {
+  circle:
+    "M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2",
+  square: "M3 3v18h18V3",
+  triangle: "M1 21h22L12 2",
+  diamond: "M6 2L2 8l10 14L22 8l-4-6z",
+  star: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2L9.19 8.62L2 9.24l5.45 4.73L5.82 21z",
+  pin: "M12 11.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5A2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7",
+};
+
 function drawPointIcon(kind, ctx, size) {
-  const c = size / 2;
-  ctx.fillStyle = "#fff";
-  switch (kind) {
-    case "circle":
-      ctx.beginPath();
-      ctx.arc(c, c, size / 2 - 3, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    case "square":
-      ctx.fillRect(3, 3, size - 6, size - 6);
-      break;
-    case "triangle":
-      ctx.beginPath();
-      ctx.moveTo(c, 3);
-      ctx.lineTo(size - 3, size - 3);
-      ctx.lineTo(3, size - 3);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case "diamond":
-      ctx.beginPath();
-      ctx.moveTo(c, 2);
-      ctx.lineTo(size - 2, c);
-      ctx.lineTo(c, size - 2);
-      ctx.lineTo(2, c);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case "star": {
-      const outer = size / 2 - 3;
-      const inner = outer * 0.5;
-      ctx.beginPath();
-      for (let i = 0; i < 10; i++) {
-        const r = i % 2 === 0 ? outer : inner;
-        const a = -Math.PI / 2 + (i * Math.PI) / 5;
-        const x = c + Math.cos(a) * r;
-        const y = c + Math.sin(a) * r;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      break;
-    }
-    case "pin": {
-      const r = size * 0.32;
-      ctx.beginPath();
-      ctx.moveTo(c, size - 2);
-      ctx.lineTo(c - r, c);
-      ctx.arc(c, c, r, Math.PI, Math.PI * 2);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    }
-  }
+  const pathStr = POINT_ICON_PATHS[kind] || POINT_ICON_PATHS.circle
+  const path = new Path2D(pathStr)
+  const pad = 4
+  const scale = (size - pad * 2) / 24
+  ctx.save()
+  ctx.translate(pad, pad)
+  ctx.scale(scale, scale)
+  ctx.fillStyle = "#fff"
+  ctx.fill(path)
+  ctx.restore()
 }
 
 /**

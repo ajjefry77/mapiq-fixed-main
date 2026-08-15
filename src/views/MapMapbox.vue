@@ -29,7 +29,7 @@
             @click="isOpen = false"
             class="absolute top-2 left-4 text-xl z-10"
           >
-            &times;
+            <i class="fas fa-times"></i>
           </button>
           <MapboxPinsList
             v-if="mapReady"
@@ -95,7 +95,7 @@
             @click="ShowForLogin = false"
             class="text-xl leading-none text-gray-400 hover:text-white transition-colors"
           >
-            &times;
+            <i class="fas fa-times"></i>
           </button>
         </div>
 

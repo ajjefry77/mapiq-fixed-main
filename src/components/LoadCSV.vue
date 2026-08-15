@@ -10,8 +10,8 @@
             انتخاب ستون‌ها
           </h2>
 
-          <button @click="dialog = false" class="text-gray-500 hover:text-gray-700" >
-            ✕
+          <button @click="dialog = false" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times"></i>
           </button>
         </div>
 
@@ -22,7 +22,7 @@
               Latitude
             </label>
 
-            <select v-model="mapping.lat"  class="w-full border rounded px-3 py-2" >
+            <select v-model="mapping.lat"  class="select-native" >
               <option v-for="col in columns" :key="col" :value="col">
                 {{ col }}
               </option>
@@ -34,7 +34,7 @@
               Longitude
             </label>
 
-            <select v-model="mapping.lng" class="w-full border rounded px-3 py-2" >
+            <select v-model="mapping.lng" class="select-native" >
               <option v-for="col in columns" :key="col" :value="col">
                 {{ col }}
               </option>
@@ -55,7 +55,7 @@
               HRMS
             </label>
 
-            <select v-model="mapping.hrms" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.hrms" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -71,7 +71,7 @@
               VRMS
             </label>
 
-            <select v-model="mapping.vrms" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.vrms" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -87,7 +87,7 @@
               PDOP
             </label>
 
-            <select v-model="mapping.pdop" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.pdop" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -103,7 +103,7 @@
               Age
             </label>
 
-            <select v-model="mapping.age" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.age" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -119,7 +119,7 @@
               STAT
             </label>
 
-            <select v-model="mapping.stat" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.stat" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -144,7 +144,7 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-6">
-          <button @click="dialog = false" class="px-4 py-2 border rounded" >
+          <button @click="dialog = false" class="btn btn-ghost">
             انصراف
           </button>
 

@@ -10,28 +10,27 @@
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">توضیحات</label>
           <textarea v-model="description"  rows="3" placeholder="توضیحات را وارد کنید..."
-              class="w-full border rounded-lg p-2 focus:outline-none focus:ring focus:ring-accent-soft"/>
+              class="textarea"/>
         </div>
 
 <!--        <UserSearch v-model="selectedUser"   />-->
 
         <input  v-model="search"  type="text" ref="inputRef"
-                class="input w-full h-9 border border-gray-300 rounded px-2 text-sm"  placeholder="شماره همراه" />
-
+                class="input"  placeholder="شماره همراه" />
 
         <!-- دکمه‌ها -->
         <div class="flex justify-end gap-2 mt-6">
-          <button @click="onCancel" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">
+          <button @click="onCancel" class="btn btn-ghost">
             لغو
           </button>
-          <button @click="onSubmit" class="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-dim">
+          <button @click="onSubmit" class="btn btn-primary">
             ارسال
           </button>
         </div>
 
         <!-- دکمه بستن -->
         <button @click="onCancel" class="absolute top-2 right-3 text-gray-500 hover:text-gray-700 text-xl">
-          ×
+          <i class="fas fa-times"></i>
         </button>
       </div>
     </div>

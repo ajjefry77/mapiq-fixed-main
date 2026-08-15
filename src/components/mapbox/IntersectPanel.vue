@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="panelOpen || drawMode === 'intersect'"
-    class="absolute top-[calc(var(--top)+150px)] left-14 z-50 w-[360px] max-w-[calc(100vw-24px)] bg-white rounded shadow-md p-3 text-sm"
+    class="absolute top-[calc(var(--top)+150px)] left-14 z-[60] w-[360px] max-w-[calc(100vw-24px)] bg-white rounded shadow-md p-3 text-sm"
     @click.stop
     @contextmenu.stop
   >

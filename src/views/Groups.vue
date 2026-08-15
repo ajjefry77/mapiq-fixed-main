@@ -237,15 +237,10 @@ onMounted(async () => { await loadGroups(); loading.value = false })
 }
 .member-rm { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 10px; padding: 0; }
 
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-.modal { width: 100%; max-width: 420px; max-height: 86vh; overflow-y: auto; }
-.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; word-break: break-word; }
-.modal-form { display: flex; flex-direction: column; gap: 12px; }
 .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
 .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block; }
 .field-error { font-size: 12px; color: var(--danger); }
 .field-success { font-size: 12px; color: var(--success, #22c55e); }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 @media (max-width: 768px) {
   .items-grid { grid-template-columns: 1fr; }

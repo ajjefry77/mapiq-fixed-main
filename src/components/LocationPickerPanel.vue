@@ -17,7 +17,7 @@
           <div class="lpp-handle"></div>
           <div class="lpp-header">
             <div class="lpp-title-wrap">
-              <button class="lpp-close" @click="close" title="بستن">✕</button>
+              <button class="lpp-close" @click="close" title="بستن"><i class="fas fa-times"></i></button>
               <span class="lpp-title">ثبت اطلاعات مکانی</span>
             </div>
             <div class="lpp-snaps">
@@ -58,13 +58,13 @@
               </div>
 
               <div v-else-if="formsError" class="lpp-state lpp-error">
-                <span class="lpp-state-icon">⚠️</span>
+                <span class="lpp-state-icon"><i class="fas fa-triangle-exclamation"></i></span>
                 <p>{{ formsError }}</p>
                 <button class="lpp-btn lpp-btn-ghost" @click="loadForms">تلاش مجدد</button>
               </div>
 
               <div v-else-if="!assignedForms.length" class="lpp-state">
-                <span class="lpp-state-icon">📋</span>
+                <span class="lpp-state-icon"><i class="fas fa-clipboard-list"></i></span>
                 <p>فرمی برای شما در دسترس نیست</p>
               </div>
 
@@ -74,12 +74,12 @@
                   class="lpp-form-item"
                   @click="selectForm(form)"
                 >
-                  <div class="lpp-form-icon">📝</div>
+                  <div class="lpp-form-icon"><i class="fas fa-file-lines"></i></div>
                   <div class="lpp-form-body">
                     <div class="lpp-form-title">{{ form.title }}</div>
                     <div class="lpp-form-desc" v-if="form.description">{{ form.description }}</div>
                   </div>
-                  <span class="lpp-form-arrow">←</span>
+                  <span class="lpp-form-arrow"><i class="fas fa-arrow-left"></i></span>
                 </button>
               </div>
             </div>
@@ -120,7 +120,7 @@
                   </div>
                   <button class="lpp-btn-icon" :disabled="locating" @click="getGPSAndSet" title="موقعیت من">
                     <span v-if="locating" class="lpp-spinner-sm"></span>
-                    <span v-else>📍</span>
+                    <span v-else><i class="fas fa-location-crosshairs"></i></span>
                   </button>
                 </div>
                 <p v-if="coordError" class="lpp-field-error">{{ coordError }}</p>
@@ -205,7 +205,8 @@
                 <div class="lpp-submit-section">
                   <button class="lpp-btn lpp-btn-success lpp-submit-btn" :disabled="submitting" @click="handleSubmit">
                     <span v-if="submitting" class="lpp-spinner-sm"></span>
-                    {{ submitting ? 'در حال ارسال...' : '✅ ارسال اطلاعات' }}
+                    <i v-if="!submitting" class="fas fa-check"></i>
+                    {{ submitting ? 'در حال ارسال...' : 'ارسال اطلاعات' }}
                   </button>
                 </div>
               </div>
@@ -237,7 +238,8 @@
 
               <button type="submit" class="lpp-btn lpp-btn-primary lpp-submit-btn" :disabled="savingPoint">
                 <span v-if="savingPoint" class="lpp-spinner-sm"></span>
-                {{ savingPoint ? 'در حال ذخیره...' : '💾 ذخیره اطلاعات نقطه' }}
+                <i v-if="!savingPoint" class="fas fa-save"></i>
+                {{ savingPoint ? 'در حال ذخیره...' : 'ذخیره اطلاعات نقطه' }}
               </button>
             </form>
           </div>

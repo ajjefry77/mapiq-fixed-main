@@ -7,19 +7,19 @@
         <input
             v-model="fileName"
             type="text"
-            class="border w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+            class="input"
         />
 
         <div class="flex justify-end gap-3 mt-4">
           <button
               @click="cancel"
-              class="px-4 py-1 bg-gray-200 rounded-md hover:bg-gray-300 transition"
+              class="btn btn-ghost"
           >
             لغو
           </button>
           <button
               @click="confirm"
-              class="px-4 py-1 bg-accent text-white rounded-md hover:bg-accent-dim transition"
+              class="btn btn-primary"
           >
             تایید
           </button>

@@ -1,14 +1,14 @@
 <template>
   <Transition name="modal">
     <div v-if="dialog" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] p-4">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col max-h-[95vh] text-xs" dir="rtl">
+    <div class="kroki-panel rounded-lg shadow-xl w-full max-w-5xl flex flex-col max-h-[95vh] text-xs" dir="rtl">
       <!-- Header -->
       <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
         <h2 class="text-base font-semibold flex items-center gap-2">
           <i class="fas fa-print text-gray-600"></i>
           کروکی وضعیت موجود
         </h2>
-        <button @click="close" class="text-gray-500 hover:text-gray-700 text-lg leading-none">✕</button>
+        <button @click="close" class="text-gray-500 hover:text-gray-700 text-lg leading-none"><i class="fas fa-times"></i></button>
       </div>
       
       <!-- Body -->
@@ -18,7 +18,7 @@
           <button
             type="button"
             @click="openSelectModal"
-            class="px-3 py-1.5 border border-dashed border-orange-400 text-orange-600 rounded hover:bg-orange-50 transition text-xs font-medium"
+            class="px-3 py-1.5 border border-dashed border-accent/60 text-accent rounded hover:bg-accent/10 transition text-xs font-medium"
           >
             <i class="fas fa-plus ml-1"></i>
             افزودن ترسیم
@@ -30,11 +30,11 @@
           <span
             v-for="p in selectedPins"
             :key="p.id"
-            class="inline-flex items-center gap-1.5 bg-orange-50 text-orange-800 border border-orange-200 rounded-full px-2.5 py-0.5 text-[11px]"
+            class="inline-flex items-center gap-1.5 bg-accent/10 text-accent border border-accent/20 rounded-full px-2.5 py-0.5 text-[11px]"
           >
             {{ p.name || 'بدون نام' }}
-            <span class="text-orange-400">({{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }})</span>
-            <button type="button" class="text-orange-500 hover:text-red-600 leading-none" @click="removeSelected(p.id)" title="حذف">×</button>
+            <span class="text-accent-soft">({{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }})</span>
+            <button type="button" class="text-accent hover:text-red-500 leading-none" @click="removeSelected(p.id)" title="حذف"><i class="fas fa-times"></i></button>
           </span>
         </div>
 
@@ -44,17 +44,17 @@
           class="fixed inset-0 z-[1000] bg-black/50 flex items-center justify-center p-4"
           @click.self="selectModalOpen = false"
         >
-          <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" dir="rtl">
+          <div class="kroki-panel rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" dir="rtl">
             <div class="flex items-center justify-between px-4 py-3 border-b">
               <h3 class="font-semibold text-sm">انتخاب ترسیم‌ها</h3>
-              <button type="button" class="text-gray-500 hover:text-gray-800" @click="selectModalOpen = false">✕</button>
+              <button type="button" class="text-gray-500 hover:text-gray-800" @click="selectModalOpen = false"><i class="fas fa-times"></i></button>
             </div>
             <div class="px-4 py-2 border-b">
               <input
                 v-model="selectSearch"
                 type="text"
                 placeholder="جستجوی نام ترسیم..."
-                class="w-full border rounded px-2 py-1.5 text-xs focus:border-orange-400 outline-none"
+                class="input"
               />
             </div>
             <div class="overflow-y-auto flex-1 p-3 space-y-1 min-h-[12rem]">
@@ -62,9 +62,9 @@
               <label
                 v-for="p in filteredEligible"
                 :key="p.id"
-                class="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-orange-50 border border-transparent hover:border-orange-100"
+                class="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-accent/10 border border-transparent hover:border-accent/20"
               >
-                <input type="checkbox" :value="p.id" v-model="modalSelectedIds" class="accent-orange-500" />
+                <input type="checkbox" :value="p.id" v-model="modalSelectedIds" />
                 <span class="text-xs">
                   {{ p.name || 'بدون نام' }}
                   <span class="text-gray-400">
@@ -77,10 +77,10 @@
             <div class="flex justify-between items-center gap-2 px-4 py-3 border-t bg-gray-50">
               <button type="button" class="text-xs text-gray-500 hover:text-gray-700" @click="modalSelectedIds = []">پاک کردن</button>
               <div class="flex gap-2">
-                <button type="button" class="px-3 py-1.5 border rounded text-xs" @click="selectModalOpen = false">انصراف</button>
+                <button type="button" class="btn btn-ghost btn-sm" @click="selectModalOpen = false">انصراف</button>
                 <button
                   type="button"
-                  class="px-4 py-1.5 bg-orange-500 text-white rounded text-xs hover:bg-orange-600"
+                  class="btn btn-primary btn-sm"
                   @click="confirmSelectModal"
                 >
                   تأیید ({{ modalSelectedIds.length }})
@@ -91,26 +91,26 @@
         </div>
 
         <!-- اطلاعات فرم (اختیاری) -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 border rounded p-3">
+        <div class="kroki-box grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 p-3">
           <div>
             <label class="block mb-1 font-medium">عنوان نقشه</label>
-            <input v-model="form.title" type="text" class="w-full border rounded px-2 py-1"
+            <input v-model="form.title" type="text" class="input"
                    placeholder="پلان وضعیت موجود"/>
           </div>
           <div>
             <label class="block mb-1 font-medium">کارفرما</label>
-            <input v-model="form.client" type="text" class="w-full border rounded px-2 py-1"/>
+            <input v-model="form.client" type="text" class="input"/>
           </div>
           <div>
             <label class="block mb-1 font-medium">نشانی ملک</label>
-            <input v-model="form.address" type="text" class="w-full border rounded px-2 py-1"/>
+            <input v-model="form.address" type="text" class="input"/>
           </div>
           <div>
             <label class="block mb-1 font-medium">تاریخ برداشت</label>
             <input 
               v-model="form.date" 
               type="text" 
-              class="w-full border rounded px-2 py-1 text-center"
+              class="input text-center"
               placeholder="1403/01/01"
               dir="ltr"
               @input="form.date = form.date.replace(/[^\d/]/g, '')"
@@ -123,7 +123,7 @@
         <!-- پیش‌نمایش -->
         <div v-if="ready" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="border rounded p-2">
+            <div class="kroki-box p-2">
               <div class="flex items-center justify-between mb-1">
                 <span class="font-medium">تصویر نقشه</span>
                 <button @click="downloadImage(mapImage, 'map.png')" class="text-gray-500 hover:text-gray-700" title="دانلود">
@@ -132,7 +132,7 @@
               </div>
               <img :src="mapImage" class="w-full border rounded" alt="تصویر نقشه"/>
             </div>
-            <div class="border rounded p-2">
+            <div class="kroki-box p-2">
               <div class="flex items-center justify-between mb-1">
                 <span class="font-medium">کروکی وضعیت موجود</span>
                 <button @click="downloadCanvas" class="text-gray-500 hover:text-gray-700" title="دانلود">
@@ -144,7 +144,7 @@
           </div>
 
           <!-- متن ضلع‌ها (دستی) -->
-          <div v-if="edgeTexts.length" class="border rounded p-3 mb-4">
+          <div v-if="edgeTexts.length" class="kroki-box p-3 mb-4">
             <div class="font-medium mb-2">متن ضلع‌ها</div>
             <div v-for="(shapeTexts, m) in edgeTexts" :key="m" class="mb-3 last:mb-0">
               <div class="text-[11px] text-gray-500 mb-1">
@@ -156,7 +156,7 @@
                   :key="i"
                   v-model="edgeTexts[m][i]"
                   type="text"
-                  class="border rounded px-2 py-1 text-xs flex-1 min-w-[8rem] focus:border-orange-400 outline-none"
+                  class="input flex-1 min-w-[8rem]"
                   :placeholder="'ضلع ' + (i + 1)"
                   @input="drawSketch()"
                 />
@@ -165,14 +165,14 @@
           </div>
 
           <!-- جدول مختصات UTM -->
-          <div class="border rounded p-3">
+          <div class="kroki-box p-3">
             <div class="font-medium mb-2">مختصات UTM — Zone: {{ utmZone || '—' }}</div>
             <table class="w-full text-[11px] border-collapse">
               <thead>
                 <tr class="bg-gray-100">
                   <th class="border px-2 py-1">شماره نقطه</th>
-                  <th class="border px-2 py-1">Easting</th>
-                  <th class="border px-2 py-1">Northing</th>
+                  <th class="border px-2 py-1">X</th>
+                  <th class="border px-2 py-1">Y</th>
                   <th class="border px-2 py-1">Zone</th>
                 </tr>
               </thead>
@@ -198,12 +198,12 @@
 
       <!-- Footer -->
       <div class="flex justify-end gap-2 px-5 py-3 border-t flex-shrink-0">
-        <button @click="close" class="px-4 py-1.5 border rounded">بستن</button>
+        <button @click="close" class="btn btn-ghost btn-sm">بستن</button>
         <button
           v-if="!ready"
           @click="generate"
           :disabled="!selectedPins.length || generating"
-          class="btn btn-primary px-4 py-1.5 disabled:opacity-50"
+          class="btn btn-primary btn-sm disabled:opacity-50"
         >
           <i class="fas fa-sync-alt ml-1" :class="generating ? 'fa-spin' : ''"></i>
           {{ generating ? 'در حال تولید…' : 'تولید کروکی' }}
@@ -211,7 +211,7 @@
         <button
           v-else
           @click="doPrint"
-          class="btn btn-primary px-4 py-1.5"
+          class="btn btn-primary btn-sm"
         >
           <i class="fas fa-print ml-1"></i>
           چاپ
@@ -980,7 +980,7 @@ function buildPrintHtml() {
       <table class="utm-table">
         <thead>
           <tr><th colspan="4">مختصات UTM — Zone: ${utmZone.value ?? '—'}</th></tr>
-          <tr><th>شماره نقطه</th><th>Easting</th><th>Northing</th><th>Zone</th></tr>
+          <tr><th>شماره نقطه</th><th>X</th><th>Y</th><th>Zone</th></tr>
         </thead>
         <tbody>${rows}${centerRow}</tbody>
       </table>
@@ -1067,3 +1067,48 @@ function doPrint() {
 
 defineExpose({ open })
 </script>
+
+<style scoped>
+.kroki-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-xl);
+  color: var(--text);
+  font-family: var(--font);
+}
+.kroki-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.kroki-box .input,
+.kroki-panel .input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+.kroki-box .input:focus,
+.kroki-panel .input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.kroki-panel table th,
+.kroki-panel table td {
+  border-color: rgb(var(--accent-rgb) / 0.35);
+  background: var(--surface);
+  color: var(--text);
+}
+.kroki-panel table thead th {
+  background: var(--surface2);
+}
+.kroki-panel .border-b {
+  border-bottom-color: rgb(var(--accent-rgb) / 0.35);
+}
+.kroki-panel .border-t {
+  border-top-color: rgb(var(--accent-rgb) / 0.35);
+}
+.kroki-panel canvas {
+  background: #fff;
+}
+</style>

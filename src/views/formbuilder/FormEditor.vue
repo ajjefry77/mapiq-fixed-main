@@ -19,7 +19,8 @@
       </div>
 
       <div v-if="!fields.length" class="empty-canvas">
-        <p>👈 یک نوع فیلد از سمت راست انتخاب کنید</p>
+        <i class="fas fa-arrow-pointer empty-canvas-icon"></i>
+        <p>یک نوع فیلد از سمت راست انتخاب کنید</p>
       </div>
 
       <div v-else class="fields-list">
@@ -33,7 +34,7 @@
           @dragleave="dragOverIndex = null"
           @drop="onDrop(idx)"
           @dragend="dragOverIndex = null">
-          <span class="drag-handle">⠿</span>
+          <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
           <div class="field-preview">
             <div class="field-label-row">
               <Icon :icon="FIELD_TYPES.find(f => f.type === field.type)?.icon || 'mdi:help-circle-outline'" class="field-type-badge" width="20" height="20" />
@@ -50,7 +51,7 @@
     </main>
 
     <aside class="properties" v-if="selectedField">
-      <h3 class="properties-title">تنظیمات فیلد</h3>
+      <h3 class="properties-title">تنظیمات فیلد <button class="props-close" title="بستن" @click="closeProperties"><i class="fas fa-times"></i></button></h3>
       <div class="prop-group">
         <label>برچسب</label>
         <input class="input" :value="selectedField.label" @input="updateField(selectedField.id, { label: $event.target.value })" />
@@ -73,7 +74,7 @@
           <input class="input" :value="opt" @input="updateOption(selectedField.id, i, $event.target.value)" />
           <button class="icon-btn danger" @click="removeOption(selectedField.id, i)"><Icon icon="mdi:delete-outline" width="16" height="16" /></button>
         </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:8px" @click="addOption(selectedField.id)">+ افزودن گزینه</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" @click="addOption(selectedField.id)"><i class="fas fa-plus"></i> افزودن گزینه</button>
       </div>
     </aside>
     <aside class="properties properties--empty" v-else>
@@ -132,6 +133,7 @@ onMounted(async () => {
 })
 
 function onDragStart(idx) { dragFromIndex = idx }
+function closeProperties() { selectedFieldId.value = null }
 function onDrop(toIdx) {
   if (dragFromIndex !== null && dragFromIndex !== toIdx) moveField(dragFromIndex, toIdx)
   dragFromIndex = null
@@ -168,6 +170,7 @@ async function save() {
 .form-title-input { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
 .canvas-header { margin-bottom: 20px; }
 .empty-canvas { border: 2px dashed var(--border); border-radius: var(--radius); padding: 60px; text-align: center; color: var(--text-muted); margin-top: 20px; }
+.empty-canvas-icon { font-size: 28px; margin-bottom: 10px; display: block; }
 .field-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .15s; }
 .field-row:hover { border-color: var(--accent); }
 .field-row--selected { border-color: var(--accent); background: var(--accent-glow); }
@@ -183,7 +186,9 @@ async function save() {
 .icon-btn.danger:hover { color: var(--danger); }
 .properties { background: var(--surface); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; }
 .properties--empty { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; text-align: center; }
-.properties-title { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .5px; }
+.properties-title { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; justify-content: space-between; }
+.props-close { display: none; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 14px; padding: 4px 6px; border-radius: 6px; }
+.props-close:hover { background: var(--surface2); color: var(--danger); }
 .prop-group { margin-bottom: 14px; }
 .prop-toggle { display: flex; justify-content: space-between; align-items: center; }
 .option-row { display: flex; gap: 6px; margin-bottom: 6px; }
@@ -192,7 +197,9 @@ async function save() {
 .toggle-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
 @media (max-width: 900px) {
   .editor-layout { grid-template-columns: 60px 1fr; }
-  .properties { display: none; }
+  .properties { display: block; position: fixed; bottom: 60px; left: 0; right: 0; top: auto; max-height: 60vh; z-index: 70; border-top: 1px solid var(--border); border-right: none; box-shadow: 0 -8px 30px rgba(0,0,0,.35); }
+  .properties--empty { display: none; }
+  .properties .props-close { display: inline-flex; align-items: center; justify-content: center; }
   .palette { padding: 10px 6px; }
   .palette-item span { display: none; }
   .palette-item { justify-content: center; padding: 10px; }

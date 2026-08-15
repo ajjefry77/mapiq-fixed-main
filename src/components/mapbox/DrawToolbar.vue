@@ -210,7 +210,7 @@
                 class="w-full h-full object-cover"
               />
               <span
-                class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1"
+                class="absolute bottom-0 inset-x-0 bg-black bg-opacity-50 text-white text-xs text-center py-1"
                 >{{ basemap.name }}</span
               >
             </div>
@@ -224,14 +224,14 @@
         class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200 font-bold"
         title="بزرگنمایی"
       >
-        +
+        <i class="fas fa-plus text-sm"></i>
       </button>
       <button
         @click="map?.zoomOut({ duration: 200 })"
         class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200 font-bold"
         title="کوچکنمایی"
       >
-        −
+        <i class="fas fa-minus text-sm"></i>
       </button>
     </div>
   </div>

@@ -24,7 +24,7 @@
         <div class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col
                     md:h-[70vh]
                     max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto">
-          <button @click="isOpen = false" class="absolute top-2 left-4 text-xl z-10">&times;</button>
+          <button @click="isOpen = false" class="absolute top-2 left-4 text-xl z-10"><i class="fas fa-times"></i></button>
           <PinsList  v-if="viewer" class="flex-1 min-h-0" :pins="Pins" :viewer="viewer"  :openId ="openWorkId" :openDia="openMyDialog"
                      @clearPins="clearPins" :close="isOpen"/>
 
@@ -66,7 +66,7 @@
           <div v-if="!authStore.user && ShowForLogin" class="absolute top-3 right-1 md:right-[350px] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
             <svg class="w-4 h-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>برای دسترسی به امکانات کامل، <a class="text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2" href="/login">وارد شوید</a></span>
-            <button @click="ShowForLogin = false" class="text-xl leading-none text-gray-400 hover:text-white transition-colors">&times;</button>
+            <button @click="ShowForLogin = false" class="text-xl leading-none text-gray-400 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
           </div>
 
 

@@ -19,7 +19,7 @@
 
         <!-- error -->
         <div v-else-if="error" class="text-center text-red-500 py-8">
-          خطا در دریافت اطلاعات 😞
+          خطا در دریافت اطلاعات <i class="fas fa-frown"></i>
         </div>
 
         <!-- List Sections with Users -------------->

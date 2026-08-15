@@ -5,9 +5,9 @@
         <h2 class="text-lg font-bold mb-3">یک نام برای ذخیره را وارد کنید</h2>
 
         <input v-model="fileName" type="text" placeholder="نام فایل خروجی"
-            class="border w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-accent" />
+            class="input" />
 
-        <select v-model="exportType" class="w-full border px-4 py-2 rounded-md text-sm mt-4">
+        <select v-model="exportType" class="select-native mt-4">
           <option disabled value="">انتخاب نوع خروجی</option>
           <option value="kml">خروجی با فرمت KML</option>
           <option value="csv">خروجی نقاط با فرمت CSV</option>
@@ -15,10 +15,10 @@
         </select>
 
         <div class="flex justify-end gap-3 mt-4">
-          <button @click="cancel"  class="px-4 py-1 bg-gray-200 rounded-md hover:bg-gray-300 transition" >
+          <button @click="cancel" class="btn btn-ghost">
             لغو
           </button>
-          <button @click="confirm" class="px-4 py-1 bg-accent text-white rounded-md hover:bg-accent-dim transition">
+          <button @click="confirm" class="btn btn-primary">
             تایید
           </button>
         </div>

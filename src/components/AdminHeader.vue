@@ -61,9 +61,9 @@
                   </button>
                 </div>
               </div>
-              <button v-if="!authStore.isAdmin" class="dropdown-item" @click="goToPanel">🖥 پنل کاربری</button>
-              <button class="dropdown-item" @click="goToCharge">💳 افزایش موجودی</button>
-              <button class="dropdown-item" @click="handleLogout">🚪 خروج از حساب</button>
+              <button v-if="!authStore.isAdmin" class="dropdown-item" @click="goToPanel"><i class="fas fa-desktop"></i> پنل کاربری</button>
+              <button class="dropdown-item" @click="goToCharge"><i class="fas fa-credit-card"></i> افزایش موجودی</button>
+              <button class="dropdown-item" @click="handleLogout"><i class="fas fa-sign-out-alt"></i> خروج از حساب</button>
             </div>
           </teleport>
         </template>

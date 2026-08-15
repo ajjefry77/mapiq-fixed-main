@@ -91,7 +91,7 @@
             class="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl text-sm"
             style="color: var(--danger)"
           >
-            <span>⚠️</span>
+            <span><i class="fas fa-triangle-exclamation"></i></span>
             <span>{{ error }}</span>
           </div>
         </Transition>

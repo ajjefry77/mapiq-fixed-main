@@ -45,7 +45,7 @@
     <!-- ASSIGN MODAL -->
     <Transition name="modal">
       <div v-if="showAssignModal" class="modal-backdrop" @click.self="closeAssignModal">
-        <div class="modal card" style="max-width:380px">
+        <div class="modal modal-sm card">
           <h2 class="modal-title">انتساب فرم به گروه</h2>
           <p class="assign-form-title">{{ assignForm?.title }}</p>
           <div class="modal-form">
@@ -175,13 +175,8 @@ onMounted(async () => {
 .form-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
 .loading, .error-msg { text-align: center; padding: 60px; color: var(--text-muted); }
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-.modal { width: 100%; max-width: 380px; }
-.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
 .assign-form-title { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
-.modal-form { display: flex; flex-direction: column; gap: 12px; }
 .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 @media (max-width: 768px) {
   .forms-grid { grid-template-columns: 1fr; gap: 10px; }
   .form-card:hover { transform: none; }

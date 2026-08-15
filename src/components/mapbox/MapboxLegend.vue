@@ -50,6 +50,7 @@ import { ref, computed, toRaw } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../../stores/auth'
 import { useToast } from 'vue-toast-notification'
+import { pointIcon, ensurePointSymbolImages } from '../../utils/drawStyle'
 
 const authStore = useAuthStore()
 const $toast = useToast()
@@ -122,12 +123,23 @@ function changeColor(layer, color) {
 
   if (shape.type === 'multi_point') {
     try {
+      shape.positions.forEach((p) => (p.color = color))
       const features = (shape.positions || []).map((p) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
-        properties: { color },
+        properties: {
+          color,
+          icon: pointIcon(shape.symbol || p.symbol),
+        },
       }))
       map.getSource(sid)?.setData({ type: 'FeatureCollection', features })
+      const layer = map.getLayer(sid + '-points')
+      if (layer?.type === 'symbol') {
+        ensurePointSymbolImages(map)
+        setPaint(sid + '-points', 'icon-color', ['get', 'color'])
+      } else {
+        setPaint(sid + '-points', 'circle-color', ['get', 'color'])
+      }
     } catch (e) {}
     return
   }

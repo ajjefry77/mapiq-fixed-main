@@ -142,7 +142,28 @@
               <canvas ref="sketchCanvasRef" width="700" height="700" class="w-full border rounded bg-white"></canvas>
             </div>
           </div>
-          
+
+          <!-- متن ضلع‌ها (دستی) -->
+          <div v-if="edgeTexts.length" class="border rounded p-3 mb-4">
+            <div class="font-medium mb-2">متن ضلع‌ها</div>
+            <div v-for="(shapeTexts, m) in edgeTexts" :key="m" class="mb-3 last:mb-0">
+              <div class="text-[11px] text-gray-500 mb-1">
+                {{ selectedPins[m]?.name || 'ترسیم ' + (m + 1) }}
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <input
+                  v-for="(t, i) in shapeTexts"
+                  :key="i"
+                  v-model="edgeTexts[m][i]"
+                  type="text"
+                  class="border rounded px-2 py-1 text-xs flex-1 min-w-[8rem] focus:border-orange-400 outline-none"
+                  :placeholder="'ضلع ' + (i + 1)"
+                  @input="drawSketch()"
+                />
+              </div>
+            </div>
+          </div>
+
           <!-- جدول مختصات UTM -->
           <div class="border rounded p-3">
             <div class="font-medium mb-2">مختصات UTM — Zone: {{ utmZone || '—' }}</div>
@@ -228,7 +249,7 @@ const selectSearch = ref('')
 const modalSelectedIds = ref([])
 
 const shapeCentroids = ref([])
-const edgeStreetNames = ref([])
+const edgeTexts = ref([])
 const addressLoading = ref(false)
 
 const sketchCanvasRef = ref(null)
@@ -376,7 +397,7 @@ function open(pin) {
   centerUtm.value = null
   selectedShapesMeta.value = []
   shapeCentroids.value = []
-  edgeStreetNames.value = []
+  edgeTexts.value = []
   addressLoading.value = false
   selectModalOpen.value = false
   dialog.value = true
@@ -613,7 +634,7 @@ function drawSketch() {
       ctx.restore()
 
       // نام خیابان ضلع: افقی و خوانا با پس‌زمینه سفید
-      const street = edgeStreetNames.value[m]?.[i] || ''
+      const street = edgeTexts.value[m]?.[i] || ''
       if (street) {
         ctx.font = '500 12px Vazirmatn, Tahoma, sans-serif'
         ctx.textAlign = 'center'
@@ -795,7 +816,7 @@ async function generate() {
 
     mapImage.value = await captureMapImage(allPositions)
 
-    // آدرس‌یابی معکوس برای مراکز ترسیم‌ها و punti وسط ضلع‌ها
+    // آدرس‌یابی معکوس فقط برای مراکز ترسیم‌ها؛ متن ضلع‌ها دستی است
     addressLoading.value = true
     try {
       const zone = utmZone.value
@@ -813,45 +834,23 @@ async function generate() {
         )
       }
 
-      const streetTasks = []
-      for (let s = 0; s < metas.length; s++) {
-        const meta = metas[s]
-        const slice = allPositions.slice(meta.startIdx, meta.startIdx + meta.count)
-        const edgeCount = meta.isClosed ? slice.length : slice.length - 1
-        for (let i = 0; i < edgeCount; i++) {
-          const a = slice[i]
-          const b = slice[(i + 1) % slice.length]
-          const midLat = (a.lat + b.lat) / 2
-          const midLon = ((a.lon ?? a.lng) + (b.lon ?? b.lng)) / 2
-          streetTasks.push(
-            reverseLookup(midLat, midLon)
-              .then(r => ({ s, i, street: r.road || '' }))
-              .catch(() => ({ s, i, street: '' }))
-          )
-        }
-      }
-
-      const [centroidResults, streetResults] = await Promise.all([
-        Promise.all(centroidTasks),
-        Promise.all(streetTasks),
-      ])
+      const centroidResults = await Promise.all(centroidTasks)
 
       shapeCentroids.value = centroidResults.map(r => {
         const [x, y] = proj4('EPSG:4326', projStr, [r.lon, r.lat])
         return { lat: r.lat, lon: r.lon, utm: { x, y, zone }, address: r.display || '' }
       })
-
-      edgeStreetNames.value = metas.map((meta, s) => {
-        const shapeStreets = streetResults.filter(r => r.s === s).sort((a, b) => a.i - b.i).map(r => r.street)
-        return shapeStreets
-      })
     } catch (e) {
       console.warn('خطا در آدرس‌یابی:', e)
       shapeCentroids.value = metas.map(() => ({ lat: 0, lon: 0, utm: null, address: '' }))
-      edgeStreetNames.value = metas.map(m => m.isClosed ? Array(m.count).fill('') : Array(Math.max(m.count - 1, 0)).fill(''))
     } finally {
       addressLoading.value = false
     }
+
+    edgeTexts.value = metas.map(meta => {
+      const count = meta.isClosed ? meta.count : Math.max(meta.count - 1, 0)
+      return Array(count).fill('')
+    })
 
     ready.value = true
     await nextTick()
@@ -978,16 +977,16 @@ function buildPrintHtml() {
         </table>
       </div>` : ''}
 
-      ${edgeStreetNames.value.some(arr => arr.length) ? `
+      ${edgeTexts.value.some(arr => arr.length) ? `
       <div style="margin-top:16px">
-        <div style="font-weight:600;margin-bottom:8px">خیابان‌های مجاور ضلع‌ها</div>
+        <div style="font-weight:600;margin-bottom:8px">متن ضلع‌ها</div>
         <table class="utm-table">
           <thead>
-            <tr><th>ترسیم</th><th>ضلع</th><th>خیابان</th></tr>
+            <tr><th>ترسیم</th><th>ضلع</th><th>متن</th></tr>
           </thead>
           <tbody>
-            ${edgeStreetNames.value.map((streets, s) => streets.map((st, e) => `
-              <tr><td>${s + 1}</td><td>${e + 1}</td><td>${escapeHtml(st) || '—'}</td></tr>
+            ${edgeTexts.value.map((texts, s) => texts.map((t, e) => `
+              <tr><td>${s + 1}</td><td>${e + 1}</td><td>${escapeHtml(t) || '—'}</td></tr>
             `).join('')).join('')}
           </tbody>
         </table>

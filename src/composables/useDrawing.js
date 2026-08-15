@@ -26,6 +26,11 @@ import {
 } from "./useDrawingHelpers";
 import { createCutHandler } from "./useDrawingCut";
 import { createIntersectHandler } from "./useDrawingIntersect";
+import {
+  getDashArray,
+  pointIcon,
+  ensurePointSymbolImages,
+} from "../utils/drawStyle";
 const SERVER = import.meta.env.VITE_SERVER;
 export function useDrawing(map, pins, emit, SelectGroup) {
   const authStore = useAuthStore();
@@ -231,7 +236,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     return false;
   });
   const isSaveEnabled = computed(() => {
-    if (drawMode.value === "multi_point") return positions.length > 0;
+    if (drawMode.value === "multi_point") {
+      if (positions.length > 0) return true;
+      if (shape.value && shape.value.type === "multi_point" && Array.isArray(shape.value.positions) && shape.value.positions.length > 0) return true;
+      return false;
+    }
     return !!shape.value;
   });
   // Watchers
@@ -1272,6 +1281,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         );
         map.setPaintProperty(sourceId + "-line", "line-width", s.width || 3);
         map.setPaintProperty(sourceId + "-line", "line-opacity", opacity);
+        map.setPaintProperty(sourceId + "-line", "line-dasharray", getDashArray(s.dash));
       }
     } else if (s.type === "polygon") {
       const coords = s.positions.map((p) => [p.lon, p.lat]);
@@ -1337,12 +1347,21 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       const features = s.positions.map((p) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-        properties: { color: p.color || s.color || "#00ff00" },
+        properties: {
+          color: p.color || s.color || "#00ff00",
+          icon: pointIcon(s.symbol || p.symbol),
+        },
       }));
       src.setData({ type: "FeatureCollection", features });
       if (map.getLayer(sourceId + "-points")) {
-        map.setPaintProperty(sourceId + "-points", "circle-opacity", opacity);
-        map.setPaintProperty(sourceId + "-points", "circle-stroke-opacity", opacity);
+        const layer = map.getLayer(sourceId + "-points");
+        if (layer.type === "symbol") {
+          ensurePointSymbolImages(map);
+          map.setPaintProperty(sourceId + "-points", "icon-opacity", opacity);
+        } else {
+          map.setPaintProperty(sourceId + "-points", "circle-opacity", opacity);
+          map.setPaintProperty(sourceId + "-points", "circle-stroke-opacity", opacity);
+        }
       }
     } else if (s.type === "point") {
       src.setData({
@@ -1612,6 +1631,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "line-color": s.outlineColor || s.color || "#ff0000",
           "line-width": s.width || 2,
           "line-opacity": opacity,
+          "line-dasharray": getDashArray(s.dash),
         },
         layout: { visibility },
       });
@@ -1647,22 +1667,27 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       const features = s.positions.map((p) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-        properties: { color: p.color || s.color || "#00ff00" },
+        properties: {
+          color: p.color || s.color || "#00ff00",
+          icon: pointIcon(s.symbol || p.symbol),
+        },
       }));
       map.addSource(sourceId, { type: "geojson", data: { type: "FeatureCollection", features } });
+      ensurePointSymbolImages(map);
       map.addLayer({
         id: sourceId + "-points",
-        type: "circle",
+        type: "symbol",
         source: sourceId,
-        paint: {
-          "circle-radius": 5,
-          "circle-color": ["get", "color"],
-          "circle-opacity": opacity,
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 1,
-          "circle-stroke-opacity": opacity,
+        layout: {
+          "icon-image": ["get", "icon"],
+          "icon-size": 0.5,
+          "icon-allow-overlap": true,
+          visibility,
         },
-        layout: { visibility },
+        paint: {
+          "icon-color": ["get", "color"],
+          "icon-opacity": opacity,
+        },
       });
     } else if (s.type === "circle") {
       const center = s.center;

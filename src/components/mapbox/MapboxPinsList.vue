@@ -413,6 +413,11 @@ import {
   registerLayersForSource,
   bringDrawingsToFront,
 } from "../../utils/layerOrder";
+import {
+  getDashArray,
+  pointIcon,
+  ensurePointSymbolImages,
+} from "../../utils/drawStyle";
 import { dxfToGeoJSON } from "../../utils/dxfToGeoJSON";
 import { pinsToDXF } from "../../utils/geoJSONToDXF";
 
@@ -1000,6 +1005,7 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
         "line-color": shape.color || "#ff0000",
         "line-width": shape.width || 3,
         "line-opacity": shape.opacity ?? 1,
+        "line-dasharray": getDashArray(shape.dash),
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
@@ -1105,27 +1111,30 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
     const features = shape.positions.map((p) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { color: p.color || shape.color || "#00ff00" },
+      properties: {
+        color: p.color || shape.color || "#00ff00",
+        icon: pointIcon(shape.symbol || p.symbol),
+      },
     }));
     if (!map.getSource(sourceId))
       map.addSource(sourceId, {
         type: "geojson",
         data: { type: "FeatureCollection", features },
       });
+    ensurePointSymbolImages(map);
     map.addLayer({
       id: sourceId + "-points",
-      type: "circle",
+      type: "symbol",
       source: sourceId,
-      paint: {
-        "circle-radius": 5,
-        "circle-color": ["get", "color"],
-        "circle-opacity": shape.opacity ?? 1,
-        "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": 1,
-        "circle-stroke-opacity": shape.opacity ?? 1,
-      },
       layout: {
+        "icon-image": ["get", "icon"],
+        "icon-size": 0.5,
+        "icon-allow-overlap": true,
         visibility: visible ? "visible" : shape.show ? "visible" : "none",
+      },
+      paint: {
+        "icon-color": ["get", "color"],
+        "icon-opacity": shape.opacity ?? 1,
       },
     });
     pin.shape._sourceIds = [sourceId];

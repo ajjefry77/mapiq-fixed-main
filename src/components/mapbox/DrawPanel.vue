@@ -374,6 +374,52 @@
             />
           </div>
         </div>
+        <div v-if="shape && shape.type === 'polyline'">
+          <label class="block text-xs mb-1 text-gray-600">نوع خط</label>
+          <div class="grid grid-cols-4 gap-1">
+            <button
+              v-for="opt in lineStyleOptions"
+              :key="opt.id"
+              type="button"
+              @click="$emit('update:lineStyle', opt.id)"
+              :title="opt.label"
+              :class="[
+                'h-9 flex items-center justify-center border rounded transition px-1',
+                (shape.dash || 'solid') === opt.id
+                  ? 'ring-2 ring-orange-400 border-orange-400 bg-orange-50'
+                  : 'hover:bg-gray-50',
+              ]"
+            >
+              <span class="block w-full" :style="miniLineStyle(opt.id)"></span>
+            </button>
+          </div>
+        </div>
+        <div v-if="shape && shape.type === 'multi_point'">
+          <label class="block text-xs mb-1 text-gray-600">شکل نقطه</label>
+          <div class="grid grid-cols-6 gap-1">
+            <button
+              v-for="sym in pointSymbolOptions"
+              :key="sym.id"
+              type="button"
+              @click="$emit('update:pointSymbol', sym.id)"
+              :title="sym.label"
+              :class="[
+                'h-8 flex items-center justify-center border rounded transition text-gray-700',
+                (shape.symbol || 'circle') === sym.id
+                  ? 'ring-2 ring-orange-400 border-orange-400 bg-orange-50 text-orange-500'
+                  : 'hover:bg-gray-50',
+              ]"
+            >
+              <svg
+                class="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                stroke="none"
+                v-html="sym.svg"
+              ></svg>
+            </button>
+          </div>
+        </div>
         <div v-if="shape">
           <label class="block text-xs mb-1 text-gray-600">
             شفافیت: {{ Math.round(shape.opacity * 100) }}%
@@ -499,8 +545,37 @@ const emit = defineEmits([
   "update:shapeColor",
   "update:shapeOpacity",
   "update:shapeWidth",
+  "update:lineStyle",
+  "update:pointSymbol",
   "copyCoordinates",
 ]);
+
+const lineStyleOptions = [
+  { id: "solid", label: "پیوسته" },
+  { id: "dashed", label: "خط چین" },
+  { id: "dotted", label: "نقطه‌چین" },
+  { id: "dashdot", label: "نقطه-خط" },
+];
+
+function miniLineStyle(id) {
+  if (id === "dashdot") {
+    return {
+      height: "2px",
+      background:
+        "repeating-linear-gradient(to right, #333 0 5px, transparent 5px 7px, #333 7px 9px, transparent 9px 12px)",
+    };
+  }
+  return { borderTop: "2px " + (id === "dashed" ? "dashed" : id === "dotted" ? "dotted" : "solid") + " #333" };
+}
+
+const pointSymbolOptions = [
+  { id: "circle", label: "دایره", svg: '<path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2"/>' },
+  { id: "square", label: "مربع", svg: '<path d="M3 3v18h18V3"/>' },
+  { id: "triangle", label: "مثلث", svg: '<path d="M1 21h22L12 2"/>' },
+  { id: "diamond", label: "لوزی", svg: '<path d="M6 2L2 8l10 14L22 8l-4-6z"/>' },
+  { id: "star", label: "ستاره", svg: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2L9.19 8.62L2 9.24l5.45 4.73L5.82 21z"/>' },
+  { id: "pin", label: "نشان", svg: '<path d="M12 11.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5A2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7"/>' },
+];
 
 const centerText = computed(() => {
   const c = props.liveCenter;

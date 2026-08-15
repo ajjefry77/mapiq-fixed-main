@@ -60,6 +60,8 @@
         @update:shapeColor="onShapeColor($event)"
         @update:shapeOpacity="onShapeOpacity($event)"
         @update:shapeWidth="onShapeWidth($event)"
+        @update:lineStyle="onShapeLineStyle($event)"
+        @update:pointSymbol="onShapePointSymbol($event)"
         @copyCoordinates="copyCoordinates"
       />
     </div>
@@ -94,6 +96,11 @@ import MapboxAddressFinder from "./MapboxAddressFinder.vue";
 import { useDrawing } from "../../composables/useDrawing";
 import { useDragPanel } from "../../composables/useDragPanel";
 import IntersectPanel from "./IntersectPanel.vue";
+import {
+  getDashArray,
+  pointIcon,
+  ensurePointSymbolImages,
+} from "../../utils/drawStyle";
 
 const props = defineProps({
   map: { type: Object, required: true },
@@ -181,6 +188,7 @@ function applyShapeStyle() {
         map.setPaintProperty(sourceId + "-line", "line-color", s.color || "#ff0000");
         map.setPaintProperty(sourceId + "-line", "line-width", s.width || 3);
         map.setPaintProperty(sourceId + "-line", "line-opacity", opacity);
+        map.setPaintProperty(sourceId + "-line", "line-dasharray", getDashArray(s.dash));
       } else if (s.type === "polygon") {
         if (map.getLayer(sourceId + "-fill")) {
           map.setPaintProperty(sourceId + "-fill", "fill-color", s.color || "#ff0000");
@@ -196,10 +204,11 @@ function applyShapeStyle() {
         map.setPaintProperty(sourceId + "-point", "circle-opacity", opacity);
         map.setPaintProperty(sourceId + "-point", "circle-stroke-opacity", opacity);
       } else if (s.type === "multi_point") {
-        // رنگ در properties هر feature است — data را دوباره set کن
+        // رنگ و شکل در properties هر feature است — data را دوباره set کن
         if (Array.isArray(s.positions)) {
           s.positions.forEach((p) => {
             p.color = s.color || p.color || "#00ff00";
+            p.symbol = s.symbol || p.symbol;
           });
         }
         const src = map.getSource(sourceId);
@@ -207,13 +216,22 @@ function applyShapeStyle() {
           const features = s.positions.map((p) => ({
             type: "Feature",
             geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-            properties: { color: p.color || s.color || "#00ff00" },
+            properties: {
+              color: p.color || s.color || "#00ff00",
+              icon: pointIcon(s.symbol || p.symbol),
+            },
           }));
           src.setData({ type: "FeatureCollection", features });
         }
         if (map.getLayer(sourceId + "-points")) {
-          map.setPaintProperty(sourceId + "-points", "circle-opacity", opacity);
-          map.setPaintProperty(sourceId + "-points", "circle-stroke-opacity", opacity);
+          const layer = map.getLayer(sourceId + "-points");
+          if (layer.type === "symbol") {
+            ensurePointSymbolImages(map);
+            map.setPaintProperty(sourceId + "-points", "icon-opacity", opacity);
+          } else {
+            map.setPaintProperty(sourceId + "-points", "circle-opacity", opacity);
+            map.setPaintProperty(sourceId + "-points", "circle-stroke-opacity", opacity);
+          }
         }
       } else if (s.type === "circle") {
         if (map.getLayer(sourceId + "-fill")) {
@@ -252,6 +270,14 @@ function onShapeOpacity(val) {
 }
 function onShapeWidth(val) {
   if (shape.value) shape.value.width = val;
+  applyShapeStyle();
+}
+function onShapeLineStyle(val) {
+  if (shape.value) shape.value.dash = val;
+  applyShapeStyle();
+}
+function onShapePointSymbol(val) {
+  if (shape.value) shape.value.symbol = val;
   applyShapeStyle();
 }
 

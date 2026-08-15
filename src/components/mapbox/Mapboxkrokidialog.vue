@@ -162,7 +162,7 @@
                   <td class="border px-2 py-1 text-center">{{ p.y.toFixed(2) }}</td>
                   <td class="border px-2 py-1 text-center">{{ p.zone ?? utmZone }}</td>
                 </tr>
-                <tr v-if="centerUtm" class="bg-blue-50 font-medium">
+                <tr v-if="centerUtm" class="font-semibold">
                   <td class="border px-2 py-1 text-center">مرکز</td>
                   <td class="border px-2 py-1 text-center">{{ centerUtm.x.toFixed(2) }}</td>
                   <td class="border px-2 py-1 text-center">{{ centerUtm.y.toFixed(2) }}</td>
@@ -227,6 +227,10 @@ const selectModalOpen = ref(false)
 const selectSearch = ref('')
 const modalSelectedIds = ref([])
 
+const shapeCentroids = ref([])
+const edgeStreetNames = ref([])
+const addressLoading = ref(false)
+
 const sketchCanvasRef = ref(null)
 
 /* -------------------- تبدیل تاریخ میلادی به شمسی -------------------- */
@@ -252,6 +256,32 @@ function getTodayJalali() {
   const { jy, jm, jd } = toJalali(d.getFullYear(), d.getMonth() + 1, d.getDate())
   const pad = n => String(n).padStart(2, '0')
   return `${jy}/${pad(jm)}/${pad(jd)}`
+}
+
+const MAP_IR_KEY = import.meta.env.VITE_MAP_IR_KEY || ''
+
+async function reverseLookup(lat, lon) {
+  const url = `https://map.ir/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'x-api-key': MAP_IR_KEY,
+    },
+  })
+  if (!res.ok) throw new Error('خطا در سرویس آدرس (' + res.status + ')')
+  const data = await res.json()
+  const a = data.address || data || {}
+  return {
+    display:
+      data.address_compact ||
+      data.address ||
+      data.postal_address ||
+      data.last ||
+      [a.province, a.city, a.neighbourhood, a.primary].filter(Boolean).join('، ') ||
+      data.display_name ||
+      '',
+    road: a.primary || a.road || data.primary || data.road || a.last || '',
+  }
 }
 
 const form = reactive({
@@ -341,9 +371,13 @@ function open(pin) {
   ready.value = false
   mapImage.value = ''
   utmPoints.value = []
-  centerUtm.value = null
+  areaM2.value = 0
   utmZone.value = null
+  centerUtm.value = null
   selectedShapesMeta.value = []
+  shapeCentroids.value = []
+  edgeStreetNames.value = []
+  addressLoading.value = false
   selectModalOpen.value = false
   dialog.value = true
 
@@ -435,7 +469,7 @@ async function captureMapImage(positions) {
 
   await new Promise(resolve => {
     // padding بیشتر و maxZoom کمتر = زوم دورتر
-    props.map.fitBounds(bounds, { padding: 280, maxZoom: 15, duration: 0 })
+    props.map.fitBounds(bounds, { padding: 140, maxZoom: 20, duration: 0 })
     props.map.once('idle', resolve)
     setTimeout(resolve, 1500)
   })
@@ -464,6 +498,23 @@ function niceScaleLength(span) {
   )
 }
 
+function wrapCanvasText(ctx, text, maxWidth) {
+  const words = String(text).split(/\s+/).filter(Boolean)
+  const lines = []
+  let current = ''
+  for (const word of words) {
+    const test = current ? current + ' ' + word : word
+    if (current && ctx.measureText(test).width > maxWidth) {
+      lines.push(current)
+      current = word
+    } else {
+      current = test
+    }
+  }
+  if (current) lines.push(current)
+  return lines
+}
+
 function drawSketch() {
   const canvas = sketchCanvasRef.value
   if (!canvas) return
@@ -478,7 +529,7 @@ function drawSketch() {
   const pts = utmPoints.value
   if (!pts.length) return
 
-  const pad = 70
+  const pad = 50
   const xs = pts.map(p => p.x)
   const ys = pts.map(p => p.y)
   const minX = Math.min(...xs), maxX = Math.max(...xs)
@@ -501,7 +552,8 @@ function drawSketch() {
     : [{ type: 'polygon', isClosed: true, startIdx: 0, count: pts.length }]
 
   let globalIdx = 0
-  for (const meta of metas) {
+  for (let m = 0; m < metas.length; m++) {
+    const meta = metas[m]
     const slice = cpts.slice(meta.startIdx, meta.startIdx + meta.count)
     const utmSlice = pts.slice(meta.startIdx, meta.startIdx + meta.count)
     if (slice.length < 2) continue
@@ -540,8 +592,8 @@ function drawSketch() {
       const toCx = mx - cx, toCy = my - cy
       if (nx * toCx + ny * toCy < 0) { nx = -nx; ny = -ny }
 
-      const labelX = mx + nx * 22
-      const labelY = my + ny * 22
+      const labelX = mx + nx * 20
+      const labelY = my + ny * 20
 
       let angle = Math.atan2(b.y - a.y, b.x - a.x)
       if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI
@@ -550,11 +602,32 @@ function drawSketch() {
       ctx.translate(labelX, labelY)
       ctx.rotate(angle)
       ctx.font = '600 15px Vazirmatn, Tahoma, sans-serif'
+      const lenTxt = lenM.toFixed(2)
+      const lenW = ctx.measureText(lenTxt).width
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'
+      ctx.fillRect(-lenW / 2 - 3, -10, lenW + 6, 20)
       ctx.fillStyle = '#222'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(lenM.toFixed(2), 0, 0)
+      ctx.fillText(lenTxt, 0, 0)
       ctx.restore()
+
+      // نام خیابان ضلع: افقی و خوانا با پس‌زمینه سفید
+      const street = edgeStreetNames.value[m]?.[i] || ''
+      if (street) {
+        ctx.font = '500 12px Vazirmatn, Tahoma, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        const streetX = mx + nx * 46
+        const streetY = my + ny * 46
+        const sw = ctx.measureText(street).width
+        const halfSw = Math.min(sw / 2, W / 2 - 8)
+        const sx = Math.max(halfSw + 8, Math.min(streetX, W - halfSw - 8))
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'
+        ctx.fillRect(sx - sw / 2 - 4, streetY - 9, sw + 8, 18)
+        ctx.fillStyle = '#444'
+        ctx.fillText(street, sx, streetY)
+      }
     }
 
     slice.forEach((p) => {
@@ -577,9 +650,15 @@ function drawSketch() {
     })
   }
 
-  // نقطه مرکز
-  if (centerUtm.value) {
-    const cp = toCanvas(centerUtm.value)
+  // نقاط مرکز هر ترسیم + نشانی
+  for (let m = 0; m < metas.length; m++) {
+    const meta = metas[m]
+    const utmSlice = pts.slice(meta.startIdx, meta.startIdx + meta.count)
+    if (!utmSlice.length) continue
+    const avgX = utmSlice.reduce((s, p) => s + p.x, 0) / utmSlice.length
+    const avgY = utmSlice.reduce((s, p) => s + p.y, 0) / utmSlice.length
+    const cp = toCanvas({ x: avgX, y: avgY })
+
     ctx.beginPath()
     ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2)
     ctx.fillStyle = '#2563eb'
@@ -587,10 +666,33 @@ function drawSketch() {
     ctx.strokeStyle = '#fff'
     ctx.lineWidth = 2
     ctx.stroke()
-    ctx.font = '600 12px Vazirmatn, Tahoma, sans-serif'
-    ctx.fillStyle = '#1d4ed8'
-    ctx.textAlign = 'center'
-    ctx.fillText('مرکز', cp.x, cp.y + 16)
+
+    const addr = shapeCentroids.value[m]?.address || ''
+    if (addr) {
+      ctx.font = '600 12px Vazirmatn, Tahoma, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      const maxW = 230
+      const lines = wrapCanvasText(ctx, addr, maxW)
+      const lineH = 17
+      const padV = 3
+      const padH = 6
+      let boxW = 0
+      for (const line of lines) boxW = Math.max(boxW, ctx.measureText(line).width)
+      boxW = Math.min(boxW + padH * 2, W - 12)
+      const boxH = lines.length * lineH + padV * 2
+      const halfW = Math.min(boxW / 2, W / 2 - 6)
+      const bx = Math.max(halfW + 6, Math.min(cp.x, W - halfW - 6))
+      let by = cp.y + 12
+      if (by + boxH > H - 8) by = cp.y - boxH - 14
+
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'
+      ctx.fillRect(bx - boxW / 2, by - padV, boxW, boxH)
+      ctx.fillStyle = '#1d4ed8'
+      lines.forEach((line, i) => {
+        ctx.fillText(line, bx, by + i * lineH)
+      })
+    }
   }
 
   const nax = W - 50, nay = 50
@@ -692,6 +794,64 @@ async function generate() {
     centerUtm.value = { x: avgX, y: avgY, zone: utmZone.value }
 
     mapImage.value = await captureMapImage(allPositions)
+
+    // آدرس‌یابی معکوس برای مراکز ترسیم‌ها و punti وسط ضلع‌ها
+    addressLoading.value = true
+    try {
+      const zone = utmZone.value
+      const projStr = `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`
+
+      const centroidTasks = []
+      for (const meta of metas) {
+        const slice = allPositions.slice(meta.startIdx, meta.startIdx + meta.count)
+        const avgLat = slice.reduce((s, p) => s + p.lat, 0) / slice.length
+        const avgLon = slice.reduce((s, p) => s + (p.lon ?? p.lng), 0) / slice.length
+        centroidTasks.push(
+          reverseLookup(avgLat, avgLon)
+            .then(r => ({ ...r, lat: avgLat, lon: avgLon }))
+            .catch(() => ({ display: '', road: '', lat: avgLat, lon: avgLon }))
+        )
+      }
+
+      const streetTasks = []
+      for (let s = 0; s < metas.length; s++) {
+        const meta = metas[s]
+        const slice = allPositions.slice(meta.startIdx, meta.startIdx + meta.count)
+        const edgeCount = meta.isClosed ? slice.length : slice.length - 1
+        for (let i = 0; i < edgeCount; i++) {
+          const a = slice[i]
+          const b = slice[(i + 1) % slice.length]
+          const midLat = (a.lat + b.lat) / 2
+          const midLon = ((a.lon ?? a.lng) + (b.lon ?? b.lng)) / 2
+          streetTasks.push(
+            reverseLookup(midLat, midLon)
+              .then(r => ({ s, i, street: r.road || '' }))
+              .catch(() => ({ s, i, street: '' }))
+          )
+        }
+      }
+
+      const [centroidResults, streetResults] = await Promise.all([
+        Promise.all(centroidTasks),
+        Promise.all(streetTasks),
+      ])
+
+      shapeCentroids.value = centroidResults.map(r => {
+        const [x, y] = proj4('EPSG:4326', projStr, [r.lon, r.lat])
+        return { lat: r.lat, lon: r.lon, utm: { x, y, zone }, address: r.display || '' }
+      })
+
+      edgeStreetNames.value = metas.map((meta, s) => {
+        const shapeStreets = streetResults.filter(r => r.s === s).sort((a, b) => a.i - b.i).map(r => r.street)
+        return shapeStreets
+      })
+    } catch (e) {
+      console.warn('خطا در آدرس‌یابی:', e)
+      shapeCentroids.value = metas.map(() => ({ lat: 0, lon: 0, utm: null, address: '' }))
+      edgeStreetNames.value = metas.map(m => m.isClosed ? Array(m.count).fill('') : Array(Math.max(m.count - 1, 0)).fill(''))
+    } finally {
+      addressLoading.value = false
+    }
 
     ready.value = true
     await nextTick()
@@ -802,6 +962,36 @@ function buildPrintHtml() {
         </thead>
         <tbody>${rows}${centerRow}</tbody>
       </table>
+
+      ${shapeCentroids.value.length ? `
+      <div style="margin-top:16px">
+        <div style="font-weight:600;margin-bottom:8px">نشانی مراکز ترسیم‌ها</div>
+        <table class="utm-table">
+          <thead>
+            <tr><th>شماره ترسیم</th><th>نشانی مرکز</th></tr>
+          </thead>
+          <tbody>
+            ${shapeCentroids.value.map((c, i) => `
+              <tr><td>${i + 1}</td><td>${escapeHtml(c.address) || '—'}</td></tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
+
+      ${edgeStreetNames.value.some(arr => arr.length) ? `
+      <div style="margin-top:16px">
+        <div style="font-weight:600;margin-bottom:8px">خیابان‌های مجاور ضلع‌ها</div>
+        <table class="utm-table">
+          <thead>
+            <tr><th>ترسیم</th><th>ضلع</th><th>خیابان</th></tr>
+          </thead>
+          <tbody>
+            ${edgeStreetNames.value.map((streets, s) => streets.map((st, e) => `
+              <tr><td>${s + 1}</td><td>${e + 1}</td><td>${escapeHtml(st) || '—'}</td></tr>
+            `).join('')).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
 
       <div class="disclaimer">
         کلیه حدود بر اساس اظهارات و ارائه مالک برداشت شده است و نقشه‌بردار هیچ مسئولیتی در قبال تعدی به املاک مجاور و حریم‌های موجود ندارد.

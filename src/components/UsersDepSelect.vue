@@ -165,7 +165,7 @@ watch(
   width: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: var(--border-strong);
   border-radius: 4px;
 }
 </style>

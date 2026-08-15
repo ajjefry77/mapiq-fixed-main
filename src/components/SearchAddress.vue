@@ -396,16 +396,16 @@ const clearResults = () => {
 }
 
 .max-h-96::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--surface2);
   border-radius: 3px;
 }
 
 .max-h-96::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
+  background: var(--surface3);
   border-radius: 3px;
 }
 
 .max-h-96::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
+  background: var(--border);
 }
 </style>

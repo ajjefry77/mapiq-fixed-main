@@ -139,7 +139,7 @@
                   <i class="fas fa-download"></i>
                 </button>
               </div>
-              <canvas ref="sketchCanvasRef" width="700" height="700" class="w-full border rounded bg-white"></canvas>
+              <canvas ref="sketchCanvasRef" width="700" height="700" class="border rounded bg-white max-w-full max-h-[60vh] mx-auto block" style="width:auto;height:auto"></canvas>
             </div>
           </div>
 
@@ -550,18 +550,23 @@ function drawSketch() {
   const pts = utmPoints.value
   if (!pts.length) return
 
-  const pad = 50
+  const pad = Math.min(32, Math.floor(Math.min(W, H) * 0.06))
   const xs = pts.map(p => p.x)
   const ys = pts.map(p => p.y)
   const minX = Math.min(...xs), maxX = Math.max(...xs)
   const minY = Math.min(...ys), maxY = Math.max(...ys)
   const spanX = Math.max(maxX - minX, 0.001)
   const spanY = Math.max(maxY - minY, 0.001)
-  const scale = Math.min((W - 2 * pad) / spanX, (H - 2 * pad) / spanY)
+
+  // مرکز کردن شکل در ناحیه قابل رسم (بالا برای شمال، پایین برای مقیاس)
+  const drawTop = pad + 40
+  const drawBottom = H - pad - 34
+  const drawH = drawBottom - drawTop
+  const effScale = Math.min((W - 2 * pad) / spanX, drawH / spanY)
 
   const toCanvas = (p) => ({
-    x: pad + (p.x - minX) * scale,
-    y: H - (pad + (p.y - minY) * scale)
+    x: pad + (p.x - minX) * effScale,
+    y: drawBottom - (p.y - minY) * effScale
   })
 
   const cpts = pts.map(toCanvas)
@@ -731,7 +736,7 @@ function drawSketch() {
   ctx.restore()
 
   const barM = niceScaleLength(spanX)
-  const barPx = barM * scale
+  const barPx = barM * effScale
   const bx0 = pad, by0 = H - 30
   ctx.save()
   ctx.strokeStyle = '#333'
@@ -801,6 +806,23 @@ async function generate() {
     utmPoints.value = utm
     utmZone.value = utm[0]?.zone ?? null
     selectedShapesMeta.value = metas
+
+    // تنظیم ابعاد کانواس متناسب با شکل تا فضای سفید اضافی حذف شود
+    const canvas = sketchCanvasRef.value
+    if (canvas) {
+      const xs = utm.map(p => p.x)
+      const ys = utm.map(p => p.y)
+      const spanX = Math.max(Math.max(...xs) - Math.min(...xs), 1)
+      const spanY = Math.max(Math.max(...ys) - Math.min(...ys), 1)
+      const ratio = spanX / spanY
+      const MAX = 1400, MIN = 400
+      let cw = MAX, ch = Math.round(MAX / ratio)
+      if (spanX < spanY) { ch = MAX; cw = Math.round(MAX * ratio) }
+      cw = Math.max(MIN, Math.min(cw, MAX))
+      ch = Math.max(MIN, Math.min(ch, MAX))
+      canvas.width = cw
+      canvas.height = ch
+    }
 
     let totalArea = 0
     for (const meta of metas) {
@@ -906,11 +928,12 @@ figure { flex: 1; margin: 0; border: 1px solid #bbb; padding: 6px; text-align: c
 figure img { width: 100%; height: auto; display: block; }
 figcaption { font-size: 12px; color: #444; margin-top: 6px; font-weight: 600; }
 .disclaimer { font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; margin-top: 8px; }
-@page { size: A4 portrait; margin: 12mm; }
+@page { size: A4 portrait; margin: 10mm; }
 @media print {
   .sheet { padding: 0; }
   /* جلوگیری از نمایش عنوان مرورگر در هدر چاپ تا حد امکان */
   html, body { margin: 0; }
+  figure, table { page-break-inside: avoid; }
 }
 `
 

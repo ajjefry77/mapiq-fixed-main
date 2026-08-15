@@ -121,6 +121,13 @@
             </div>
           </div>
         </div>
+
+        <MapboxLegend
+          v-if="mapReady"
+          :pins="Pins"
+          :map="map"
+          class="absolute bottom-20 right-2 md:right-[356px] md:bottom-4 w-36 md:w-44 z-[300]"
+        />
       </div>
 
       <MapboxSearchAddress v-if="mapReady" :map="map" />
@@ -187,6 +194,7 @@ import MapboxFlyPosition from "../components/mapbox/MapboxFlyPosition.vue";
 import MapboxDrawTools from "../components/mapbox/MapboxDrawTools.vue";
 import MapboxPinsList from "../components/mapbox/MapboxPinsList.vue";
 import MapboxSearchAddress from "../components/mapbox/MapboxSearchAddress.vue";
+import MapboxLegend from "../components/mapbox/MapboxLegend.vue";
 
 import Loading from "../components/Loading.vue";
 import OpenDialog from "../components/OpenDialog.vue";

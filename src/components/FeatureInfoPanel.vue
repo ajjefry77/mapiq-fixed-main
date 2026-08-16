@@ -37,7 +37,7 @@
           <li v-if="featureInfo.description" class="max-h-[300px] w-full overflow-y-auto">
             <span class="font-semibold">توضیحات : </span>
             <!--        {{ featureInfo.description }}-->
-            <span class="font-semibold" dir="rtl" v-html="featureInfo.description"></span>
+            <span class="font-semibold" dir="rtl">{{ featureInfo.description }}</span>
           </li>
 
           <li v-if="featureInfo.length" class="mt-4">

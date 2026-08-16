@@ -192,6 +192,14 @@ router.beforeEach(async (to, _from, next) => {
     return next('/mapbox')
   }
 
+  if (to.meta.requiredRole && !authStore.isRole(String(to.meta.requiredRole))) {
+    return next('/mapbox')
+  }
+
+  if (to.meta.permission && !authStore.hasPermission(String(to.meta.permission))) {
+    return next('/mapbox')
+  }
+
   next()
 });
 

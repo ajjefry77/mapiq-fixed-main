@@ -311,6 +311,7 @@ const drawDataSource= new Cesium.CustomDataSource("file");
 //#endregion
 
 const GEOSERVER = import.meta.env.VITE_GEOSERVER //?? 'http://localhost:8080';
+const WFS_MAX_FEATURES = Number(import.meta.env.VITE_WFS_MAX_FEATURES || 5000);
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 
 const code = ref('')
@@ -550,9 +551,15 @@ const initMap_Cesium = async () => {
   //viewer.scene.screenSpaceCameraController.enableRotate = false; // جلوگیری از چرخش در 2D
   //viewer.scene.screenSpaceCameraController.enableTilt = false;  // جلوگیری از شیب
 
-  viewer.scene.postRender.addEventListener(() => {
-    scale.value = getScale();
-  });
+  let scaleUpdateTimer = null;
+  const updateCesiumScale = () => {
+    if (scaleUpdateTimer !== null) return;
+    scaleUpdateTimer = window.setTimeout(() => {
+      scaleUpdateTimer = null;
+      scale.value = getScale();
+    }, 100);
+  };
+  viewer.camera.changed.addEventListener(updateCesiumScale);
 
   // Set Home icon to position
   // viewer.homeButton.viewModel.command.beforeExecute.addEventListener(function (commandInfo) {
@@ -705,7 +712,7 @@ const handleFileUpload = async (event) => {
           loadedFiles.value.push(row);
 
           let pin = {
-            id : 'file' ,
+            id : crypto.randomUUID() ,
             name : fileName,
             shape : DataSource,
             date :  new Date(),
@@ -718,6 +725,8 @@ const handleFileUpload = async (event) => {
       } catch (error) {
         console.error("خطا در بارگذاری KML:", error)
         loading.value = false;
+      } finally {
+        URL.revokeObjectURL(url)
       }
     }
     reader.readAsText(file)
@@ -747,7 +756,7 @@ const handleFileUpload = async (event) => {
           }
           loadedFiles.value.push(row);
           let pin = {
-            id : 'file' ,
+            id : crypto.randomUUID() ,
             name : fileName,
             shape : DataSource,
             date :  new Date(),
@@ -1128,8 +1137,7 @@ async function savePickedPoint(data) {
   }
 }
 
-const chunkSize = 5000;
-const maxParallelRequests = 2;
+const chunkSize = Math.min(Math.max(WFS_MAX_FEATURES, 500), 5000);
 let customDataSource=[];
 const is3DActive = ref(false)
 async function show3D_Layer() {
@@ -1139,9 +1147,8 @@ async function show3D_Layer() {
       for (let i=0; i < customDataSource.length ; i++)
         customDataSource[i].show = true;
     } else {
-      const totalFeatures = 20000;
       loading.value = true;
-      await loadAllChunks(totalFeatures);
+      await loadVisibleWfsFeatures();
     }
   } else {
     if (customDataSource)  {
@@ -1152,96 +1159,59 @@ async function show3D_Layer() {
   }
 }
 
-function loadWfsChunk(start) {
-  const url =
-      GEOSERVER + `/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature` +
-      `&typeName=${encodeURIComponent('Amlak:اعیان')}` +
-      `&outputFormat=application/json` +
-      `&srsName=EPSG:4326` +
-      `&startIndex=${start}` +
-      `&maxFeatures=${chunkSize}`;
+async function loadVisibleWfsFeatures() {
+  if (!viewer) return;
 
-  return Cesium.GeoJsonDataSource.load(url).then(dataSource => {
-    viewer.dataSources.add(dataSource);
-    customDataSource.push(dataSource) ;
-    const entities = dataSource.entities.values;
+  const rectangle = viewer.camera.computeViewRectangle(Cesium.Ellipsoid.WGS84);
+  const bbox = rectangle
+    ? [
+        Cesium.Math.toDegrees(rectangle.west),
+        Cesium.Math.toDegrees(rectangle.south),
+        Cesium.Math.toDegrees(rectangle.east),
+        Cesium.Math.toDegrees(rectangle.north),
+      ].join(',')
+    : null;
 
-    // گرفتن مختصات رأس‌ها
-    // const positions =
-    //     e.polygon.hierarchy.getValue(Cesium.JulianDate.now()).positions;
-
-    // نمونه‌گیری ارتفاع واقعی از terrain
-    // const updatedPositions =await Cesium.sampleTerrainMostDetailed(
-    //     viewer.terrainProvider,
-    //     positions
-    // );
-    loading.value = false;
-    for (let i = 0; i < entities.length; i++) {
-      const e = entities[i];
-      const tmp = parseFloat(e.properties.h.getValue());
-      let height =tmp ;
-      let color = Cesium.Color.BLUE.withAlpha(0.6);
-      if (tmp < 3) {
-        color = Cesium.Color.GRAY.withAlpha(0.6);
-      }
-      if (tmp > 3) {
-        color = Cesium.Color.GREEN.withAlpha(0.6);
-      }
-      if (tmp > 6)  {
-        color = Cesium.Color.BLUE.withAlpha(0.6);
-      }
-      if (tmp > 9)  {
-        color = Cesium.Color.RED.withAlpha(0.6);
-      }
-      if (tmp > 12) {
-        color = Cesium.Color.AQUA.withAlpha(0.6);
-      }
-
-      if (e.polygon) {
-        // e.polygon.heightReference = Cesium.HeightReference.CLAMP_TO_GROUND;
-        // e.polygon.extrudedHeightReference = Cesium.HeightReference.RELATIVE_TO_GROUND;
-
-        // e.polygon.hierarchy = new Cesium.PolygonHierarchy(updatedPositions);
-        // e.polygon.height = 0; // یا مقدار Z از داده
-
-        e.polygon.extrudedHeight = height;
-        e.polygon.material = color;
-        e.polygon.outlineColor = Cesium.Color.GRAY;
-        e.polygon.outline = true;
-        //console.log("i :" , i);
-      }
-    }
-
-    return entities.length;
+  const params = new URLSearchParams({
+    service: 'WFS',
+    version: '1.0.0',
+    request: 'GetFeature',
+    typeName: 'Amlak:اعیان',
+    outputFormat: 'application/json',
+    srsName: 'EPSG:4326',
+    maxFeatures: String(chunkSize),
   });
-}
+  if (bbox) params.set('bbox', `${bbox},EPSG:4326`);
 
-// ===== Load Chunks parallel
-async function loadAllChunks(totalCount) {
-  let startIndices = [];
-  for (let start = 0; start < totalCount; start += chunkSize) {
-    startIndices.push(start);
-  }
+  try {
+    const dataSource = await Cesium.GeoJsonDataSource.load(
+      `${GEOSERVER}/geoserver/wfs?${params.toString()}`
+    );
+    viewer.dataSources.add(dataSource);
+    customDataSource.push(dataSource);
 
-  let activeRequests = 0;
-  let promises = [];
+    for (const entity of dataSource.entities.values) {
+      const rawHeight = entity.properties?.h?.getValue?.();
+      const height = Number.parseFloat(rawHeight);
+      if (!Number.isFinite(height)) continue;
 
-  for (let i = 0; i < startIndices.length; i++) {
-    promises.push(loadWfsChunk(startIndices[i]));
-    activeRequests++;
+      let color = Cesium.Color.BLUE.withAlpha(0.6);
+      if (height < 3) color = Cesium.Color.GRAY.withAlpha(0.6);
+      else if (height < 6) color = Cesium.Color.GREEN.withAlpha(0.6);
+      else if (height < 9) color = Cesium.Color.BLUE.withAlpha(0.6);
+      else if (height < 12) color = Cesium.Color.RED.withAlpha(0.6);
+      else color = Cesium.Color.AQUA.withAlpha(0.6);
 
-    if (activeRequests >= maxParallelRequests) {
-      await Promise.all(promises);
-      promises = [];
-      activeRequests = 0;
+      if (entity.polygon) {
+        entity.polygon.extrudedHeight = height;
+        entity.polygon.material = color;
+        entity.polygon.outlineColor = Cesium.Color.GRAY;
+        entity.polygon.outline = true;
+      }
     }
+  } finally {
+    loading.value = false;
   }
-
-  if (promises.length > 0) {
-    await Promise.all(promises);
-  }
-
-  loading.value = false;
 }
 
 function getLocation() {

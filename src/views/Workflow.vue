@@ -1,18 +1,13 @@
 <template>
-  <div class="min-h-screen">
-    <main class="flex-1 overflow-y-auto">
-      <div class="p-8">
-        <div class="flex justify-between items-center mb-8">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">مدیریت فرآیندها</h2>
-            <p class="text-gray-600">تعریف و مدیریت فرآیند</p>
-          </div>
-        </div>
-
-            <WorkflowStages />
-
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">مدیریت فرآیندها</h1>
+        <p class="page-subtitle">تعریف و مدیریت فرآیند</p>
       </div>
-    </main>
+    </div>
+
+    <WorkflowStages />
   </div>
 </template>
 

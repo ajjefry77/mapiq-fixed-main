@@ -109,7 +109,6 @@ const setDescr = async (idx) => {
 const zoomOnPin = async (idx) => {
   //const pin = props.pins.find(x => x.id == id)
   //console.log(JSON.stringify(props.loadedFiles))
-  console.log(props.loadedFiles);
   if ( !isActive.value)
     showMessage('برای نمایش موقعیت ابتدا آیتم را فعال کنید', 'warning')
   const pin = props.loadedFiles[idx].MyWork;

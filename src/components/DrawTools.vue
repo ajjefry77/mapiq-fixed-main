@@ -13,26 +13,26 @@
       <button
           @click="toggleMeasure"  title="اندازه گیری" style="margin: 0"
           class="w-8 h-8 rounded flex items-center justify-center shadow-md"
-          :class ="drawMode === 'measure' ? 'text-white bg-blue-500' : 'text-black bg-gray-200'">
+          :class ="drawMode === 'measure' ? 'text-white bg-accent' : 'text-black bg-gray-200'">
         <i class="fas fa-ruler  m-1"></i>
       </button>
 
       <!-- pin -->
-      <button @click="setDrawMode('point')" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
-              drawMode === 'point' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="نقطه">
+      <button @click="togglePointPick" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
+              pickForForm ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="نقطه (انتخاب برای فرم)">
 
         <i class="fas fa-location-pin"></i>
       </button>
 
       <button @click="setDrawMode('multi_point')" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
-              drawMode === 'multi_point' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="چند نقطه">
+              drawMode === 'multi_point' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="چند نقطه">
 
-        <i class="fas fa-braille "></i>
+        <i class="fas fa-braille"></i>
       </button>
 
       <!-- line -->
       <button @click="setDrawMode('polyline')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-               drawMode === 'polyline' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="خط">
+               drawMode === 'polyline' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="خط">
         <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
           <line x1="25" y1="75" x2="75" y2="25" stroke-width="6" :class="drawMode === 'polyline' ? 'stroke-white' : 'stroke-black'"/>
           <circle cx="25" cy="75" r="6" :class="drawMode === 'polyline' ? 'fill-white' : 'fill-black'" />
@@ -42,13 +42,13 @@
 
       <!-- polygon -->
       <button @click="setDrawMode('polygon')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-              drawMode === 'polygon' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="پلیگون">
+              drawMode === 'polygon' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="پلیگون">
         <i class="fas fa-draw-polygon"></i>
       </button>
 
       <!-- circle -->
       <button @click="setDrawMode('circle')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-              drawMode === 'circle' ? 'text-white bg-blue-500' : 'text-black bg-gray-200']" title="دایره">
+              drawMode === 'circle' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="دایره">
         <i class="fa fa-circle"></i>
       </button>
 
@@ -76,31 +76,115 @@
   </div>
 
   <!-- مودال افزودن پین -->
-  <transition name="fade">
-    <div v-if="showForm" class="absolute inset-0 bg-black/40 flex items-end justify-end px-14 py-32 z-50" @contextmenu.prevent>
-      <div class="bg-white rounded-2xl p-6 w-84 shadow-xl relative">
+  <Transition name="modal">
+    <div v-if="showForm"
+         class="absolute inset-0 bg-black/40 flex items-end justify-end px-14 py-32 z-50"
+         @contextmenu.prevent @click.self="cancelForm">
+      <div class="bg-white rounded-2xl p-6 w-96 shadow-xl relative flex flex-col" style="max-height:80vh">
         <button @click="cancelForm" class="absolute top-4 left-4 text-gray-500 hover:text-black">✕</button>
         <h2 class="text-md font-semibold mb-3">افزودن ترسیم جدید</h2>
 
-        <form @submit.prevent="savePin">
-          <label class="block mb-2 text-sm font-medium">نام</label>
-          <input v-model="formData.name" type="text" class="w-full border rounded-lg p-2 mb-3" required />
+        <!-- تب‌ها -->
+        <div class="flex border-b mb-3">
+          <button type="button" @click="activeFormTab = 'info'"
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'info' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+            توضیحات
+          </button>
+          <button type="button" @click="activeFormTab = 'style'"
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'style' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+            استایل
+          </button>
+          <button type="button" @click="activeFormTab = 'image'"
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'image' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+            تصویر
+          </button>
+          <button type="button" @click="activeFormTab = 'measure'"
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'measure' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+            اندازه‌ها
+          </button>
+        </div>
 
-          <label class="block mb-2 text-sm font-medium">توضیحات</label>
-          <textarea v-model="formData.description" class="w-full border rounded-lg p-2 mb-3" rows="3"></textarea>
+        <form @submit.prevent="savePin" class="overflow-y-auto" style="flex:1">
 
-          <label class="block mb-2 text-sm font-medium">فایل ضمیمه</label>
-          <input type="file" @change="onFileChange" class="w-full border rounded-lg p-2 mb-4" />
+          <!-- تب توضیحات -->
+          <div v-show="activeFormTab === 'info'">
+            <label class="block mb-2 text-sm font-medium">نام</label>
+            <input v-model="formData.name" type="text" class="w-full border rounded-lg p-2 mb-3" required />
 
-          <div class="flex justify-end gap-2">
-            <button type="button" @click="cancelForm" class="px-4 py-2 bg-gray-300 rounded-lg">لغو</button>
-            <button type="button" @click="savePin" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">ذخیره</button>
+            <label class="block mb-2 text-sm font-medium">توضیحات</label>
+            <textarea v-model="formData.description" class="w-full border rounded-lg p-2 mb-3" rows="4"></textarea>
           </div>
+
+          <!-- تب استایل -->
+          <div v-show="activeFormTab === 'style'" class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm">رنگ حاشیه / خط</span>
+              <input type="color" v-model="styleData.borderColor" @change="applyStyleToShape" class="w-10 h-8 cursor-pointer" />
+            </div>
+
+            <div v-if="drawMode === 'polygon' || drawMode === 'circle'" class="flex items-center justify-between">
+              <span class="text-sm">رنگ داخل (پرشدگی)</span>
+              <input type="color" v-model="styleData.fillColor" @change="applyStyleToShape" class="w-10 h-8 cursor-pointer" />
+            </div>
+
+            <div v-if="drawMode === 'polygon' || drawMode === 'circle'">
+              <label class="text-sm">شفافیت: {{ styleData.transparency }}%</label>
+              <input type="range" min="0" max="100" v-model="styleData.transparency" @change="applyStyleToShape" class="w-full" />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-sm">ضخامت خط</span>
+              <input type="number" min="1" v-model="styleData.width" @change="applyStyleToShape" class="w-20 border rounded p-1" />
+            </div>
+          </div>
+
+          <!-- تب تصویر ضمیمه -->
+          <div v-show="activeFormTab === 'image'">
+            <label class="block mb-2 text-sm font-medium">فایل ضمیمه (تصویر زمینه)</label>
+            <input type="file" accept="image/*" @change="onFileChange" class="w-full border rounded-lg p-2 mb-3" />
+            <img v-if="imagePreview" :src="imagePreview" class="w-full max-h-48 object-contain rounded-lg border" />
+          </div>
+
+          <!-- تب اندازه‌ها -->
+          <div v-show="activeFormTab === 'measure'" class="text-sm">
+            <ul class="space-y-1 mb-3">
+              <li v-if="formMeasure.length"><span class="font-semibold">طول: </span>{{ formMeasure.length }}</li>
+              <li v-if="formMeasure.perimeter"><span class="font-semibold">محیط: </span>{{ formMeasure.perimeter }}</li>
+              <li v-if="formMeasure.area"><span class="font-semibold">مساحت: </span>{{ formMeasure.area }}</li>
+              <li v-if="formMeasure.radius"><span class="font-semibold">شعاع: </span>{{ formMeasure.radius }}</li>
+              <li><span class="font-semibold">تعداد نقاط: </span>{{ formPoints.length }}</li>
+            </ul>
+
+            <div class="max-h-48 overflow-y-auto border rounded-lg">
+              <table class="w-full text-xs">
+                <thead class="sticky top-0 bg-gray-100">
+                <tr>
+                  <th class="p-1 border">ردیف</th>
+                  <th class="p-1 border">طول جغرافیایی</th>
+                  <th class="p-1 border">عرض جغرافیایی</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="p in formPoints" :key="p.row">
+                  <td class="p-1 border text-center">{{ p.row }}</td>
+                  <td class="p-1 border font-mono text-left" dir="ltr">{{ p.lon }}</td>
+                  <td class="p-1 border font-mono text-left" dir="ltr">{{ p.lat }}</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </form>
+
+        <div class="flex justify-end gap-2 mt-4 pt-3 border-t">
+          <button type="button" @click="cancelForm" class="px-4 py-2 bg-gray-300 rounded-lg">لغو</button>
+          <button type="button" @click="savePin" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dim">ذخیره</button>
+        </div>
       </div>
     </div>
 
-  </transition>
+  </Transition>
 
 
   <MultiPointsList  v-if="drawMode === 'multi_point'" :pointList="pointList"/>
@@ -132,6 +216,7 @@ const loading = ref(false);
 const expanded = ref(false);
 const drawMode = ref('');
 const color = ref('#ff0000');
+const pickForForm = ref(false);
 const drawings = ref([]);
 const selectedEntity = ref(null);
 
@@ -156,9 +241,17 @@ const attch_file = ref(null);
 let shape_id='';
 let radius=0;
 
+// --- state جدید برای پنجره‌ی چهار تبی ترسیم ---
+const activeFormTab = ref('info'); // info | style | image | measure
+const styleData = ref({ borderColor: '#ff0000', fillColor: '#ff0000', transparency: 50, width: 3 });
+const formPoints = ref([]); // نقاط شکل با مختصات، برای تب اندازه‌ها
+const formMeasure = ref({ length: '', perimeter: '', area: '', radius: '' });
+const imagePreview = ref(null);
+let currentShapeEntities = []; // همه‌ی entity های شکل درحال رسم، برای حذف مطمئن هنگام لغو
+
 let drawDataSource= null;
 let ds= null;
-const emit = defineEmits(["disableFeatureInfo"]);
+const emit = defineEmits(["disableFeatureInfo", "pickPoint"]);
 
 onMounted ( () => {
   drawDataSource= new Cesium.CustomDataSource("pins");
@@ -168,8 +261,51 @@ onMounted ( () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', keydownHandler);
 });
+function togglePointPick() {
+  emit("disableFeatureInfo");
+  if (pickForForm.value) {
+    cancelPointPick();
+    return;
+  }
+  // لغو هر حالت ترسیم قبلی
+  if (handler) { handler.destroy(); handler = null; }
+  drawMode.value = '';
+  pickForForm.value = true;
+  startPointPick();
+}
+
+function startPointPick() {
+  if (!props.viewer) return;
+  props.viewer.scene.canvas.style.cursor = 'crosshair';
+  if (handler) handler.destroy();
+  handler = new Cesium.ScreenSpaceEventHandler(props.viewer.scene.canvas);
+
+  handler.setInputAction((click) => {
+    const position = props.viewer.camera.pickEllipsoid(click.position, props.viewer.scene.globe.ellipsoid);
+    if (!position) return;
+
+    const carto = Cesium.Cartographic.fromCartesian(position);
+    const lat = +Cesium.Math.toDegrees(carto.latitude).toFixed(6);
+    const lng = +Cesium.Math.toDegrees(carto.longitude).toFixed(6);
+
+    if (handler) { handler.destroy(); handler = null; }
+    props.viewer.scene.canvas.style.cursor = 'default';
+    pickForForm.value = false;
+    drawMode.value = '';
+
+    emit("pickPoint", { lat, lng });
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+}
+
+function cancelPointPick() {
+  if (handler) { handler.destroy(); handler = null; }
+  if (props.viewer) props.viewer.scene.canvas.style.cursor = 'default';
+  pickForForm.value = false;
+}
+
 function setDrawMode(mode) {
   emit("disableFeatureInfo");
+  pickForForm.value = false;
   if (drawMode.value!=='') {
     finishDrawing("multi_point", positions)
     showForm.value = true;
@@ -183,6 +319,9 @@ function setDrawMode(mode) {
 
 function startDrawing() {
   if (!props.viewer) return;
+
+  styleData.value = { borderColor: color.value, fillColor: color.value, transparency: 50, width: 3 };
+  currentShapeEntities = [];
 
   //const drawDataSource = store.value;
 
@@ -275,6 +414,7 @@ function startDrawing() {
         });
 
         drawings.value.push(pointEntity);
+        currentShapeEntities.push(pointEntity);
         showForm.value = true;
         shape_id = pointEntity.id;
         finishDrawing("point", position)
@@ -294,6 +434,7 @@ function startDrawing() {
 
     });
     drawings.value.push(polyline);
+    currentShapeEntities.push(polyline);
     shape_id = polyline.id;
 
     handler.setInputAction((click) => {
@@ -362,6 +503,7 @@ function startDrawing() {
             }
           });
           drawings.value.push(circleEntity);
+          currentShapeEntities.push(circleEntity);
           shape_id = circleEntity.id;
         }
       } else {
@@ -375,10 +517,7 @@ function startDrawing() {
       if (!center) return;
       const pos = props.viewer.camera.pickEllipsoid(move.endPosition, props.viewer.scene.globe.ellipsoid);
       if (pos) {
-        const dx = pos.x - center.x;
-        const dy = pos.y - center.y;
-        const dz = pos.z - center.z;
-        radius = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        radius = surfaceDistance(center, pos);
       }
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
   }
@@ -397,6 +536,7 @@ function startDrawing() {
       }
     });
     drawings.value.push(polygon);
+    currentShapeEntities.push(polygon);
     shape_id = polygon.id;
 
     handler.setInputAction((click) => {
@@ -493,8 +633,111 @@ function startDrawing() {
   });
 }
 
+function formatLength(m) {
+  if (!m) return '';
+  return m >= 1000 ? (m / 1000).toFixed(2) + ' کیلومتر' : m.toFixed(2) + ' متر';
+}
+
+function surfaceDistance(ca, cb) {
+  const cartoA = Cesium.Cartographic.fromCartesian(ca);
+  const cartoB = Cesium.Cartographic.fromCartesian(cb);
+  const geodesic = new Cesium.EllipsoidGeodesic(cartoA, cartoB);
+  return geodesic.surfaceDistance;
+}
+
+function formatArea(m2) {
+  if (!m2) return '';
+  return m2 >= 10000 ? (m2 / 10000).toFixed(2) + ' هکتار' : m2.toFixed(2) + ' متر مربع';
+}
+
+function polygonAreaFromLonLat(coords) {
+  const R = 6378137;
+  const rad = coords.map(([lon, lat]) => [lon * Math.PI / 180, lat * Math.PI / 180]);
+  let area = 0;
+  for (let i = 0; i < rad.length; i++) {
+    const [lon1, lat1] = rad[i];
+    const [lon2, lat2] = rad[(i + 1) % rad.length];
+    area += (lon2 - lon1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+  }
+  return Math.abs(area * R * R / 2);
+}
+
+// محاسبه‌ی طول/محیط/مساحت و لیست نقاط، برای تب «اندازه‌ها»
+function buildMeasureInfo(draw, cartesianPositions) {
+  formPoints.value = cartesianPositions.map((p, i) => {
+    const c = Cesium.Cartographic.fromCartesian(p);
+    return {
+      row: i + 1,
+      lon: Cesium.Math.toDegrees(c.longitude).toFixed(6),
+      lat: Cesium.Math.toDegrees(c.latitude).toFixed(6)
+    };
+  });
+
+  let length = 0, perimeter = 0, area = 0;
+
+  if (draw === 'polyline') {
+    for (let i = 1; i < cartesianPositions.length; i++) {
+      length += surfaceDistance(cartesianPositions[i - 1], cartesianPositions[i]);
+    }
+  }
+
+  if (draw === 'polygon') {
+    for (let i = 1; i < cartesianPositions.length; i++) {
+      perimeter += surfaceDistance(cartesianPositions[i - 1], cartesianPositions[i]);
+    }
+    perimeter += surfaceDistance(cartesianPositions[cartesianPositions.length - 1], cartesianPositions[0]);
+    area = polygonAreaFromLonLat(formPoints.value.map(p => [Number(p.lon), Number(p.lat)]));
+  }
+
+  if (draw === 'circle') {
+    perimeter = 2 * Math.PI * radius;
+    area = Math.PI * radius * radius;
+  }
+
+  formMeasure.value = {
+    length: length ? formatLength(length) : '',
+    perimeter: perimeter ? formatLength(perimeter) : '',
+    area: area ? formatArea(area) : '',
+    radius: draw === 'circle' ? formatLength(radius) : ''
+  };
+}
+
+// اعمال زنده‌ی رنگ/ضخامت روی entity در حال ترسیم، از تب «استایل»
+function applyStyleToShape() {
+  const entity = drawDataSource.entities.getById(shape_id);
+  if (!entity) return;
+
+  const border = Cesium.Color.fromCssColorString(styleData.value.borderColor);
+  const fillAlpha = 1 - (styleData.value.transparency / 100);
+  const fill = Cesium.Color.fromCssColorString(styleData.value.fillColor).withAlpha(fillAlpha);
+  const width = Number(styleData.value.width) || 1;
+
+  if (entity.polyline) {
+    entity.polyline.material = border;
+    entity.polyline.width = width;
+  }
+  if (entity.polygon) {
+    entity.polygon.material = fill;
+    entity.polygon.outlineColor = border;
+    entity.polygon.outlineWidth = width;
+  }
+  if (entity.ellipse) { // دایره
+    entity.ellipse.material = fill;
+    entity.ellipse.outlineColor = border;
+    entity.ellipse.outlineWidth = width;
+  }
+
+  if (shape.value) {
+    shape.value.color = styleData.value.borderColor;
+    shape.value.outlineColor = styleData.value.borderColor;
+    shape.value.width = width;
+  }
+  color.value = styleData.value.borderColor;
+}
+
 function finishDrawing(draw, positions) {
   props.viewer.scene.canvas.style.cursor = 'default';
+  buildMeasureInfo(draw, Array.isArray(positions) ? positions : [positions]);
 
   if (draw == "point") {
     if (!positions ) return;
@@ -586,7 +829,9 @@ function finishDrawing(draw, positions) {
 }
 
 const onFileChange = (e) => {
-  attch_file.value = e.target.files[0];
+  const file = e.target.files[0];
+  attch_file.value = file;
+  imagePreview.value = file ? URL.createObjectURL(file) : null;
 };
 
 const savePin = async () => {
@@ -621,6 +866,13 @@ const savePin = async () => {
 
   showForm.value = false;
   formData.value = { name: "", description: "", file: null };
+
+  // چون شکل ذخیره شد، دیگر نباید در صورت بستن پنجره پاک شود
+  currentShapeEntities = [];
+  formPoints.value = [];
+  imagePreview.value = null;
+  activeFormTab.value = 'info';
+
   // fetchPins();
   // childRef.value.fetchPins();
   await saveOneWorks(pin);
@@ -648,8 +900,6 @@ const saveOneWorks = async (item) => {
 
     const res = await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
         { headers: { "Content-Type": "multipart/form-data" } })
-
-    console.log(res.data)
 
   } catch (err) {
     console.error(err)
@@ -679,7 +929,6 @@ const saveWork = async () => {
         })
 
     const res = await axios.post(SERVER + '/api/Save/myWork/' + authStore.user?.id, payload)
-    console.log(res.data)
 
   } catch (err) {
     console.error(err)
@@ -691,6 +940,7 @@ function inactiveDrawing() {
   document.body.style.cursor = "default";
   //drawMode.value='';
   stopMeasure();
+  pickForForm.value = false;
   if (handler) {
     handler.destroy();
     handler = null;
@@ -715,12 +965,24 @@ function openSaveDialog() {
 
 const cancelForm = () => {
   showForm.value = false;
-  //isPinMode.value = false;
+
   if (drawMode.value === 'multi_point') {
-    props.viewer.dataSources.remove(ds, true);
+    if (ds) props.viewer.dataSources.remove(ds, true);
+    ds = null;
   } else {
-  drawDataSource.entities.removeById(shape_id);
+    // حذف تمام entity هایی که برای این شکل ساخته شده‌اند (مطمئن‌تر از removeById)
+    currentShapeEntities.forEach(ent => drawDataSource.entities.remove(ent));
   }
+
+  currentShapeEntities = [];
+  pointList.value = [];
+  formPoints.value = [];
+  formMeasure.value = { length: '', perimeter: '', area: '', radius: '' };
+  imagePreview.value = null;
+  activeFormTab.value = 'info';
+  formData.value = { name: "", description: "", file: null };
+  attch_file.value = null;
+
   document.body.style.cursor = "default";
   drawMode.value='';
 
@@ -773,7 +1035,7 @@ function startMeasure() {
 
       // محاسبه و نمایش فاصله بین آخرین دو نقطه
       const lastIndex = points.length - 1;
-      const distance = Cesium.Cartesian3.distance(
+      const distance = surfaceDistance(
           points[lastIndex - 1],
           points[lastIndex]
       );

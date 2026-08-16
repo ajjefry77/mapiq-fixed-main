@@ -1,21 +1,22 @@
 <template>
+ <div class="flex flex-col min-h-0">
   <!-- Tabs -->
   <div class="flex mb-2 ">
 <!--    <button-->
 <!--        class="px-2 py-1 text-sm rounded"-->
-<!--        :class="activeTab === 'my' ? 'bg-blue-500 text-white' : 'bg-white border'"-->
+<!--        :class="activeTab === 'my' ? 'bg-accent text-white' : 'bg-white border'"-->
 <!--        @click="activeTab = 'my'" >-->
 <!--      میز کار-->
 <!--    </button>-->
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'my2' ? 'bg-blue-500 text-white' : 'bg-white border'"
+        :class="activeTab === 'my2' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'my2'" >
       میز کار
     </button>
     <button
         class="relative px-2 py-1 text-sm rounded"
-        :class="activeTab === 'in' ? 'bg-blue-500 text-white' : 'bg-white border'"
+        :class="activeTab === 'in' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'in'" >
        فضای اشتراکی
       <span
@@ -25,7 +26,7 @@
     </button>
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'out' ? 'bg-blue-500 text-white' : 'bg-white border'"
+        :class="activeTab === 'out' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'out'" >
        تاریخچه
     </button>
@@ -38,17 +39,17 @@
           <i :class="isShow ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
         </button>-->
         <button class="text-gray-500 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
-          <i class="fas fa-file-export"></i>
+          <i class="fas fa-download"></i>
         </button>
         <!--<button class="bg-[var(--primary-color)] text-white w-8 py-1 rounded" @click="openSaveDialog" title="ذخیره فضای کاری ">
           <i class="fas fa-save"></i>
-        </button>-->
+        </button>
         <!--<button class="bg-[var(&#45;&#45;primary-color)] text-white w-8 py-1 rounded" title="افزودن لایه">-->
         <!--  <i class="fas fa-layer-group"></i>-->
         <!--  <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.zip"/>-->
         <!--</button>-->
           <label class="text-gray-500  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
-            <i class="fas fa-folder-open"></i>
+            <i class="fas fa-file-import"></i>
             <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.kmz"/>
           </label>
         <!--<button @click="saveWorks">ذخیره</button>-->
@@ -106,17 +107,17 @@
     <div class="flex items-center justify-between mt-0 mb-2">
       <div class="flex gap-1 text-sm">
         <button class="text-gray-500 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
-          <i class="fas fa-file-export"></i>
+          <i class="fas fa-download"></i>
         </button>
         <label class="text-gray-500  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
-          <i class="fas fa-folder-open"></i>
+          <i class="fas fa-file-import"></i>
           <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.kmz,.csv,.txt"/>
         </label>
         <button class="text-gray-500 w-8 py-1 rounded" @click="createFolderDialog = true" title="ایجاد گروه">
-          <i class="fas fa-folder-plus"></i>
+          <i class="fas fa-folder-tree"></i>
         </button>
         <button class="text-gray-500 w-8 py-1 rounded" @click="ArchiveDesktop" title="بایگانی میز کار">
-          <i class="fas fa-file"></i>
+          <i class="fas fa-clock-rotate-left"></i>
         </button>
       </div>
     </div>
@@ -126,21 +127,67 @@
   </div>
 
   <div v-if="activeTab === 'in'" class="text-xs flex flex-col h-full min-h-0">
-    <div class="flex items-center justify-between mt-0 mb-2">
-      <p class="text-sm text-gray-600">پوشه ورودی:</p>
+    <div class="flex gap-1 mb-2">
+      <button
+          class="px-2 py-0.5 text-xs rounded"
+          :class="sharedSubTab === 'files' ? 'bg-orange-500 text-white' : 'bg-white border'"
+          @click="sharedSubTab = 'files'" >
+        فایل‌ها (پوشه ورودی)
+      </button>
+      <button
+          class="px-2 py-0.5 text-xs rounded"
+          :class="sharedSubTab === 'groups' ? 'bg-orange-500 text-white' : 'bg-white border'"
+          @click="sharedSubTab = 'groups'" >
+        گروه‌ها
+      </button>
     </div>
-    <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
+    <div v-if="sharedSubTab === 'files'">
+      <div class="flex items-center justify-between mt-0 mb-2">
+        <p class="text-sm text-gray-600">پوشه ورودی:</p>
+      </div>
+      <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
 
-    <div class="overflow-y-auto">
-      <ul class="space-y-1">
-        <li
-            v-for="(file, index) in inboxFiles"
-            :key="index"
-            class="flex items-center justify-between bg-white px-2  border rounded">
-          <item-box v-if="viewer && inboxFiles" :viewer="viewer" :name ="getTitle(file)" :id="file.id" :idx="index"
-                    :loadedFiles="inboxFiles" @drawInbox="drawInbox" :unread="file.opened"/>
-        </li>
-      </ul>
+      <div class="overflow-y-auto">
+        <ul class="space-y-1">
+          <li
+              v-for="(file, index) in inboxFiles"
+              :key="index"
+              class="flex items-center justify-between bg-white px-2  border rounded">
+            <item-box v-if="viewer && inboxFiles" :viewer="viewer" :name ="getTitle(file)" :id="file.id" :idx="index"
+                      :loadedFiles="inboxFiles" @drawInbox="drawInbox" :unread="file.opened"/>
+          </li>
+          <li v-if="!inboxFiles.length" class="text-center text-gray-400 py-4">
+            پوشه ورودی خالی است
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div v-else-if="sharedSubTab === 'groups'" class="flex flex-col h-full min-h-0">
+      <div class="flex items-center justify-between mt-0 mb-2">
+        <p class="text-sm text-gray-600">گروه‌های من:</p>
+      </div>
+      <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
+
+      <div class="overflow-y-auto">
+        <ul class="space-y-1">
+          <li
+              v-for="(group, index) in userGroups"
+              :key="index"
+              class="flex items-center justify-between bg-white px-2 py-1 border rounded">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-users text-gray-600"></i>
+              <span class="text-sm text-gray-800 truncate w-48">{{ group.name }}</span>
+            </div>
+            <span v-if="authStore.isAdmin" class="text-xs text-gray-500">
+              {{ group.member_count ?? 0 }} عضو
+            </span>
+          </li>
+          <li v-if="!userGroups.length" class="text-center text-gray-400 py-4">
+            شما در هیچ گروهی عضو نیستید
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -157,6 +204,7 @@
   <SendDialog  :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
   <LoadCSV :rows="csvRows" :viewer="viewer" ref="csvRef" :pins="props.pins"/>
   <Loading :active="loading" />
+ </div>
 </template>
 
 <script setup>
@@ -179,7 +227,7 @@ import LoadCSV from "../components/LoadCSV.vue";
 import {useToast} from "vue-toast-notification";
 import { useSharedArray } from '../stores/app'
 
-const {getExtentedIds,getVisibleIds, isExtented, isVisible, setExtentedIds,setVisibleIds, extentedIds, visibleIds} = useSharedArray()
+const {getExtendedIds,getVisibleIds, isExtended, isVisible, setExtendedIds,setVisibleIds, extendedIds, visibleIds} = useSharedArray()
 
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 const authStore = useAuthStore();
@@ -198,18 +246,21 @@ const isShow = ref(true)
 const loading = ref(false)
 const isActive = ref(false)
 const activeTab = ref("my2")
+const sharedSubTab = ref("files")
 const inboxFiles = ref([]);
+const userGroups = ref([]);
 const users = ref([]);
 const unreadCount = ref(0);
 const csvRows = ref([])
 const exportDataSource = new Cesium.CustomDataSource("exportPins");
 
-const emit = defineEmits([ "update:openDia", "clearPins", "`close`"]);
+const emit = defineEmits([ "update:openDia", "clearPins", "close"]);
 const props = defineProps({
   pins: { type: Object, required: true },
   viewer: { type: Object, required: true },
   openId : { type: Object, required: true },
   openDia: Function ,
+  close: { type: Boolean, default: false },
 });
 let inbox_ds= null;
 let intervalId = null;
@@ -226,7 +277,7 @@ function selectGroup(group) {
 }
 
 const saveIds = () => {
-  setExtentedIds();
+  setExtendedIds();
   setVisibleIds();
 }
 
@@ -244,14 +295,13 @@ onMounted(async () => {
     // const extentedIds = JSON.parse(localStorage.getItem("expandedIds") || "[]");
     // const visibleIds = JSON.parse(localStorage.getItem("visibleIds") || "[]");
 
-    await getExtentedIds();
+    await getExtendedIds();
     await getVisibleIds();
-
-    console.log('Mounted : ' , authStore.user )
 
     await loadWorks();
     await loadInbox();
-    await load_Users();
+    await loadUserGroups();
+    if (authStore.isAdmin || authStore.isGroupManager) await load_Users();
     intervalId = setInterval(loadInbox, 20000)
 
     for (let pin of props.pins) {
@@ -304,7 +354,7 @@ async function getData(token) {
       });
 
     } else {
-      console.log(res.message)
+      console.warn(res.message)
     }
 
   } catch (err) {
@@ -320,7 +370,6 @@ onUnmounted(() => {
 watch(() => authStore.isLogin, async (isLogin) => {
   if (isLogin) {
     if (authStore.user) {
-      console.log('watch : ' , authStore.user )
       await loadWorks();
       await loadInbox();
       for (let pin of props.pins) {
@@ -334,6 +383,36 @@ const getTitle = (file) => {
   let user = users.value.find(a=> a.id == file.sender_id)
   return (file.MyWork?.name??'') + '  (' + (user.name?? user.username) + ')';
 }
+
+const loadUserGroups = async () => {
+  if (!authStore.user) return
+  try {
+    const res = await axios.get(SERVER + "/api/auth/me")
+    const me = res.data?.data ?? res.data
+    const groups =
+        me?.Groups ??
+        me?.groups ??
+        me?.group_ids?.map(id => ({ id })) ?? []
+    const rawGroups = Array.isArray(groups) ? groups : []
+    if (!authStore.isAdmin) { userGroups.value = rawGroups; return }
+    userGroups.value = await Promise.all(
+      rawGroups.map(async (g) => {
+        if (g.member_count != null) return g
+        if (Array.isArray(g.Users) || Array.isArray(g.users)) return { ...g, member_count: (g.Users ?? g.users).length }
+        try {
+          const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`)
+          const users = r.data?.data ?? r.data
+          return { ...g, member_count: Array.isArray(users) ? users.length : 0 }
+        } catch {
+          return { ...g, member_count: 0 }
+        }
+      }),
+    )
+  } catch (error) {
+    console.error('Error loading user groups:', error)
+    userGroups.value = []
+  }
+};
 
 const load_Users = async () => {
   try {
@@ -411,7 +490,6 @@ const drawInbox = async (idx) => {
     await drawKML(viewer,pin, 'inbox')
   }
   pin.show = true;
-  console.log('run draw ')
 }
 
 const loadWorks = async () => {
@@ -573,8 +651,6 @@ const saveOneWorks = async (item) => {
     const res = await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
         { headers: { "Content-Type": "multipart/form-data" } })
 
-    console.log(res.data)
-
   } catch (err) {
     console.error(err)
   }
@@ -621,7 +697,6 @@ const createFolder = async (name) => {
       name: name,
     }
     const res = await axios.post(SERVER + '/api/createFolder/' + authStore.user?.id, payload)
-    console.log(res.data)
 
   } catch (err) {
     console.error(err)
@@ -637,7 +712,6 @@ const ArchiveDesktop = async () => {
     ids.push(item.save);
   }
   const res = await axios.post(SERVER + '/api/archive' , {ids : ids})
-  console.log(res)
   emit('clearPins')
 }
 
@@ -646,7 +720,15 @@ const send = async (data) => {
   let pin = props.pins[index_pin_id.value];
   const form = new FormData();
   form.append("sender_id", authStore.user.id);
-  form.append("receiver_id", data.selected);
+  // کاربر عادی به لیست کاربران دسترسی ندارد؛ در این حالت با شماره همراه (rec_phone) ارسال می‌شود
+  if (data.selected) {
+    form.append("receiver_id", data.selected);
+  } else if (data.phone) {
+    form.append("rec_phone", data.phone);
+  } else {
+    showMessage('گیرنده مشخص نشده است', 'error');
+    return;
+  }
   form.append("document_id", pin.save);
   form.append("descr", data.description);
   if (pin.save < 0) {
@@ -1074,7 +1156,6 @@ const handleFileUpload = async (event) => {
 
     Papa.parse(file, { header: true, skipEmptyLines: true, complete(results) {
         csvRows.value = results.data
-        console.log( 'rows count:', csvRows.value.length )
       },
       error(error) {
         console.error(error)
@@ -1118,7 +1199,6 @@ const handleFileUpload = async (event) => {
         };
 
         const id = crypto.randomUUID()
-        console.log(id);
         //loadedFiles.value.push(row);
         pin = {
           id : id ,
@@ -1182,7 +1262,6 @@ const handleFileUpload = async (event) => {
             dataSource : DataSource
           }
           const id = crypto.randomUUID()
-          console.log(id);
           //loadedFiles.value.push(row);
           pin = {
             id : id ,

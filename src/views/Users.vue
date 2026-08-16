@@ -124,35 +124,37 @@
       </div>
     </div>
 
-    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal card">
-        <h2 class="modal-title">{{ selectedUser ? 'ویرایش کاربر' : 'کاربر جدید' }}</h2>
-        <form @submit.prevent="saveUser" class="modal-form">
-          <div class="form-row"><label>نام</label><input v-model="userForm.name" type="text" required class="input" /></div>
-          <div class="form-row"><label>تلفن</label><input v-model="userForm.phone" type="tel" required class="input" dir="ltr" /></div>
-          <div class="form-row"><label>نام کاربری</label><input v-model="userForm.username" type="text" required class="input" /></div>
-          <div class="form-row"><label>کد ملی</label><input v-model="userForm.code" type="text" class="input" dir="ltr" /></div>
-          <div class="form-row"><label>{{ selectedUser ? 'رمز جدید (اختیاری)' : 'رمز عبور' }}</label>
-            <input v-model="userForm.password" type="password" :required="!selectedUser" class="input" />
-          </div>
+    <Transition name="modal">
+      <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+        <div class="modal card">
+          <h2 class="modal-title">{{ selectedUser ? 'ویرایش کاربر' : 'کاربر جدید' }}</h2>
+          <form @submit.prevent="saveUser" class="modal-form">
+            <div class="form-row"><label>نام</label><input v-model="userForm.name" type="text" required class="input" /></div>
+            <div class="form-row"><label>تلفن</label><input v-model="userForm.phone" type="tel" required class="input" dir="ltr" /></div>
+            <div class="form-row"><label>نام کاربری</label><input v-model="userForm.username" type="text" required class="input" /></div>
+            <div class="form-row"><label>کد ملی</label><input v-model="userForm.code" type="text" class="input" dir="ltr" /></div>
+            <div class="form-row"><label>{{ selectedUser ? 'رمز جدید (اختیاری)' : 'رمز عبور' }}</label>
+              <input v-model="userForm.password" type="password" :required="!selectedUser" class="input" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">نقش</label>
-            <select v-model="userForm.role_id" class="form-input">
-              <option value="">انتخاب نقش</option>
-              <option v-for="role in roles" :key="role.id" :value="role.id">
-                {{ role.description }}
-              </option>
-            </select>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">نقش</label>
+              <select v-model="userForm.role_id" class="form-input">
+                <option value="">انتخاب نقش</option>
+                <option v-for="role in roles" :key="role.id" :value="role.id">
+                  {{ role.description }}
+                </option>
+              </select>
+            </div>
 
-          <div class="modal-actions">
-            <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'در حال ذخیره...' : (selectedUser ? 'بروزرسانی' : 'ایجاد') }}</button>
-          </div>
-        </form>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
+              <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'در حال ذخیره...' : (selectedUser ? 'بروزرسانی' : 'ایجاد') }}</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -466,12 +468,7 @@ onMounted(async () => { await Promise.all([loadUsers(), loadRoles()]); loading.v
 .pg-dots { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 32px; color: var(--text-muted); font-size: 14px; letter-spacing: 2px; user-select: none; }
 
 /* Modal */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-.modal { width: 100%; max-width: 440px; max-height: 86vh; overflow-y: auto; }
-.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-.modal-form { display: flex; flex-direction: column; gap: 12px; }
 .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .check-grid { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); }
 .check-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
 .check-item:hover { background: var(--surface2); }
@@ -510,8 +507,6 @@ onMounted(async () => { await Promise.all([loadUsers(), loadRoles()]); loading.v
     text-align: center;
   }
   .pagination-controls { justify-content: center; }
-
-  .modal { max-width: 100%; }
 }
 
 @media (max-width: 480px) {

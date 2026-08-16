@@ -1,7 +1,8 @@
 <template>
   <div>
     <!-- Dialog Backdrop -->
-    <div  v-if="dialog"   class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" >
+    <Transition name="modal">
+      <div  v-if="dialog"   class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" >
       <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
 
         <div class="flex items-center justify-between mb-4">
@@ -9,8 +10,8 @@
             انتخاب ستون‌ها
           </h2>
 
-          <button @click="dialog = false" class="text-gray-500 hover:text-gray-700" >
-            ✕
+          <button @click="dialog = false" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times"></i>
           </button>
         </div>
 
@@ -21,7 +22,7 @@
               Latitude
             </label>
 
-            <select v-model="mapping.lat"  class="w-full border rounded px-3 py-2" >
+            <select v-model="mapping.lat"  class="select-native" >
               <option v-for="col in columns" :key="col" :value="col">
                 {{ col }}
               </option>
@@ -33,7 +34,7 @@
               Longitude
             </label>
 
-            <select v-model="mapping.lng" class="w-full border rounded px-3 py-2" >
+            <select v-model="mapping.lng" class="select-native" >
               <option v-for="col in columns" :key="col" :value="col">
                 {{ col }}
               </option>
@@ -54,7 +55,7 @@
               HRMS
             </label>
 
-            <select v-model="mapping.hrms" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.hrms" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -70,7 +71,7 @@
               VRMS
             </label>
 
-            <select v-model="mapping.vrms" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.vrms" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -86,7 +87,7 @@
               PDOP
             </label>
 
-            <select v-model="mapping.pdop" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.pdop" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -102,7 +103,7 @@
               Age
             </label>
 
-            <select v-model="mapping.age" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.age" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -118,7 +119,7 @@
               STAT
             </label>
 
-            <select v-model="mapping.stat" class="w-full border rounded px-3 py-2">
+            <select v-model="mapping.stat" class="select-native">
               <option value="">
                 انتخاب نشود
               </option>
@@ -131,19 +132,19 @@
 
           <div class="block w-full h-3 bg-gray-200 rounded-full overflow-hidden" style="margin-top: 50px">
             <div
-                class="h-full bg-blue-600"
+                class="h-full bg-accent"
                 :style="{ width: `${progress}%` }"
             />
           </div>
         </div>
 
-        <div class="mt-4 p-3 bg-blue-50 rounded text-sm hidden">
+        <div class="mt-4 p-3 bg-accent/15 rounded text-sm hidden">
           <div>PDOP : 0 تا 5</div>
           <div>Age : 0 تا 30</div>
         </div>
 
         <div class="flex justify-end gap-2 mt-6">
-          <button @click="dialog = false" class="px-4 py-2 border rounded" >
+          <button @click="dialog = false" class="btn btn-ghost">
             انصراف
           </button>
 
@@ -153,7 +154,8 @@
         </div>
 
       </div>
-    </div>
+      </div>
+    </Transition>
 
   </div>
   <MultiPointsList   v-if="showPoint"  :pointList="pointList"  @close="showPoint = false"/>

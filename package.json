@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/index.js",
     "client": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
@@ -12,6 +13,8 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
     "@iconify/vue": "^5.0.1",
+    "@mapbox/mapbox-gl-draw": "^1.5.1",
+    "@turf/turf": "^7.3.5",
     "axios": "^1.6.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

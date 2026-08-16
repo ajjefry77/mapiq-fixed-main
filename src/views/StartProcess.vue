@@ -1,18 +1,30 @@
 <template>
-  <div class="p-6">
-    <h1 class="text-2xl font-bold mb-4">🚀 شروع فرآیند</h1>
-
-    <select v-model="selected" class="border p-2 rounded mb-3 w-full">
-      <option disabled value="">انتخاب فرآیند...</option>
-      <option v-for="p in processes" :key="p.id" :value="p.id">{{ p.name }}</option>
-    </select>
-
-    <div class="mt-4">
-      <label class="block mb-2 font-semibold">توضیحات / ورودی:</label>
-      <textarea v-model="context.reason" class="border p-2 rounded w-full" rows="3"></textarea>
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">شروع فرآیند</h1>
+        <p class="page-subtitle">فرآیند موردنظر را انتخاب و شروع کنید</p>
+      </div>
     </div>
 
-    <button @click="start" class="btn btn-primary">شروع فرآیند</button>
+    <div class="card start-card">
+      <div class="form-row">
+        <label>انتخاب فرآیند</label>
+        <select v-model="selected" class="select-native">
+          <option disabled value="">انتخاب فرآیند...</option>
+          <option v-for="p in processes" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>توضیحات / ورودی</label>
+        <textarea v-model="context.reason" class="textarea" rows="4" placeholder="توضیحات اولیه فرآیند..."></textarea>
+      </div>
+
+      <button @click="start" class="btn btn-primary btn-lg" :disabled="!selected">
+        <i class="fas fa-play"></i> شروع فرآیند
+      </button>
+    </div>
   </div>
 </template>
 
@@ -34,3 +46,10 @@ onMounted(async () => {
   processes.value = await getProcesses()
 })
 </script>
+
+<style scoped>
+.start-card {
+  max-width: 560px;
+  padding: 24px;
+}
+</style>

@@ -1,7 +1,7 @@
 <template>
   <!-- دکمه باز/بستن شناور -->
   <button
-      class="fixed bottom-3 right-[100px] bg-gray-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 z-11 text-sm"  @click="togglePanel">
+      class="fixed bottom-3 right-[100px] bg-gray-600 text-white p-2 rounded-full shadow-lg hover:bg-accent-dim z-40 text-sm"  @click="togglePanel">
     نمونه
   </button>
 
@@ -49,11 +49,11 @@
       <!-- Footer Table -->
       <div class="flex justify-between items-center p-4 border-t bg-gray-50">
         <button @click="prevPage" :disabled="currentPage===1" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
-          ▶ قبلی
+          <i class="fas fa-chevron-right"></i> قبلی
         </button>
         <span>صفحه {{ currentPage }} / {{ totalPages }}</span>
         <button @click="nextPage" :disabled="currentPage===totalPages" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
-          بعدی ◀
+          بعدی <i class="fas fa-chevron-left"></i>
         </button>
       </div>
 

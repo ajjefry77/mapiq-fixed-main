@@ -1,30 +1,32 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-    <div class="bg-white rounded-2xl p-6 w-96 shadow-xl">
-      <h2 class="text-lg font-bold mb-3">یک نام برای ذخیره را وارد کنید</h2>
+  <Transition name="modal">
+    <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+      <div class="bg-white rounded-2xl p-6 w-96 shadow-xl">
+        <h2 class="text-lg font-bold mb-3">یک نام برای ذخیره را وارد کنید</h2>
 
-      <input
-          v-model="fileName"
-          type="text"
-          class="border w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+        <input
+            v-model="fileName"
+            type="text"
+            class="input"
+        />
 
-      <div class="flex justify-end gap-3 mt-4">
-        <button
-            @click="cancel"
-            class="px-4 py-1 bg-gray-200 rounded-md hover:bg-gray-300 transition"
-        >
-          لغو
-        </button>
-        <button
-            @click="confirm"
-            class="px-4 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-        >
-          تایید
-        </button>
+        <div class="flex justify-end gap-3 mt-4">
+          <button
+              @click="cancel"
+              class="btn btn-ghost"
+          >
+            لغو
+          </button>
+          <button
+              @click="confirm"
+              class="btn btn-primary"
+          >
+            تایید
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup>

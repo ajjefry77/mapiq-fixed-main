@@ -7,6 +7,7 @@ export function useGroups() {
 
   async function fetchGroups() {
     groups.value = await get('/groups')
+    return groups.value
   }
 
   async function createGroup(payload) {

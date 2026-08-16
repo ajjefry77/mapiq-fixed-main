@@ -1,5 +1,6 @@
 <template>
-  <div v-if="open" class="fixed inset-0 flex items-center justify-center bg-black/50">
+  <Transition name="modal">
+    <div v-if="open" class="fixed inset-0 flex items-center justify-center bg-black/50 z-[400]">
     <div class="bg-white rounded-2xl p-6 w-96 shadow-lg">
       <h2 class="text-lg font-bold mb-4">انتخاب نقش</h2>
 
@@ -23,7 +24,8 @@
         بستن
       </button>
     </div>
-  </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>

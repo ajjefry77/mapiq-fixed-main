@@ -1,5 +1,5 @@
 <template>
-  <transition name="fade">
+  <Transition name="modal">
     <div v-if="show"  class="fixed inset-0 flex items-center justify-center z-50" >
       <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
         <h2 class="text-xl font-semibold mb-4 text-center">
@@ -10,47 +10,52 @@
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">توضیحات</label>
           <textarea v-model="description"  rows="3" placeholder="توضیحات را وارد کنید..."
-              class="w-full border rounded-lg p-2 focus:outline-none focus:ring focus:ring-blue-300"/>
+              class="textarea"/>
         </div>
 
 <!--        <UserSearch v-model="selectedUser"   />-->
 
         <input  v-model="search"  type="text" ref="inputRef"
-                class="input w-full h-9 border border-gray-300 rounded px-2 text-sm"  placeholder="شماره همراه" />
-
+                class="input"  placeholder="شماره همراه" />
 
         <!-- دکمه‌ها -->
         <div class="flex justify-end gap-2 mt-6">
-          <button @click="onCancel" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">
+          <button @click="onCancel" class="btn btn-ghost">
             لغو
           </button>
-          <button @click="onSubmit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+          <button @click="onSubmit" class="btn btn-primary">
             ارسال
           </button>
         </div>
 
         <!-- دکمه بستن -->
         <button @click="onCancel" class="absolute top-2 right-3 text-gray-500 hover:text-gray-700 text-xl">
-          ×
+          <i class="fas fa-times"></i>
         </button>
       </div>
     </div>
-  </transition>
+  </Transition>
 </template>
 
 <script setup>
 import { ref, watch, defineEmits, defineProps, onMounted } from 'vue'
 import axios from 'axios';
 import UserSearch from "./UserSearch.vue";
+import {useAuthStore} from "../stores/auth";
 
 const SERVER = import.meta.env.VITE_SERVER
+const authStore = useAuthStore();
 
 const users = ref([]);
 const workflows = ref([]);
 const search = ref("");
 
 onMounted(async () => {
-  await Promise.all([load_Users()/*, load_Works()*/]);
+  // فقط برای نقش‌هایی که به /api/users دسترسی دارند لیست را می‌گیریم.
+  // کاربر عادی با شماره همراه (rec_phone) ارسال می‌کند و نیازی به این لیست ندارد.
+  if (authStore.isAdmin || authStore.isGroupManager) {
+    await load_Users();
+  }
 });
 
 const load_Users = async () => {
@@ -58,7 +63,8 @@ const load_Users = async () => {
     const response = await axios.get(SERVER + '/api/users');
     users.value = response.data;
   } catch (error) {
-    console.log('Error loading users:', error);
+    // 403 برای کاربر عادی طبیعی است؛ نادیده می‌گیریم
+    console.log('Error loading users (permission denied is expected for normal users):', error?.response?.status || error);
   }
 };
 
@@ -96,19 +102,22 @@ watch(
 )
 
 const onSubmit = () => {
-  let fnd = users.value.find(a=> a.phone == search.value)
-  if (fnd) {
-    const payload = {
-      tab: tab.value,
-      description: description.value,
-      selected : fnd.id
-      //selected:
-      //    tab.value === 'user' ? selectedUser.value : selectedWorkflow.value,
-    }
-    emit('submit', payload)
-  } else {
-    alert('کاربر مورد نظر پیدا نشد')
+  const phone = (search.value || '').trim()
+  if (!phone) {
+    alert('شماره همراه را وارد کنید')
+    return
   }
+  // اگر لیست کاربران لود شده باشد (مثلاً ادمین/مدیر) از id استفاده می‌کنیم،
+  // در غیر این صورت فقط شماره را می‌فرستیم تا بک‌اند با rec_phone کار کند
+  // (کاربر عادی به /api/users دسترسی ندارد و 403 می‌گیرد)
+  const fnd = users.value.find(a => a.phone == phone)
+  const payload = {
+    tab: tab.value,
+    description: description.value,
+    selected: fnd ? fnd.id : null,
+    phone: phone,
+  }
+  emit('submit', payload)
 }
 
 const onCancel = () => {
@@ -117,12 +126,4 @@ const onCancel = () => {
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
 </style>

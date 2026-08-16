@@ -1,10 +1,41 @@
 import axios from "axios";
+
+function getToken() {
+  return localStorage.getItem('token');
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_SERVER
     ? import.meta.env.VITE_SERVER + "/api"
     : "/api",
   headers: { "Content-Type": "application/json" },
 });
+
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method)) {
+    config.headers['X-Requested-With'] = 'XMLHttpRequest';
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('fb_token');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const getProcesses = () => api.get("/processes").then((r) => r.data);
 export const getProcessById = (id) =>

@@ -2,7 +2,7 @@
   <div class="absolute top-[calc(var(--top)+103px)] left-[12px] z-50 flex items-center ">
     <!-- آیکن کوچک مشکی و مربع -->
 
-<!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-gray-300 rounded px-2 py-1 shadow transition hover:bg-blue-400 items-center"-->
+<!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-gray-300 rounded px-2 py-1 shadow transition hover:bg-accent-soft items-center"-->
     <button
         @click="expanded = !expanded"
         class= 'w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md' dir="ltr"
@@ -13,26 +13,27 @@
     <!-- فیلد باز شونده کنار آیکن -->
     <div
         v-show="expanded"
-        class="absolute top-0 left-full mr-2 w-72 flex items-center bg-white border border-gray-300 rounded shadow-md overflow-hidden h-[34px]"
+        class="absolute top-0 left-full mr-2 w-80 flex items-center bg-white border border-gray-300 rounded shadow-md overflow-hidden h-[34px]"
         @click.stop>
 
       <button
           @click="goToLocation"
-          class="bg-[var(--primary-color)] text-white px-3 h-full hover:bg-blue-700 transition flex-shrink-0">
-        <i class="fas fa-arrow-right" />
+          title="رفتن به موقعیت"
+          class="bg-[var(--primary-color)] text-white px-3 h-full hover:bg-accent-dim transition flex-shrink-0">
+        <i class="fas fa-arrow-left" />
       </button>
 
       <input v-if="!latlon"
-          v-model="zone" type="text"   :placeholder="zone" @keyup.enter="goToLocation"
-          class="w-6 h-full text-sm focus:outline-none border-r"/>
+          v-model="zone" type="text"   :placeholder="String(zone)" @keyup.enter="goToLocation"
+          class="w-12 h-full text-sm focus:outline-none border-r"/>
 
       <div class="flex-1 grid grid-cols-2">
         <input
-            v-model="lng_y" type="text"   :placeholder="latlon ? 'Longitude' : 'Y'" @keyup.enter="goToLocation"
+            v-model="lng_y" type="text"   :placeholder="latlon ? 'Longitude' : 'Y (Northing)'" @keyup.enter="goToLocation"
             class="px-2 h-full text-sm focus:outline-none border-r"/>
 
         <input
-            v-model="lat_x" type="text"   :placeholder="latlon ? 'Latitude' : 'X'" @keyup.enter="goToLocation"
+            v-model="lat_x" type="text"   :placeholder="latlon ? 'Latitude' : 'X (Easting)'" @keyup.enter="goToLocation"
             class="px-2 h-full text-sm focus:outline-none border-r"/>
 
       </div>
@@ -42,6 +43,7 @@
 
 <script setup>
 import { ref } from "vue";
+import proj4 from "proj4";
 
 const props = defineProps({
   viewer: {
@@ -55,7 +57,7 @@ const expanded = ref(false);
 const coords = ref("");
 const lng_y = ref("");
 const lat_x = ref("");
-const zone = ref(40);
+const zone = ref(39);
 
 
 function goToLocation() {
@@ -63,7 +65,7 @@ function goToLocation() {
 
   let lat, lng;
 
-  if (props.latlon.value === true) {
+  if (props.latlon === true) {
     // حالت GCS → از Lat/Lng مستقیم استفاده کن
     lat = Number(lat_x.value);
     lng = Number(lng_y.value);
@@ -79,6 +81,8 @@ function goToLocation() {
     lng = result.lng;
   }
 
+  if (!isFinite(lat) || !isFinite(lng)) return;
+
   const destination = Cesium.Cartesian3.fromDegrees(lng, lat, 1500);
 
   props.viewer.camera.flyTo({
@@ -91,77 +95,12 @@ function goToLocation() {
 }
 
 function utmToLatLng({ x, y, zone, northern = true }) {
-  const a = 6378137.0;
-  const eccSquared = 0.00669438;
-  const k0 = 0.9996;
-
-  let e1 = (1 - Math.sqrt(1 - eccSquared)) / (1 + Math.sqrt(1 - eccSquared));
-  let xAdj = x - 500000.0;
-  let yAdj = northern ? y : y - 10000000.0;
-
-  let M = yAdj / k0;
-  let mu =
-      M /
-      (a *
-          (1 -
-              eccSquared / 4 -
-              (3 * eccSquared * eccSquared) / 64 -
-              (5 * eccSquared * eccSquared * eccSquared) / 256));
-
-  let phi1Rad =
-      mu +
-      (3 * e1) / 2 -
-      (27 * e1 ** 3) / 32 * Math.sin(2 * mu) +
-      (21 * e1 * e1) / 16 -
-      (55 * e1 ** 4) / 32 * Math.sin(4 * mu);
-
-  let N1 = a / Math.sqrt(1 - eccSquared * Math.sin(phi1Rad) ** 2);
-  let T1 = Math.tan(phi1Rad) ** 2;
-  let C1 = (eccSquared / (1 - eccSquared)) * Math.cos(phi1Rad) ** 2;
-  let R1 =
-      (a * (1 - eccSquared)) /
-      Math.pow(1 - eccSquared * Math.sin(phi1Rad) ** 2, 1.5);
-  let D = xAdj / (N1 * k0);
-
-  let lat =
-      phi1Rad -
-      (N1 * Math.tan(phi1Rad)) /
-      R1 *
-      ((D * D) / 2 -
-          ((5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * eccSquared) *
-              D ** 4) /
-          24 +
-          ((61 + 90 * T1 + 298 * C1 + 45 * T1 ** 2 - 252 * eccSquared - 3 * C1 ** 2) *
-              D ** 6) /
-          720);
-
-  let lng =
-      ((D -
-          ((1 + 2 * T1 + C1) * D ** 3) / 6 +
-          ((5 - 2 * C1 + 28 * T1 - 3 * C1 ** 2 + 8 * eccSquared + 24 * T1 ** 2) *
-              D ** 5) /
-          120) /
-          Math.cos(phi1Rad)) +
-      ((zone - 1) * 6 - 180 + 3) * (Math.PI / 180);
-
-  return {
-    lat: lat * (180 / Math.PI),
-    lng: lng * (180 / Math.PI),
-  };
-}
-
-
-function goToLocation_old() {
-  if (!props.viewer || !lat_x.value || !lng_y.value) return;
-
-  const [lat, lon] = parts;
-  const destination = Cesium.Cartesian3.fromDegrees(lng_y, lat_x, 1500); // ارتفاع پیش‌فرض
-  props.viewer.camera.flyTo({
-    destination,
-    duration: 2,
-  });
-
-  coords.value = "";
-  expanded.value = false;
+  const hemisphere = northern ? "" : "+south";
+  const [lng, lat] = proj4(
+    `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs${hemisphere}`,
+    "EPSG:4326",
+    [Number(x), Number(y)],
+  );
+  return { lat, lng };
 }
 </script>

@@ -3,11 +3,65 @@
   <div class="page">
     <div class="db-header">
       <div>
-        <h1 class="db-title">{{ isAdmin ? 'داشبورد' : isGroupManager ? 'پنل مدیر گروه' : 'پنل کاربری' }}</h1>
+        <h1 class="db-title">
+          {{
+            isAdmin
+              ? "داشبورد"
+              : isGroupManager
+                ? "پنل مدیر گروه"
+                : "پنل کاربری"
+          }}
+        </h1>
         <p class="db-sub">خوش آمدید، {{ authStore.user?.name }}</p>
       </div>
       <span class="badge badge-active">{{ roleLabel }}</span>
     </div>
+
+    <!-- Stats overview -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--accent"><i class="fas fa-users"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.users }}</span>
+          <span class="stat-label">کاربران</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--success"><i class="fas fa-user-tag"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.roles }}</span>
+          <span class="stat-label">نقش‌ها</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--info"><i class="fas fa-layer-group"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.groups }}</span>
+          <span class="stat-label">گروه‌ها</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--warning"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ stats.forms }}</span>
+          <span class="stat-label">فرم‌ها</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- کیف پول -->
+    <!-- <div class="card" style="margin-top: 16px; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+        <i class="fas fa-wallet" style="color:#c2410c;"></i>
+        <span style="color:#71717a;">موجودی:</span>
+        <strong style="color:#c2410c; direction:ltr;">{{ formatMoney(walletBalance) }}</strong>
+        <span style="color:#9a3412; font-size:12px;">ریال</span>
+      </div>
+      <button class="btn btn-primary btn-sm" @click="$router.push('/wallet/charge')">
+        <i class="fas fa-plus" style="margin-left:4px;"></i> افزایش موجودی
+      </button>
+    </div> -->
 
     <!-- ADMIN -->
     <div v-if="isAdmin">
@@ -77,31 +131,68 @@
       <div class="gm-sections">
         <div class="card mini-card">
           <div class="card-title-row">
-            <h3 class="card-title"><i class="fas fa-layer-group"></i> گروه‌های من</h3>
-            <button class="btn btn-primary btn-sm" @click="$router.push('/groups')">
-              <i class="fas fa-plus" style="margin-left:4px"></i> ایجاد گروه
+            <h3 class="card-title">
+              <i class="fas fa-layer-group"></i> گروه‌های من
+            </h3>
+            <button
+              class="btn btn-primary btn-sm"
+              @click="$router.push('/groups')"
+            >
+              <i class="fas fa-plus" style="margin-left: 4px"></i> ایجاد گروه
             </button>
           </div>
-          <div v-if="groups.length === 0" class="empty-sm">هنوز گروهی نساخته‌اید</div>
+          <div v-if="groups.length === 0" class="empty-sm">
+            هنوز گروهی نساخته‌اید
+          </div>
           <div v-else class="mini-list">
-            <div v-for="g in groups" :key="g.id" class="mini-item" @click="$router.push('/groups')">
-              <span><i class="fas fa-users" style="margin-left:6px;font-size:11px;color:var(--accent)"></i>{{ g.name }}</span>
+            <div
+              v-for="g in groups"
+              :key="g.id"
+              class="mini-item"
+              @click="$router.push('/groups')"
+            >
+              <span
+                ><i
+                  class="fas fa-users"
+                  style="
+                    margin-left: 6px;
+                    font-size: 11px;
+                    color: var(--accent);
+                  "
+                ></i
+                >{{ g.name }}</span
+              >
               <span class="mini-count">{{ g.Users?.length || 0 }} عضو</span>
             </div>
           </div>
         </div>
         <div class="card mini-card">
           <div class="card-title-row">
-            <h3 class="card-title"><i class="fas fa-file-alt"></i> فرم‌های من</h3>
-            <button class="btn btn-primary btn-sm" @click="$router.push('/forms/new')">
-              <i class="fas fa-plus" style="margin-left:4px"></i> ایجاد فرم
+            <h3 class="card-title">
+              <i class="fas fa-file-alt"></i> فرم‌های من
+            </h3>
+            <button
+              class="btn btn-primary btn-sm"
+              @click="$router.push('/forms/new')"
+            >
+              <i class="fas fa-plus" style="margin-left: 4px"></i> ایجاد فرم
             </button>
           </div>
-          <div v-if="forms.length === 0" class="empty-sm">هنوز فرمی نساخته‌اید</div>
+          <div v-if="forms.length === 0" class="empty-sm">
+            هنوز فرمی نساخته‌اید
+          </div>
           <div v-else class="mini-list">
-            <div v-for="f in forms" :key="f.id" class="mini-item" @click="$router.push(`/forms/${f.id}/preview`)">
-              <span>{{ f.title || 'بدون عنوان' }}</span>
-              <i class="fas fa-chevron-left" style="font-size:10px;color:var(--text-muted)"></i>
+            <div
+              v-for="f in forms"
+              :key="f.id"
+              class="mini-item"
+              @click="$router.push(`/forms/${f.id}/preview`)"
+            >
+              <span>{{ f.title || "بدون عنوان" }}</span>
+              <i
+                class="fas fa-chevron-left"
+                style="font-size: 10px; color: var(--text-muted)"
+              ></i>
             </div>
           </div>
         </div>
@@ -112,7 +203,9 @@
     <div v-else>
       <div class="profile-grid">
         <div class="card profile-card">
-          <h3 class="card-title"><i class="fas fa-user-edit"></i> ویرایش اطلاعات</h3>
+          <h3 class="card-title">
+            <i class="fas fa-user-edit"></i> ویرایش اطلاعات
+          </h3>
           <div class="profile-form">
             <div class="form-row">
               <label>نام</label>
@@ -128,30 +221,60 @@
             </div>
             <div class="form-row">
               <label>رمز عبور جدید</label>
-              <input v-model="profileForm.password" type="password" class="input" placeholder="اختیاری" />
+              <input
+                v-model="profileForm.password"
+                type="password"
+                class="input"
+                placeholder="اختیاری"
+              />
             </div>
-            <button class="btn btn-primary" @click="updateProfile" :disabled="saving">
-              {{ saving ? 'در حال ذخیره...' : 'ذخیره' }}
+            <button
+              class="btn btn-primary"
+              @click="updateProfile"
+              :disabled="saving"
+            >
+              {{ saving ? "در حال ذخیره..." : "ذخیره" }}
             </button>
           </div>
         </div>
 
         <div class="side-stack">
           <div class="card mini-card">
-            <h3 class="card-title"><i class="fas fa-file-alt"></i> فرم‌های من</h3>
-            <div v-if="forms.length === 0" class="empty-sm">فرمی اختصاص ندارد</div>
+            <h3 class="card-title">
+              <i class="fas fa-file-alt"></i> فرم‌های من
+            </h3>
+            <div v-if="forms.length === 0" class="empty-sm">
+              فرمی اختصاص ندارد
+            </div>
             <div v-else class="mini-list">
-              <div v-for="f in forms" :key="f.id" class="mini-item" @click="$router.push('/f/' + f.id)">
-                <span>{{ f.title || 'بدون عنوان' }}</span>
+              <div
+                v-for="f in forms"
+                :key="f.id"
+                class="mini-item"
+                @click="$router.push('/f/' + f.id)"
+              >
+                <span>{{ f.title || "بدون عنوان" }}</span>
                 <i class="fas fa-chevron-left"></i>
               </div>
             </div>
           </div>
           <div class="card mini-card">
             <h3 class="card-title"><i class="fas fa-users"></i> گروه‌های من</h3>
-            <div v-if="groups.length === 0" class="empty-sm">عضو گروهی نیستید</div>
-            <div v-else class="tag-list">
-              <span v-for="g in groups" :key="g.id" class="tag">{{ g.name }}</span>
+            <div v-if="groups.length === 0" class="empty-sm">
+              عضو گروهی نیستید
+            </div>
+            <div v-else class="group-list">
+              <div v-for="g in groups" :key="g.id" class="group-item">
+                <div class="group-avatar">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="group-info">
+                  <span class="group-name">{{ g.name }}</span>
+                  <span v-if="g.description" class="group-desc">{{
+                    g.description
+                  }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -161,137 +284,575 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useAuthStore } from '../stores/auth';
-import { useNotify } from '../composables/useNotify';
-import axios from 'axios';
+import { ref, reactive, computed, onMounted } from "vue";
+import { useAuthStore } from "../stores/auth";
+import { useNotify } from "../composables/useNotify";
+import axios from "axios";
 
 const authStore = useAuthStore();
 const SERVER = import.meta.env.VITE_SERVER;
 const { success, handleError } = useNotify();
 
-const isAdmin = computed(() => authStore.isAdmin)
-const isGroupManager = computed(() => authStore.isGroupManager)
+const isAdmin = computed(() => authStore.isAdmin);
+const isGroupManager = computed(() => authStore.isGroupManager);
 
 const roleLabel = computed(() => {
-  if (isAdmin.value) return 'مدیر سیستم'
-  if (isGroupManager.value) return 'مدیر گروه'
-  return 'کاربر'
-})
+  if (isAdmin.value) return "مدیر سیستم";
+  if (isGroupManager.value) return "مدیر گروه";
+  return "کاربر";
+});
 
-const forms = ref([])
-const groups = ref([])
-const saving = ref(false)
-const profileForm = reactive({ name: '', phone: '', code: '', password: '' })
+const stats = computed(() => ({
+  users: usersCount.value,
+  roles: rolesCount.value,
+  groups: groups.value.length,
+  forms: forms.value.length,
+}));
+
+const forms = ref([]);
+const groups = ref([]);
+const saving = ref(false);
+const profileForm = reactive({ name: "", phone: "", code: "", password: "" });
+
+const usersCount = ref(0);
+const rolesCount = ref(0);
+const walletBalance = ref(0);
+const walletLoading = ref(false);
+const showCharge = ref(false);
+const chargeAmount = ref(100000);
+
+function formatMoney(n) {
+  return (Number(n) || 0).toLocaleString("fa-IR");
+}
+
+async function loadWallet() {
+  if (!authStore.user?.id) return;
+  walletLoading.value = true;
+  try {
+    const res = await axios.get(SERVER + "/api/wallet/" + authStore.user.id, {
+      headers: {
+        Authorization:
+          "Bearer " + (authStore.token || localStorage.getItem("token") || ""),
+      },
+    });
+    walletBalance.value = res.data?.balance ?? res.data?.amount ?? 0;
+  } catch (e) {
+    const key = "wallet_" + authStore.user.id;
+    walletBalance.value = Number(localStorage.getItem(key) || 0);
+  } finally {
+    walletLoading.value = false;
+  }
+}
+
+async function requestCharge() {
+  if (!chargeAmount.value || chargeAmount.value < 1000) {
+    handleError?.(new Error("مبلغ نامعتبر"));
+    return;
+  }
+  walletLoading.value = true;
+  try {
+    await axios.post(
+      SERVER + "/api/wallet/charge",
+      { amount: chargeAmount.value, userId: authStore.user?.id },
+      {
+        headers: {
+          Authorization:
+            "Bearer " + (authStore.token || localStorage.getItem("token") || ""),
+        },
+      },
+    );
+    success?.("درخواست شارژ ثبت شد");
+    showCharge.value = false;
+    await loadWallet();
+  } catch (e) {
+    const key = "wallet_" + authStore.user.id;
+    const cur = Number(localStorage.getItem(key) || 0);
+    localStorage.setItem(key, String(cur + Number(chargeAmount.value)));
+    walletBalance.value = cur + Number(chargeAmount.value);
+    success?.("موجودی به‌صورت محلی به‌روز شد");
+    showCharge.value = false;
+  } finally {
+    walletLoading.value = false;
+  }
+}
 
 async function loadProfile() {
-  profileForm.name = authStore.user?.name || ''
-  profileForm.phone = authStore.user?.phone || ''
-  profileForm.code = authStore.user?.code || ''
-  profileForm.password = ''
+  profileForm.name = authStore.user?.name || "";
+  profileForm.phone = authStore.user?.phone || "";
+  profileForm.code = authStore.user?.code || "";
+  profileForm.password = "";
 }
 
 async function loadMyData() {
   try {
     if (isGroupManager.value) {
       const [formsRes, groupsRes] = await Promise.all([
-        axios.get(SERVER + '/api/forms'),
-        axios.get(SERVER + '/api/groups')
-      ])
-      forms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
-      const allGroups = Array.isArray(groupsRes.data) ? groupsRes.data : groupsRes.data?.data || []
-      const userId = authStore.user?.id
-      groups.value = allGroups.filter(g => {
-        const mid = g.manager_id ?? g.created_by ?? g.creator_id ?? g.manager?.id
-        return mid != null && mid == userId
-      })
+        axios.get(SERVER + "/api/forms"),
+        axios.get(SERVER + "/api/groups"),
+      ]);
+      forms.value = Array.isArray(formsRes.data)
+        ? formsRes.data
+        : formsRes.data?.data || [];
+      const allGroups = Array.isArray(groupsRes.data)
+        ? groupsRes.data
+        : groupsRes.data?.data || [];
+      const userId = String(authStore.user?.id);
+      const hasManagerField = allGroups.some(
+        (g) => getGroupManagerId(g) != null,
+      );
+      const myGroups = allGroups.filter((g) => {
+        const mid = getGroupManagerId(g);
+        return mid != null ? String(mid) === userId : !hasManagerField;
+      });
+      if (!isAdmin.value) {
+        groups.value = myGroups;
+        return;
+      }
+      groups.value = await Promise.all(
+        myGroups.map(async (g) => {
+          if (g.member_count != null) return g;
+          if (Array.isArray(g.Users) || Array.isArray(g.users)) return { ...g, Users: g.Users ?? g.users, member_count: (g.Users ?? g.users).length };
+          try {
+            const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`);
+            const users = r.data?.data ?? r.data;
+            return { ...g, Users: Array.isArray(users) ? users : [], member_count: Array.isArray(users) ? users.length : 0 };
+          } catch {
+            return { ...g, member_count: 0 };
+          }
+        }),
+      );
     } else if (!isAdmin.value) {
-      const [formsRes, groupsRes] = await Promise.all([
-        axios.get(SERVER + '/api/forms'),
-        axios.get(SERVER + '/api/auth/me')
-      ])
-      forms.value = Array.isArray(formsRes.data) ? formsRes.data : formsRes.data?.data || []
-      const me = groupsRes.data?.data || groupsRes.data
-      if (me?.group_ids?.length) {
-        const gRes = await axios.get(SERVER + '/api/groups')
-        const allGroups = Array.isArray(gRes.data) ? gRes.data : gRes.data?.data || []
-        groups.value = allGroups.filter(g => me.group_ids.includes(g.id))
+      const [formsRes, meRes] = await Promise.all([
+        axios.get(SERVER + "/api/forms"),
+        axios.get(SERVER + "/api/auth/me"),
+      ]);
+      forms.value = Array.isArray(formsRes.data)
+        ? formsRes.data
+        : formsRes.data?.data || [];
+      const me = meRes.data?.data || meRes.data;
+      const myGroups = me?.Groups ?? me?.groups ?? [];
+      if (Array.isArray(myGroups) && myGroups.length) {
+        groups.value = myGroups;
+      } else if (me?.group_ids?.length) {
+        groups.value = me.group_ids.map((id) => ({ id }));
+      } else {
+        groups.value = [];
+      }
+    } else {
+      const [formsRes, meRes, usersRes, rolesRes] = await Promise.all([
+        axios.get(SERVER + "/api/forms"),
+        axios.get(SERVER + "/api/auth/me"),
+        axios.get(SERVER + "/api/users").catch(() => null),
+        axios.get(SERVER + "/api/roles").catch(() => null),
+      ]);
+      forms.value = Array.isArray(formsRes.data)
+        ? formsRes.data
+        : formsRes.data?.data || [];
+      const userList = usersRes ? (Array.isArray(usersRes.data?.data || usersRes.data) ? (usersRes.data?.data || usersRes.data) : []) : [];
+      const roleList = rolesRes ? (Array.isArray(rolesRes.data?.data || rolesRes.data) ? (rolesRes.data?.data || rolesRes.data) : []) : [];
+      usersCount.value = userList.length;
+      rolesCount.value = roleList.length;
+      const me = meRes.data?.data || meRes.data;
+      const myGroups = me?.Groups ?? me?.groups ?? [];
+      if (Array.isArray(myGroups) && myGroups.length) {
+        groups.value = myGroups;
+      } else if (me?.group_ids?.length) {
+        const gRes = await axios.get(SERVER + "/api/groups");
+        const allGroups = Array.isArray(gRes.data)
+          ? gRes.data
+          : gRes.data?.data || [];
+        groups.value = allGroups.filter((g) => me.group_ids.includes(g.id));
       }
     }
-  } catch (e) { handleError(e) }
+  } catch (e) {
+    handleError(e);
+  }
+}
+
+function getGroupManagerId(g) {
+  return (
+    g.manager_id ??
+    g.created_by ??
+    g.creator_id ??
+    g.managed_by ??
+    g.owner_id ??
+    g.user_id ??
+    g.manager?.id ??
+    g.Manager?.id ??
+    g.creator?.id ??
+    g.createdBy
+  );
 }
 
 async function updateProfile() {
-  saving.value = true
+  saving.value = true;
   try {
-    const body = { full_name: profileForm.name, phone: profileForm.phone, code: profileForm.code || undefined }
-    if (profileForm.password) body.password = profileForm.password
-    await axios.put(SERVER + '/api/users/me', body)
+    const body = {
+      full_name: profileForm.name,
+      phone: profileForm.phone,
+      code: profileForm.code || undefined,
+    };
+    if (profileForm.password) body.password = profileForm.password;
+    await axios.put(SERVER + "/api/users/me", body);
     if (authStore.user) {
-      authStore.user.name = profileForm.name
-      authStore.user.phone = profileForm.phone
-      authStore.user.code = profileForm.code
+      authStore.user.name = profileForm.name;
+      authStore.user.phone = profileForm.phone;
+      authStore.user.code = profileForm.code;
     }
-    success('ذخیره شد')
-  } catch (e) { handleError(e) }
-  finally { saving.value = false }
+    success("ذخیره شد");
+  } catch (e) {
+    handleError(e);
+  } finally {
+    saving.value = false;
+  }
 }
 
-onMounted(() => { loadProfile(); loadMyData() })
+onMounted(() => {
+  loadProfile();
+  loadWallet();
+  loadMyData();
+});
 </script>
 
 <style scoped>
-.db-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.db-title { font-size: 20px; font-weight: 700; }
-.db-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.db-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.db-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+.db-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
 
-.info-row { display: flex; gap: 16px; margin-bottom: 24px; }
-.info-item { flex: 1; background: var(--surface2); border-radius: var(--radius); padding: 12px 16px; }
-.info-label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
-.info-value { font-size: 14px; font-weight: 500; }
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
 
-.shortcuts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-.shortcut { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: all .15s; font-size: 13px; color: var(--text-muted); }
-.shortcut i { font-size: 20px; color: var(--accent); }
-.shortcut:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
+.stat-card {
+  background: linear-gradient(180deg, var(--surface), var(--bg-elevated));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all var(--transition-base);
+}
 
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.profile-card { padding: 20px; }
-.card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.card-title-row .card-title { margin-bottom: 0; }
-.card-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text); }
-.card-title i { color: var(--accent); font-size: 13px; }
+.stat-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
 
-.profile-form { display: flex; flex-direction: column; gap: 12px; }
-.form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-.msg { font-size: 12px; margin-top: 4px; }
-.msg-ok { color: var(--success); }
-.msg-err { color: var(--danger); }
+.stat-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
 
-.side-stack { display: flex; flex-direction: column; gap: 16px; }
-.gm-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
-.mini-card { padding: 16px; }
-.empty-sm { font-size: 12px; color: var(--text-muted); text-align: center; padding: 16px 0; }
-.mini-list { display: flex; flex-direction: column; gap: 2px; max-height: 200px; overflow-y: auto; }
-.mini-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: background .12s; }
-.mini-item:hover { background: var(--surface2); }
-.mini-item i { font-size: 10px; color: var(--text-muted); }
-.mini-count { font-size: 11px; color: var(--text-muted); }
-.tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.tag { background: var(--accent-glow); color: var(--accent); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.stat-icon--accent { background: var(--accent-glow); color: var(--accent); }
+.stat-icon--success { background: var(--success-glow); color: var(--success); }
+.stat-icon--info { background: var(--info-glow); color: var(--info); }
+.stat-icon--warning { background: var(--warning-glow); color: var(--warning); }
+
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.info-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.info-item {
+  flex: 1;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+.info-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.shortcut {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.shortcut i {
+  font-size: 20px;
+  color: var(--accent);
+}
+.shortcut:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.profile-card {
+  padding: 20px;
+}
+.card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.card-title-row .card-title {
+  margin-bottom: 0;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.card-title i {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.form-row label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.msg {
+  font-size: 12px;
+  margin-top: 4px;
+}
+.msg-ok {
+  color: var(--success);
+}
+.msg-err {
+  color: var(--danger);
+}
+
+.side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.gm-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+.mini-card {
+  padding: 16px;
+}
+.empty-sm {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 16px 0;
+}
+.mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.mini-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.mini-item:hover {
+  background: var(--surface2);
+}
+.mini-item i {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.mini-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  background: var(--accent-glow);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.group-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface2);
+  transition: background 0.12s;
+}
+.group-item:hover {
+  background: var(--accent-glow);
+}
+.group-avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 14px;
+}
+.group-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.group-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.group-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 @media (max-width: 768px) {
-  .db-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .info-row { flex-direction: column; gap: 8px; }
-  .shortcuts { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .shortcut { padding: 16px 12px; font-size: 12px; }
-  .shortcut i { font-size: 18px; }
-  .profile-grid { grid-template-columns: 1fr; gap: 12px; }
-  .gm-sections { grid-template-columns: 1fr; gap: 12px; }
-  .profile-card, .mini-card { padding: 16px; }
+  .db-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .info-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-value {
+    font-size: 18px;
+  }
+  .shortcuts {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .shortcut {
+    padding: 16px 12px;
+    font-size: 12px;
+  }
+  .shortcut i {
+    font-size: 18px;
+  }
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .gm-sections {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .profile-card,
+  .mini-card {
+    padding: 16px;
+  }
 }
 @media (max-width: 400px) {
-  .shortcuts { grid-template-columns: 1fr; }
-  .db-title { font-size: 17px; }
+  .shortcuts {
+    grid-template-columns: 1fr;
+  }
+  .db-title {
+    font-size: 17px;
+  }
 }
 </style>

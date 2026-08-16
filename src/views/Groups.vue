@@ -40,48 +40,52 @@
     </div>
 
     <!-- GROUP MODAL -->
-    <div v-if="showGroupModal" class="modal-backdrop" @click.self="closeGroupModal">
-      <div class="modal card">
-        <h2 class="modal-title">{{ editingGroup ? 'ویرایش گروه' : 'گروه جدید' }}</h2>
-        <form @submit.prevent="saveGroup" class="modal-form">
-          <div class="form-row"><label>نام گروه</label><input v-model="groupForm.name" class="input" required /></div>
-          <div class="form-row"><label>توضیحات</label><input v-model="groupForm.description" class="input" /></div>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-ghost" @click="closeGroupModal">انصراف</button>
-            <button type="submit" class="btn btn-primary" :disabled="savingGroup">{{ savingGroup ? 'در حال ذخیره...' : (editingGroup ? 'بروزرسانی' : 'ایجاد') }}</button>
-          </div>
-        </form>
+    <Transition name="modal">
+      <div v-if="showGroupModal" class="modal-backdrop" @click.self="closeGroupModal">
+        <div class="modal card">
+          <h2 class="modal-title">{{ editingGroup ? 'ویرایش گروه' : 'گروه جدید' }}</h2>
+          <form @submit.prevent="saveGroup" class="modal-form">
+            <div class="form-row"><label>نام گروه</label><input v-model="groupForm.name" class="input" required /></div>
+            <div class="form-row"><label>توضیحات</label><input v-model="groupForm.description" class="input" /></div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" @click="closeGroupModal">انصراف</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingGroup">{{ savingGroup ? 'در حال ذخیره...' : (editingGroup ? 'بروزرسانی' : 'ایجاد') }}</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- MEMBER MODAL -->
-    <div v-if="showMemberModal" class="modal-backdrop" @click.self="closeMemberModal">
-      <div class="modal card">
-        <h2 class="modal-title">افزودن عضو به «{{ memberGroup?.name }}»</h2>
-        <div class="modal-form">
-          <div class="form-row">
-            <label>شماره تماس کاربر</label>
-            <input
-              v-model="memberPhone"
-              class="input"
-              placeholder="09123456789"
-              dir="ltr"
-              @keyup.enter="addMemberByPhone"
-              @input="formatPhoneInput"
-              maxlength="11"
-              inputmode="numeric"
-              pattern="09\d{9}"
-              title="شماره موبایل ۱۱ رقمی با پیشوند ۰۹"
-            />
-            <span class="field-hint">کاربر تا زمان اولین ورود غیرفعال نمایش داده می‌شود</span>
+    <Transition name="modal">
+      <div v-if="showMemberModal" class="modal-backdrop" @click.self="closeMemberModal">
+        <div class="modal card">
+          <h2 class="modal-title">افزودن عضو به «{{ memberGroup?.name }}»</h2>
+          <div class="modal-form">
+            <div class="form-row">
+              <label>شماره تماس کاربر</label>
+              <input
+                v-model="memberPhone"
+                class="input"
+                placeholder="09123456789"
+                dir="ltr"
+                @keyup.enter="addMemberByPhone"
+                @input="formatPhoneInput"
+                maxlength="11"
+                inputmode="numeric"
+                pattern="09\d{9}"
+                title="شماره موبایل ۱۱ رقمی با پیشوند ۰۹"
+              />
+              <span class="field-hint">کاربر تا زمان اولین ورود غیرفعال نمایش داده می‌شود</span>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top:12px">
+            <button class="btn btn-ghost" @click="closeMemberModal">بستن</button>
+            <button class="btn btn-primary" @click="addMemberByPhone" :disabled="savingMembers || !memberPhone.trim()">{{ savingMembers ? 'در حال افزودن...' : 'افزودن' }}</button>
           </div>
         </div>
-        <div class="modal-actions" style="margin-top:12px">
-          <button class="btn btn-ghost" @click="closeMemberModal">بستن</button>
-          <button class="btn btn-primary" @click="addMemberByPhone" :disabled="savingMembers || !memberPhone.trim()">{{ savingMembers ? 'در حال افزودن...' : 'افزودن' }}</button>
-        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -129,7 +133,6 @@ async function loadGroups() {
 
 async function loadGroupUsers(groupId) {
   const r = await axios.get(`${SERVER}/api/groups/${groupId}/users/`)
-  console.log(groupId, r.data)
   return r.data.data || r.data
 }
 
@@ -234,15 +237,10 @@ onMounted(async () => { await loadGroups(); loading.value = false })
 }
 .member-rm { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 10px; padding: 0; }
 
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-.modal { width: 100%; max-width: 420px; max-height: 86vh; overflow-y: auto; }
-.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; word-break: break-word; }
-.modal-form { display: flex; flex-direction: column; gap: 12px; }
 .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
 .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block; }
 .field-error { font-size: 12px; color: var(--danger); }
 .field-success { font-size: 12px; color: var(--success, #22c55e); }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 @media (max-width: 768px) {
   .items-grid { grid-template-columns: 1fr; }

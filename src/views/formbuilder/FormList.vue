@@ -17,13 +17,16 @@
       <div v-for="form in forms" :key="form.id" class="form-card card">
         <div class="form-card-header">
           <span class="badge" :class="form.is_active ? 'badge-active' : 'badge-inactive'">{{ form.is_active ? 'فعال' : 'غیرفعال' }}</span>
-          <span class="form-date">{{ formatDate(form.created_at) }}</span>
+          <span class="form-date">{{ formatDate(form.created_at ?? form.createdAt) }}</span>
         </div>
         <h2 class="form-title">{{ form.title }}</h2>
         <p v-if="form.description" class="form-desc">{{ form.description }}</p>
         <div class="form-meta">
-          <span v-if="getGroupName(form.group_id)" class="group-tag">
-            <i class="fas fa-users" style="margin-left:3px;font-size:10px"></i> {{ getGroupName(form.group_id) }}
+          <span v-if="getGroupName(form)" class="group-tag">
+            <i class="fas fa-users" style="margin-left:3px;font-size:10px"></i> {{ getGroupName(form) }}
+          </span>
+          <span v-else-if="!getGroupName(form)" class="group-tag group-tag--none">
+            <i class="fas fa-users" style="margin-left:3px;font-size:10px"></i> بدون گروه
           </span>
           <button v-if="canManageForms" class="btn btn-ghost btn-xs" @click="openAssignModal(form)">
             <i class="fas fa-user-plus" style="margin-left:3px;font-size:10px"></i> {{ form.group_id ? 'تغییر گروه' : 'انتساب به گروه' }}
@@ -40,25 +43,27 @@
     </div>
 
     <!-- ASSIGN MODAL -->
-    <div v-if="showAssignModal" class="modal-backdrop" @click.self="closeAssignModal">
-      <div class="modal card" style="max-width:380px">
-        <h2 class="modal-title">انتساب فرم به گروه</h2>
-        <p class="assign-form-title">{{ assignForm?.title }}</p>
-        <div class="modal-form">
-          <div class="form-row">
-            <label>گروه</label>
-            <select v-model="assignGroupId" class="input">
-              <option :value="null">بدون گروه (همه)</option>
-              <option v-for="g in displayGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
-            </select>
+    <Transition name="modal">
+      <div v-if="showAssignModal" class="modal-backdrop" @click.self="closeAssignModal">
+        <div class="modal modal-sm card">
+          <h2 class="modal-title">انتساب فرم به گروه</h2>
+          <p class="assign-form-title">{{ assignForm?.title }}</p>
+          <div class="modal-form">
+            <div class="form-row">
+              <label>گروه</label>
+              <select v-model="assignGroupId" class="input">
+                <option :value="null">بدون گروه (همه)</option>
+                <option v-for="g in displayGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top:14px">
+            <button class="btn btn-ghost" @click="closeAssignModal">انصراف</button>
+            <button class="btn btn-primary" @click="saveAssignment" :disabled="assignSaving">{{ assignSaving ? 'در حال ذخیره...' : 'ذخیره' }}</button>
           </div>
         </div>
-        <div class="modal-actions" style="margin-top:14px">
-          <button class="btn btn-ghost" @click="closeAssignModal">انصراف</button>
-          <button class="btn btn-primary" @click="saveAssignment" :disabled="assignSaving">{{ assignSaving ? 'در حال ذخیره...' : 'ذخیره' }}</button>
-        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -77,13 +82,18 @@ const canManageForms = computed(() => authStore.isAdmin || authStore.isGroupMana
 
 const groups = ref([])
 
+function getGroupManagerId(g) {
+  return g.manager_id ?? g.created_by ?? g.creator_id ?? g.managed_by ?? g.owner_id ?? g.user_id ?? g.manager?.id ?? g.Manager?.id ?? g.creator?.id ?? g.createdBy
+}
+
 const displayGroups = computed(() => {
   if (authStore.isAdmin) return groups.value
   if (authStore.isGroupManager) {
-    const userId = authStore.user?.id
+    const userId = String(authStore.user?.id)
+    const hasManagerField = groups.value.some(g => getGroupManagerId(g) != null)
     return groups.value.filter(g => {
-      const mid = g.manager_id ?? g.created_by ?? g.creator_id ?? g.manager?.id
-      return mid != null && mid == userId
+      const mid = getGroupManagerId(g)
+      return mid != null ? String(mid) === userId : !hasManagerField
     })
   }
   return []
@@ -95,9 +105,12 @@ const assignForm = ref(null)
 const assignGroupId = ref(null)
 const assignSaving = ref(false)
 
-function getGroupName(gid) {
-  if (!gid) return null
-  const g = groups.value.find(x => x.id === gid)
+function getGroupName(form) {
+  if (!form) return null
+  if (form.group && (form.group.name || form.Group?.name)) return form.group.name || form.Group?.name
+  const gid = form.group_id ?? form.groupId
+  if (gid == null) return null
+  const g = groups.value.find(x => String(x.id) === String(gid))
   return g?.name || null
 }
 
@@ -123,7 +136,10 @@ async function saveAssignment() {
 }
 
 function formatDate(str) {
-  return new Date(str).toLocaleDateString("fa-IR", { year: "numeric", month: "short", day: "numeric" })
+  if (!str) return '—'
+  const d = new Date(str)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString("fa-IR", { year: "numeric", month: "short", day: "numeric" })
 }
 
 async function copyLink(form) {
@@ -159,13 +175,8 @@ onMounted(async () => {
 .form-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
 .loading, .error-msg { text-align: center; padding: 60px; color: var(--text-muted); }
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-.modal { width: 100%; max-width: 380px; }
-.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
 .assign-form-title { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
-.modal-form { display: flex; flex-direction: column; gap: 12px; }
 .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 @media (max-width: 768px) {
   .forms-grid { grid-template-columns: 1fr; gap: 10px; }
   .form-card:hover { transform: none; }

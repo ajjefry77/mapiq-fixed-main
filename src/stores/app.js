@@ -12,30 +12,30 @@ export const AppStore = defineStore('app', {
   }
 })
 
-const extentedIds = ref([])
+const extendedIds = ref([])
 const visibleIds = ref([])
 
 export function useSharedArray() {
-  const getExtentedIds = async () => {
+  const getExtendedIds = async () => {
     try {
-      extentedIds.value = JSON.parse(localStorage.getItem("expandedIds") || "[]");
+      extendedIds.value = JSON.parse(localStorage.getItem("expandedIds") || "[]");
     } catch (error) {
       console.error('Error loading expandedIds:', error);
-      extentedIds.value = [];
+      extendedIds.value = [];
     }
   }
 
-  const setExtentedIds = () => {
+  const setExtendedIds = () => {
     try {
-      // ✅ اصلاح شده: استفاده از extentedIds.value
-      localStorage.setItem("expandedIds", JSON.stringify(extentedIds.value));
+      // ✅ اصلاح شده: استفاده از extendedIds.value
+      localStorage.setItem("expandedIds", JSON.stringify(extendedIds.value));
     } catch (error) {
       console.error('Error saving expandedIds:', error);
     }
   }
 
-  const isExtented = (id) => {
-    return extentedIds.value.includes(id)
+  const isExtended = (id) => {
+    return extendedIds.value.includes(id)
   }
 
   const getVisibleIds = () => {
@@ -61,26 +61,26 @@ export function useSharedArray() {
   }
 
   // اضافه کردن توابع کمکی مفید
-  const addExtentedId = (id) => {
-    if (!extentedIds.value.includes(id)) {
-      extentedIds.value.push(id)
-      setExtentedIds() // خودکار ذخیره شود
+  const addExtendedId = (id) => {
+    if (!extendedIds.value.includes(id)) {
+      extendedIds.value.push(id)
+      setExtendedIds() // خودکار ذخیره شود
     }
   }
 
-  const removeExtentedId = (id) => {
-    const index = extentedIds.value.indexOf(id)
+  const removeExtendedId = (id) => {
+    const index = extendedIds.value.indexOf(id)
     if (index !== -1) {
-      extentedIds.value.splice(index, 1)
-      setExtentedIds() // خودکار ذخیره شود
+      extendedIds.value.splice(index, 1)
+      setExtendedIds() // خودکار ذخیره شود
     }
   }
 
-  const toggleExtented = (id) => {
-    if (isExtented(id)) {
-      removeExtentedId(id)
+  const toggleExtended = (id) => {
+    if (isExtended(id)) {
+      removeExtendedId(id)
     } else {
-      addExtentedId(id)
+      addExtendedId(id)
     }
   }
 
@@ -116,19 +116,19 @@ export function useSharedArray() {
   }
 
   return {
-    extentedIds,
+    extendedIds,
     visibleIds,
 
-    isExtented,
+    isExtended,
     isVisible,
-    getExtentedIds,
-    setExtentedIds,
+    getExtendedIds,
+    setExtendedIds,
     getVisibleIds,
     setVisibleIds,
 
-    addExtentedId,
-    removeExtentedId,
-    toggleExtented,
+    addExtendedId,
+    removeExtendedId,
+    toggleExtended,
     addVisibleId,
     removeVisibleId,
     toggleVisible,

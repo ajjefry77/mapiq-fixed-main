@@ -28,28 +28,30 @@
       </div>
     </div>
 
-    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal card">
-        <h2 class="modal-title">{{ editing ? 'ویرایش نقش' : 'نقش جدید' }}</h2>
-        <form @submit.prevent="save" class="modal-form">
-          <div class="form-row"><label>نام</label><input v-model="form.name" class="input" required /></div>
-          <div class="form-row"><label>توضیحات</label><input v-model="form.description" class="input" required /></div>
-          <div class="form-row">
-            <label>دسترسی‌ها</label>
-            <div class="perm-checklist">
-              <label v-for="p in permissions" :key="p.id" class="check-row">
-                <input type="checkbox" :value="p.id" v-model="form.permissions" />
-                <span>{{ p.description }}</span>
-              </label>
+    <Transition name="modal">
+      <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+        <div class="modal card">
+          <h2 class="modal-title">{{ editing ? 'ویرایش نقش' : 'نقش جدید' }}</h2>
+          <form @submit.prevent="save" class="modal-form">
+            <div class="form-row"><label>نام</label><input v-model="form.name" class="input" required /></div>
+            <div class="form-row"><label>توضیحات</label><input v-model="form.description" class="input" required /></div>
+            <div class="form-row">
+              <label>دسترسی‌ها</label>
+              <div class="perm-checklist">
+                <label v-for="p in permissions" :key="p.id" class="check-row">
+                  <input type="checkbox" :value="p.id" v-model="form.permissions" />
+                  <span>{{ p.description }}</span>
+                </label>
+              </div>
             </div>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
-            <button type="submit" class="btn btn-primary">{{ editing ? 'بروزرسانی' : 'ایجاد' }}</button>
-          </div>
-        </form>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" @click="closeModal">انصراف</button>
+              <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'در حال ذخیره...' : (editing ? 'بروزرسانی' : 'ایجاد') }}</button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -69,6 +71,7 @@ const loading = ref(true)
 const showModal = ref(false)
 const editing = ref(null)
 const form = ref({ name: '', description: '', permissions: [] })
+const saving = ref(false)
 
 async function loadRoles() {
   try { const r = await axios.get(SERVER + '/api/roles'); roles.value = Array.isArray(r.data.data || r.data) ? (r.data.data || r.data) : [] } catch (e) { handleError(e) }
@@ -83,12 +86,13 @@ function openModal(role = null) {
 }
 function closeModal() { showModal.value = false; editing.value = null }
 async function save() {
+  saving.value = true
   try {
     if (editing.value) await axios.put(`${SERVER}/api/role/${editing.value.id}`, form.value)
     else await axios.post(SERVER + '/api/role', form.value)
     success(editing.value ? 'نقش بروزرسانی شد' : 'نقش جدید ایجاد شد')
     await loadRoles(); closeModal()
-  } catch (e) { handleError(e) }
+  } catch (e) { handleError(e) } finally { saving.value = false }
 }
 async function deleteRole(role) {
   if (!confirm(`نقش «${role.description}» حذف شود؟`)) return
@@ -110,12 +114,7 @@ onMounted(async () => { await Promise.all([loadRoles(), loadPermissions()]); loa
 .perm-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .tag { background: var(--accent-glow); color: var(--accent); padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
 .empty-sm { font-size: 12px; color: var(--text-muted); }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-.modal { width: 100%; max-width: 420px; max-height: 86vh; overflow-y: auto; }
-.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-.modal-form { display: flex; flex-direction: column; gap: 12px; }
 .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .perm-checklist { max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 .check-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
 .check-row:hover { background: var(--surface2); }

@@ -14,24 +14,42 @@
 
       <!-- Workspaces and Layers -->
       <!-- class="relative float-right h-screen"-->
-      <div :class="['relative float-right h-screen', 'md:block',          // در دسکتاپ همیشه نمایش داده شود
-            isOpen ? 'block' : 'hidden']">
+      <div :class="['md:relative md:float-right md:h-screen md:block',           // در دسکتاپ همیشه نمایش داده شود
+            isOpen ? 'fixed inset-0 z-[500] md:static' : 'hidden']">
 
-        <div class="absolute top-1 right-[1px] w-[340px] h-[70vh] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col">
-          <button @click="isOpen = false" class="absolute top-2 left-4 text-xl z-10">&times;</button>
-          <PinsList  v-if="viewer" class="flex-1" :pins="Pins" :viewer="viewer"  :openId ="openWorkId" :openDia="openMyDialog"
+        <!-- overlay فقط در موبایل -->
+        <div v-if="isOpen" class="absolute inset-0 bg-black/40 md:hidden" @click="isOpen = false"></div>
+
+        <!-- پنل اصلی (میز کار و ...) -->
+        <div class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col
+                    md:h-[70vh]
+                    max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto">
+          <button @click="isOpen = false" class="absolute top-2 left-4 text-xl z-10"><i class="fas fa-times"></i></button>
+          <PinsList  v-if="viewer" class="flex-1 min-h-0" :pins="Pins" :viewer="viewer"  :openId ="openWorkId" :openDia="openMyDialog"
                      @clearPins="clearPins" :close="isOpen"/>
+
+          <!-- بخش لایه های سرور فقط در موبایل داخل همین پنل -->
+          <div class="md:hidden mt-3 pt-3 border-t border-gray-200">
+            <h3 class="mb-2 text-sm">لایه های سرور : </h3>
+            <hr style="border-top: 1px solid #aaa; margin-bottom: 10px"/>
+            <span v-if="authStore?.user?.phone == '09153333989' || authStore?.user?.phone == '09156620866'" class="text-xs text-gray-800 truncate" >
+              <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
+              <i class="text-accent"/>
+              عکس هوایی طرقبه 1340
+            </span>
+          </div>
         </div>
 
+        <!-- پنل لایه های سرور (فقط دسکتاپ) -->
         <div id="layer-panel"
-             class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded shadow p-3 z-50">
+             class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden">
           <div class=" overflow-y-auto h-[95%]">
               <h3 class="mb-2 text-sm">لایه های سرور : </h3>
               <hr style="border-top: 1px solid #aaa; margin-bottom: 10px"/>
 
             <span v-if="authStore?.user?.phone == '09153333989' || authStore?.user?.phone == '09156620866'" class="text-xs text-gray-800 truncate" >
               <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
-              <i class="text-blue-500"/>
+              <i class="text-accent"/>
               عکس هوایی طرقبه 1340
             </span>
           </div>
@@ -45,9 +63,10 @@
 
         <div id="cesiumContainer" style="width:100%; height:100%;">
 
-          <div  v-if="!authStore.user && ShowForLogin" class="absolute h-8 bottom-3 right-1 md:right-[350px] bg-red-800/90 text-white px-4 rounded-md font-mono text-sm z-50" >
-            <span> برای استفاده بهتر از امکانات سیستم  <a style="text-decoration: underline;" href="/login">ثبت نام</a> نمایید </span>
-            <button @click="ShowForLogin = false" class="text-xl tp-2" >&times;</button>
+          <div v-if="!authStore.user && ShowForLogin" class="absolute top-3 right-1 md:right-[350px] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
+            <svg class="w-4 h-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>برای دسترسی به امکانات کامل، <a class="text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2" href="/login">وارد شوید</a></span>
+            <button @click="ShowForLogin = false" class="text-xl leading-none text-gray-400 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
           </div>
 
 
@@ -63,18 +82,20 @@
 
             <!-- show list of Map Tiles -->
             <div v-show="expanded"  @click.stop
-                class="absolute top-0 left-full ml-2 w-max p-2 bg-white border border-gray-300 rounded shadow-md flex gap-2 flex-wrap " >
-              <div
-                  v-for="map in maps"
-                  :key="map.name"
-                  @click="setBaseLayer(map)"
-                  class="w-20 h-20 rounded border cursor-pointer overflow-hidden shadow hover:shadow-lg relative"
-                  :title="map.name">
+                class="absolute md:top-0 md:left-full md:ml-2 bottom-full left-0 mb-2 w-[300px] max-w-[calc(100vw-24px)] md:w-max p-2 bg-white border border-gray-300 rounded shadow-md flex flex-col" >
+              <div class="overflow-x-auto overflow-y-hidden md:overflow-visible flex gap-2 flex-nowrap">
+                <div
+                    v-for="map in maps"
+                    :key="map.name"
+                    @click="setBaseLayer(map)"
+                    class="w-20 h-20 rounded border cursor-pointer overflow-hidden shadow hover:shadow-lg relative shrink-0"
+                    :title="map.name">
 
-                <img :src="map.thumbnail" class="w-full h-full object-cover" />
-                <span  class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1" >
-                  {{ map.name }}
-                </span>
+                  <img :src="map.thumbnail" class="w-full h-full object-cover" />
+                  <span  class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center py-1" >
+                    {{ map.name }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -101,7 +122,7 @@
         <NorthArrow v-if="viewer" :viewer="viewer" />
         <FlyPosition v-if="viewer" :viewer="viewer" :latlon="latlon"/>
         <!--<DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins"  @disableFeatureInfo="featurePanel.deactivate"/>-->
-        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()"/>
+        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
 
         <DataView  v-if="openDataView" :workspace="workspaceView"  :layer="layerView"  :geoserverUrl= 'GEOSERVER + "/geoserver"' :pageSize="20">
           <template #close>
@@ -110,6 +131,7 @@
             </button>
           </template>
         </DataView>
+
         <FeatureInfoPanel ref="featurePanel" :viewer="viewer" :pins="Pins" :layersLoaded="layersLoaded"   @disableDrawing="() => drawing?.inactiveDrawing()"/>
 
       </div>
@@ -152,28 +174,36 @@
     </button>
   </div>
 
+  <!-- پنل انتخاب نقطه و پاسخ به فرم‌ها (از پایین) -->
+  <LocationPickerPanel
+      v-model:visible="showPickerPanel"
+      :lat="pickedPoint.lat"
+      :lng="pickedPoint.lng"
+      @close="closePickerPanel"
+      @savePoint="savePickedPoint"
+      @update:coords="onPickerCoords"
+  />
+
 </template>
 
 <script setup>
 
 //lucide-vue-next
-import {ref, reactive, onMounted, computed, inject, onActivated, onDeactivated, provide} from 'vue'
+import {ref, reactive, onMounted, computed, inject, onActivated, onDeactivated, provide, onUnmounted} from 'vue'
 import AddFile from '../components/AddFile.vue'
-import SearchCode from '../components/SearchCode.vue'
 
 import NorthArrow from '../components/NorthIcon.vue';
 import FlyPosition from '../components/FlyPosition.vue';
 import DrawTools from '../components/DrawTools.vue';
 import FeatureInfoPanel from '../components/FeatureInfoPanel.vue';
 import DataView from '../components/DataView.vue';
-import ItemBox from '../components/ItemBox.vue';
 import Loading from '../components/Loading.vue'
 import PinsList from "../components/PinsList.vue";
 import OpenDialog from '../components/OpenDialog.vue'
-import ShowFlag from '../components/ShowFlag.vue'
 import SearchAddress from '../components/SearchAddress.vue'
 import Profile from '../components/Profile.vue'
 import ToggleSwitch from "../components/ToggleSwitch.vue"
+import LocationPickerPanel from "../components/LocationPickerPanel.vue"
 
 import shp from 'shpjs'
 import {useRouter} from 'vue-router';
@@ -224,7 +254,6 @@ const ShowForLogin = ref(true)
 const isOpen = ref(false)
 const visibleLayers = ref([])
 const showLayerPanel = ref(false)
-let showFolder = ref(false)
 let activeTab = ref("layers")
 let activeTab1 = ref("my")
 
@@ -273,6 +302,11 @@ const selectedFeature = ref(null);
 const featurePanel = ref(null);
 const drawing = ref(null);
 const loading = ref(false)
+
+// ── Map point picker (دکمه نقطه در DrawTools)
+const pickMarker = ref(null)
+const pickedPoint = reactive({ lat: null, lng: null })
+const showPickerPanel = ref(false)
 const drawDataSource= new Cesium.CustomDataSource("file");
 //#endregion
 
@@ -361,19 +395,15 @@ const hideOpacitySlider = (event) => {
     activeOpacityLayer.value = null;
 };
 
+const onWindowClick = (event) => {
+  hideContextMenu(event);
+  hideOpacitySlider(event);
+};
+
 onMounted(() => {
-  window.addEventListener('click', (event) => {
-    hideContextMenu(event);
-    hideOpacitySlider(event);
-  });
+  window.addEventListener('click', onWindowClick);
 
   initMap_Cesium();
-  //loadUsers();
-  //loadFiles();
-  //loadInbox();
-  //loadOutbox();
-  //fetchLayers()
-  //fetchFiles()
 
   setTimeout(() => {
     const logo = document.querySelector(".cesium-credit-logoContainer");
@@ -389,6 +419,14 @@ onMounted(() => {
 
 });
 
+onUnmounted(() => {
+  window.removeEventListener('click', onWindowClick);
+  if (viewer) {
+    viewer.destroy();
+    viewer = null;
+  }
+});
+
 onActivated(async  () => {
   //await loadUsers();
   //await fetchFiles()
@@ -401,7 +439,7 @@ const getLayersForSelectedWorkspace = computed(() => {
 
 const initMap_Cesium = async () => {
 
-  // Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3ZTA1ZDA4MC0xYTQ3LTQ2NzQtYTNiZi1jZDc4M2NmODE0NDUiLCJpZCI6MzI1ODA4LCJpYXQiOjE3NTM2MzE3Nzl9.51x5_pHSxsRast5qyeGS_JP49S_scRzmnPMN-VLbY-s";
+  // Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN;
   // const terrainProvider = await Cesium.createWorldTerrainAsync({
   //   requestWaterMask: true,
   //   requestVertexNormals: true
@@ -446,7 +484,7 @@ const initMap_Cesium = async () => {
 
   const controller = viewer.scene.screenSpaceCameraController;
   controller.maximumZoomDistance = 2600000;
-  Cesium.ImageryProvider.retryLoad = false;
+  Cesium.ImageryProvider.retryLoad = true;
   Cesium.Resource.maximumConcurrentRequests = 8;
 
   viewer.camera.flyTo({
@@ -511,18 +549,6 @@ const initMap_Cesium = async () => {
   //viewer.scene.screenSpaceCameraController.disableZooming = false;
   //viewer.scene.screenSpaceCameraController.enableRotate = false; // جلوگیری از چرخش در 2D
   //viewer.scene.screenSpaceCameraController.enableTilt = false;  // جلوگیری از شیب
-
-// محدود کردن محدوده دید (در صورت نیاز)
-  viewer.scene.preRender.addEventListener(() => {
-    const rectangle = viewer.camera.computeViewRectangle();
-    if (rectangle) {
-      // اعمال محدودیت‌های دلخواه برای عرض جغرافیایی
-      const maxLatitude = Cesium.Math.toRadians(85);
-      if (rectangle.north > maxLatitude) {
-        // تنظیم مجدد دوربین
-      }
-    }
-  });
 
   viewer.scene.postRender.addEventListener(() => {
     scale.value = getScale();
@@ -1006,6 +1032,102 @@ function translate(word) {
   return  dict[word] || dict[word.toLowerCase()] || word;
 }
 
+// ── Map point picker (دکمه نقطه در DrawTools) ──────────
+function onMapPointPicked({ lat, lng }) {
+  if (!viewer) return
+
+  pickedPoint.lat = lat
+  pickedPoint.lng = lng
+
+  if (pickMarker.value) viewer.entities.remove(pickMarker.value)
+  pickMarker.value = viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(lng, lat),
+    point: {
+      pixelSize: 12,
+      color: Cesium.Color.fromCssColorString('#e8843c'),
+      outlineColor: Cesium.Color.WHITE,
+      outlineWidth: 3,
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+    }
+  })
+
+  viewer.flyTo(pickMarker.value, { offset: new Cesium.HeadingPitchRange(0, -45, 800) })
+
+  // باز کردن پنل فرم‌ها از پایین
+  showPickerPanel.value = true
+}
+
+function closePickerPanel() {
+  showPickerPanel.value = false
+  if (pickMarker.value) {
+    viewer.entities.remove(pickMarker.value)
+    pickMarker.value = null
+  }
+  pickedPoint.lat = null
+  pickedPoint.lng = null
+}
+
+function onPickerCoords({ lat, lng }) {
+  if (!viewer) return
+  pickedPoint.lat = lat
+  pickedPoint.lng = lng
+  if (pickMarker.value) {
+    pickMarker.value.position = Cesium.Cartesian3.fromDegrees(lng, lat)
+  } else {
+    pickMarker.value = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(lng, lat),
+      point: {
+        pixelSize: 12,
+        color: Cesium.Color.fromCssColorString('#e8843c'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 3,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+      }
+    })
+  }
+  viewer.flyTo(pickMarker.value, { offset: new Cesium.HeadingPitchRange(0, -45, 800) })
+}
+
+// ذخیره اطلاعات نقطه (نام/توضیحات/فایل + مختصات) به عنوان یک پین
+async function savePickedPoint(data) {
+  try {
+    const shape = {
+      type: "point",
+      lon: data.lng,
+      lat: data.lat,
+      color: '#e8843c',
+      show: true
+    }
+    const pin = {
+      id: crypto.randomUUID(),
+      name: data.name || 'نقطه',
+      descr: data.description || '',
+      shape: shape,
+      date: new Date(),
+      save: -1,
+      type: 'draw'
+    }
+    if (data.file) {
+      pin.filename = data.file.name
+      pin.file = data.file
+    }
+    Pins.push(pin)
+
+    const formData = new FormData()
+    formData.append("type", pin.type)
+    formData.append("name", pin.name)
+    formData.append("obj_id", pin.id)
+    formData.append("parent_id", -1)
+    formData.append("content", JSON.stringify(shape))
+    if (data.file) formData.append("file", data.file)
+
+    await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
+      { headers: { "Content-Type": "multipart/form-data" } })
+  } catch (err) {
+    console.error('خطا در ذخیره نقطه:', err)
+  }
+}
+
 const chunkSize = 5000;
 const maxParallelRequests = 2;
 let customDataSource=[];
@@ -1033,7 +1155,7 @@ async function show3D_Layer() {
 function loadWfsChunk(start) {
   const url =
       GEOSERVER + `/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature` +
-      `&typeName=Amlak:اعیان` +
+      `&typeName=${encodeURIComponent('Amlak:اعیان')}` +
       `&outputFormat=application/json` +
       `&srsName=EPSG:4326` +
       `&startIndex=${start}` +
@@ -1090,7 +1212,6 @@ function loadWfsChunk(start) {
       }
     }
 
-    console.log(`Chunk starting at ${start} loaded (${entities.length} features)`);
     return entities.length;
   });
 }
@@ -1120,7 +1241,7 @@ async function loadAllChunks(totalCount) {
     await Promise.all(promises);
   }
 
-  console.log("تمام داده‌ها لود شدند ✅");
+  loading.value = false;
 }
 
 function getLocation() {
@@ -1129,8 +1250,6 @@ function getLocation() {
     navigator.geolocation.getCurrentPosition(
         (position) => {
           // موفقیت: موقعیت کاربر دریافت شد
-          console.log("عرض جغرافیایی: " + position.coords.latitude);
-          console.log("طول جغرافیایی: " + position.coords.longitude);
           try {
 
             const height = position.coords.altitude ?? 0;

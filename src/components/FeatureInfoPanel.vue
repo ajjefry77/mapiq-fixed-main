@@ -1,7 +1,7 @@
 <template>
   <div class="absolute top-[calc(var(--top)+25px)] left-[12px]">
     <button @click="toggleHandler"  title="اطلاعات"
-            :class="[ 'w-8 h-8 rounded flex items-center justify-center shadow-md', isActive ? 'text-white bg-blue-500' : 'text-black bg-gray-200']">
+            :class="[ 'w-8 h-8 rounded flex items-center justify-center shadow-md', isActive ? 'text-white bg-accent' : 'text-black bg-gray-200']">
             <i class="fas fa-info font-bold"></i>
     </button>
   </div>
@@ -16,13 +16,13 @@
     <div class="flex mb-2 ">
       <button
           class="px-2 py-1 text-sm rounded"
-          :class="activeTab === 'info' ? 'bg-blue-500 text-white' : 'bg-white border'"
+          :class="activeTab === 'info' ? 'bg-accent text-white' : 'bg-white border'"
           @click="activeTab = 'info'" >
         مشخصات
       </button>
       <button
           class="px-2 py-1 text-sm rounded"
-          :class="activeTab === 'edit' ? 'bg-blue-500 text-white' : 'bg-white border'"
+          :class="activeTab === 'edit' ? 'bg-accent text-white' : 'bg-white border'"
           @click="activeTab = 'edit'" >
          استایل
       </button>
@@ -100,7 +100,8 @@ import axios from "axios";
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 const props = defineProps({
   viewer: Object,
-  pins : Object
+  pins : Object,
+  layersLoaded: Array
 });
 
 const showColorPicker = ref('bg');
@@ -224,7 +225,7 @@ function showFeatureInfo(entity) {
     let length = 0;
 
     for (let i = 1; i < positions.length; i++) {
-      length += Cesium.Cartesian3.distance(positions[i-1], positions[i]);
+      length += surfaceDistance(positions[i-1], positions[i]);
     }
 
     info.length = formatLength(length);
@@ -246,13 +247,13 @@ function showFeatureInfo(entity) {
     let perimeter = 0;
 
     for (let i = 1; i < positions.length; i++) {
-      perimeter += Cesium.Cartesian3.distance(
+      perimeter += surfaceDistance(
           positions[i - 1],
           positions[i]
       );
     }
 
-    perimeter += Cesium.Cartesian3.distance(
+    perimeter += surfaceDistance(
         positions[positions.length - 1],
         positions[0]
     );
@@ -405,6 +406,13 @@ function formatLength(lengthMeters) {
   }
 
   return lengthMeters.toFixed(2) + " متر";
+}
+
+function surfaceDistance(ca, cb) {
+  const cartoA = Cesium.Cartographic.fromCartesian(ca);
+  const cartoB = Cesium.Cartographic.fromCartesian(cb);
+  const geodesic = new Cesium.EllipsoidGeodesic(cartoA, cartoB);
+  return geodesic.surfaceDistance;
 }
 
 function formatArea(areaMeters) {

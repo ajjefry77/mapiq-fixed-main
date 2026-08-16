@@ -1,10 +1,11 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-2/4 max-h-[80vh] flex flex-col">
+  <Transition name="modal">
+    <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-2/4 max-h-[80vh] flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b">
         <h2 class="text-lg font-semibold">لیست ذخیره شده ها</h2>
-        <button @click="close" class="text-gray-600 hover:text-red-500 text-xl font-bold">×</button>
+        <button @click="close" class="text-gray-600 hover:text-red-500 text-xl font-bold"><i class="fas fa-times"></i></button>
       </div>
 
       <!-- Scrollable List (table-like rows: folder | title | date | description) -->
@@ -32,13 +33,14 @@
           </table>
         </div>
       </div>
-    </div>
-  </div>
+      </div>
+      </div>
+    </Transition>
 
   <transition name="fade">
     <div v-if="selectedPin" class="absolute inset-0 bg-black/50 flex items-center justify-center">
       <div class="bg-white rounded-2xl p-6 w-96 shadow-xl relative">
-        <button @click="selectedPin = null" class="absolute top-4 left-4 text-gray-500 hover:text-black">✕</button>
+        <button @click="selectedPin = null" class="absolute top-4 left-4 text-gray-500 hover:text-black"><i class="fas fa-times"></i></button>
 
         <h2 class="text-xl font-semibold mb-2">{{ selectedPin.name }}</h2>
         <p v-if="selectedPin.description" class="text-gray-700 text-sm mb-3 border border-gray-200 p-2">{{ selectedPin.description }}</p>
@@ -50,7 +52,7 @@
           </div>
           
           <div v-else>  
-            <button @click="openNewWindow( SERVER + '/uploads/pins/' + selectedPin.file)">📎 مشاهده فایل پیوست</button>
+            <button @click="openNewWindow( SERVER + '/uploads/pins/' + selectedPin.file)"><i class="fas fa-paperclip"></i> مشاهده فایل پیوست</button>
           </div>
 
         </div>
@@ -74,7 +76,7 @@ const props = defineProps({
   pins: { type: Object, required: true },
   openId :  { type: Object, required: true },
   viewer: { type: Object, required: true },
-
+  map: { type: Object },
 });
 
 const emit = defineEmits([  "update:visible", "update:pins"]);

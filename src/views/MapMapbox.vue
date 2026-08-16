@@ -175,7 +175,7 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
   ref,
   reactive,
@@ -210,6 +210,7 @@ import proj4 from "proj4";
 import { bringDrawingsToFront } from "../utils/layerOrder";
 
 const GEOSERVER = import.meta.env.VITE_GEOSERVER;
+const GEOSERVER_WORKSPACE = import.meta.env.VITE_GEOSERVER_WORKSPACE || "Amlak";
 const SERVER = import.meta.env.VITE_SERVER;
 
 const baseMaps = [
@@ -660,25 +661,32 @@ function initMap() {
     pitchWithRotate: true,
     touchPitch: false,
     attributionControl: false,
-    preserveDrawingBuffer: true, // ✅ این خط را اضافه کنید تا تصویر نقشه قابل ذخیره باشد
+    preserveDrawingBuffer: false,
   });
   // پیش‌فرض: قفل کامل زاویه دید ۲بعدی — بدون تیلت و چرخش با راست‌کلیک/لمس
   // (با انتخاب basemap سه‌بعدی «Mapbox 3D» این قفل برداشته می‌شود)
   lock2DView();
 
+  let mouseFrame: number | null = null;
+  let lastMouseLngLat = null;
   map.on("mousemove", (e) => {
-    const { lng, lat } = e.lngLat;
-    Lon.value = lng.toFixed(6);
-    Lat.value = lat.toFixed(6);
+    lastMouseLngLat = e.lngLat;
+    if (mouseFrame !== null) return;
+    mouseFrame = requestAnimationFrame(() => {
+      mouseFrame = null;
+      if (!lastMouseLngLat) return;
+      const { lng, lat } = lastMouseLngLat;
+      Lon.value = lng.toFixed(6);
+      Lat.value = lat.toFixed(6);
 
-    const { _zone, hemisphere } = getUTMZone(lat, lng);
-    const utmProj = `+proj=utm +zone=${_zone} +datum=WGS84 +units=m +no_defs ${hemisphere === "S" ? "+south" : ""}`;
-    const [_easting, _northing] = proj4("WGS84", utmProj, [lng, lat]);
-    easting.value = _easting.toFixed(2);
-    northing.value = _northing.toFixed(2);
-    zone.value = _zone + hemisphere;
-
-    updateScale();
+      const { _zone, hemisphere } = getUTMZone(lat, lng);
+      const utmProj = `+proj=utm +zone=${_zone} +datum=WGS84 +units=m +no_defs ${hemisphere === "S" ? "+south" : ""}`;
+      const [_easting, _northing] = proj4("WGS84", utmProj, [lng, lat]);
+      easting.value = _easting.toFixed(2);
+      northing.value = _northing.toFixed(2);
+      zone.value = _zone + hemisphere;
+      updateScale();
+    });
   });
 
   map.on("zoom", () => {
@@ -731,8 +739,7 @@ function toggleLayer(layerName) {
       );
     }
   } else {
-    const workspace = "your_workspace";
-    const url = `${GEOSERVER}/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=${workspace}:${layerName}&styles=&bbox=-180,-90,180,90&width=256&height=256&srs=EPSG:4326&format=image/png&transparent=true`;
+    const url = `${GEOSERVER}/geoserver/wms?service=WMS&version=1.1.1&request=GetMap&layers=${encodeURIComponent(`${GEOSERVER_WORKSPACE}:${layerName}`)}&styles=&bbox={bbox-epsg-3857}&width=256&height=256&srs=EPSG:3857&format=image/png&transparent=true`;
     map.addSource(sourceId, { type: "raster", tiles: [url], tileSize: 256 });
     map.addLayer({
       id: sourceId + "-layer",

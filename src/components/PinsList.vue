@@ -1,6 +1,21 @@
 <template>
- <div class="flex flex-col min-h-0">
-  <!-- Tabs -->
+ <div class="flex flex-col min-h-0 relative"
+      @dragenter="onDragEnter"
+      @dragover.prevent="onDragOver"
+      @dragleave="onDragLeave"
+      @drop.prevent="onDrop">
+
+   <Transition name="drop-shade">
+     <div v-if="isDragging" class="absolute inset-0 z-50 flex items-center justify-center drop-zone-overlay">
+       <div class="drop-zone-card">
+         <i class="fas fa-cloud-arrow-up drop-zone-icon"></i>
+         <span class="drop-zone-text">فایل را اینجا رها کنید</span>
+         <span class="drop-zone-hint">kml / kmz / csv / txt</span>
+       </div>
+     </div>
+   </Transition>
+
+   <!-- Tabs -->
   <div class="flex mb-2 ">
 <!--    <button-->
 <!--        class="px-2 py-1 text-sm rounded"-->
@@ -214,6 +229,7 @@ import { useRoute } from 'vue-router'
 import axios from "axios";
 import moment from 'moment-jalaali'
 import Papa from 'papaparse'
+import proj4 from "proj4";
 import {useAuthStore} from '../stores/auth';
 import ItemBox from "./ItemBox.vue";
 import UsersDepSelect from "./UsersDepSelect.vue";
@@ -253,6 +269,8 @@ const users = ref([]);
 const unreadCount = ref(0);
 const csvRows = ref([])
 const exportDataSource = new Cesium.CustomDataSource("exportPins");
+const isDragging = ref(false)
+let dragCounter = 0
 
 const emit = defineEmits([ "update:openDia", "clearPins", "close"]);
 const props = defineProps({
@@ -898,29 +916,134 @@ function Export(filename, exportType) {
 
   if (exportType == 'csv') {
 
-    const rows = [
-      ['shapeIndex', 'lon', 'lat', 'height']
-    ];
-    let csvContent = '';
-    props.pins.forEach((pin, pinIndex) => {
+    const CSV_HEADER = [
+      'P','E','N','LAT','LNG','Ellipsoid_Height','Projection_Scale_Factor',
+      'Elevation_Scale_Factor','Combine_Scale_Factor','Geoid_Height','Orthometric_Height',
+      'Rod_Height','CODE','HRMS','VRMS','PDOP','HDOP','AGE','Satellite_Number',
+      'TIME','STAT','TYPE','Device_Model'
+    ].join(',');
 
-      if (!pin.shape?.positions || !Array.isArray(pin.shape.positions) ||
-          !pin.shape.show ||   pin.type !== 'draw' ) {
-        return;
+    const getZone = (lng) => Math.floor((lng + 180) / 6) + 1;
+    const utmProjection = (lng, lat) => {
+      const zone = getZone(lng);
+      const [e, n] = proj4('EPSG:4326',
+          `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`, [lng, lat]);
+      return { zone, e, n };
+    };
+    const projectionScaleFactor = (lng, lat) => {
+      const k0 = 0.9996;
+      const phi = (lat * Math.PI) / 180;
+      const lon0 = getZone(lng) * 6 - 183;
+      const dLon = ((lng - lon0) * Math.PI) / 180;
+      const e2 = 0.00669437999014;
+      const ep2 = e2 / (1 - e2);
+      const cosP = Math.cos(phi);
+      const A = 1 + ep2 * cosP * cosP;
+      return k0 * (1 + (A * cosP * cosP * dLon * dLon) / 2);
+    };
+    const elevationScaleFactor = (h) => {
+      const R = 6371000;
+      const hv = Number(h) || 0;
+      return R / (R + hv);
+    };
+    const field = (row, name) => {
+      if (!row || row[name] === undefined || row[name] === null || row[name] === '') return null;
+      return row[name];
+    };
+    const fmt = (v, dp) => (v === null || v === undefined || v === '') ? 'null' : Number(v).toFixed(dp);
+    const fmtInt = (v) => (v === null || v === undefined || v === '') ? 'null' : Math.round(Number(v));
+    const fmtTime = (t) => {
+      if (t) return t;
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const off = -d.getTimezoneOffset();
+      const sign = off >= 0 ? '+' : '-';
+      const abs = Math.abs(off);
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}_GMT${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+    };
+
+    const rows = [CSV_HEADER];
+    let pointNo = 1;
+
+    const addPosition = (pos) => {
+      const lat = Number(pos.lat);
+      const lng = Number(pos.lon);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+      const src = pos._row || {};
+      const height = pos.height ?? field(src, 'Ellipsoid_Height');
+
+      let e, n;
+      const rowE = field(src, 'E');
+      const rowN = field(src, 'N');
+      if (rowE !== null && rowN !== null) {
+        e = Number(rowE);
+        n = Number(rowN);
+      } else {
+        const utm = utmProjection(lng, lat);
+        e = utm.e;
+        n = utm.n;
       }
 
-      csvContent += pin.name + '\n';
-      csvContent += `polygon : \n`;
-      csvContent += 'lat,lon\n';
+      const psf = field(src, 'Projection_Scale_Factor');
+      const esf = field(src, 'Elevation_Scale_Factor');
+      const csf = field(src, 'Combine_Scale_Factor');
+      const projSF = psf !== null ? Number(psf) : projectionScaleFactor(lng, lat);
+      const elevSF = esf !== null ? Number(esf) : elevationScaleFactor(height);
+      const combSF = csf !== null ? Number(csf) : projSF * elevSF;
 
-      pin.shape.positions.forEach(pos => {
-        csvContent += `${pos.lat},${pos.lon}\n`;
-      });
+      rows.push([
+        pointNo,
+        fmt(e, 4),
+        fmt(n, 4),
+        fmt(lat, 14),
+        fmt(lng, 14),
+        fmt(height, 4),
+        projSF.toFixed(8),
+        elevSF.toFixed(8),
+        combSF.toFixed(8),
+        fmt(field(src, 'Geoid_Height'), 4),
+        fmt(field(src, 'Orthometric_Height'), 4),
+        fmt(field(src, 'Rod_Height'), 4) === 'null' ? '2.0000' : fmt(field(src, 'Rod_Height'), 4),
+        field(src, 'CODE') ?? 'default',
+        fmt(field(src, 'HRMS'), 4),
+        fmt(field(src, 'VRMS'), 4),
+        field(src, 'PDOP') ?? 'null',
+        field(src, 'HDOP') ?? 'null',
+        fmtInt(field(src, 'AGE')),
+        fmtInt(field(src, 'Satellite_Number')),
+        fmtTime(field(src, 'TIME')),
+        field(src, 'STAT') ?? 'FIX_RTK_CORS',
+        field(src, 'TYPE') ?? 'Measured',
+        field(src, 'Device_Model') ?? 'XIMA_S10L'
+      ].join(','));
+      pointNo++;
+    };
 
-      csvContent += '\n';
-    });
+    const walkPins = (pins) => {
+      for (const pin of pins) {
+        if (pin.type === 'group') {
+          walkPins(pin.children || []);
+          continue;
+        }
+        if (pin.type !== 'draw' || !pin.shape || pin.shape.show === false) continue;
+        if (Array.isArray(pin.shape.positions)) {
+          pin.shape.positions.forEach(p => addPosition({
+            lat: p.lat,
+            lon: p.lon,
+            height: p.height,
+            _row: p._row
+          }));
+        } else if (typeof pin.shape.lon === 'number' && typeof pin.shape.lat === 'number') {
+          addPosition(pin.shape);
+        }
+      }
+    };
 
-    const blob = new Blob( [csvContent], { type: 'text/csv;charset=utf-8;' });
+    walkPins(props.pins);
+
+    const csvContent = rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1145,7 +1268,7 @@ function exportGeoJSON(dataSource) {
 const handleFileUpload = async (event) => {
 
   const viewer= props.viewer
-  const file = event.target.files[0]
+  const file = event.target?.files?.[0] || event.dataTransfer?.files?.[0]
   if (!file) return
 
   const fileName = file.name.toLowerCase()
@@ -1295,6 +1418,42 @@ const handleFileUpload = async (event) => {
   }
   pin.file = file;
   await saveOneWorks(pin);
+}
+
+//=========================================================
+// Drag & Drop فایل از بیرون
+//=========================================================
+
+const onDragEnter = (event) => {
+  if (!hasDraggableFile(event)) return
+  event.preventDefault()
+  dragCounter++
+  isDragging.value = true
+}
+
+const onDragOver = (event) => {
+  if (!hasDraggableFile(event)) return
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'copy'
+  isDragging.value = true
+}
+
+const onDragLeave = (event) => {
+  if (!hasDraggableFile(event)) return
+  dragCounter = Math.max(0, dragCounter - 1)
+  if (dragCounter === 0) isDragging.value = false
+}
+
+const onDrop = async (event) => {
+  dragCounter = 0
+  isDragging.value = false
+  if (!event.dataTransfer?.files?.length) return
+  await handleFileUpload(event)
+}
+
+function hasDraggableFile(event) {
+  const types = event.dataTransfer?.types
+  return Boolean(types && Array.from(types).includes('Files'))
 }
 
 //=========================================================
@@ -1725,6 +1884,71 @@ defineExpose({ fetchPins })
 <style scoped>
 .rev {
   transform: scaleX(-1); /* افقی برعکس */
+}
+
+/* ===== Drop Zone Animation ===== */
+.drop-zone-overlay {
+  background: rgba(16, 185, 129, 0.10);
+  backdrop-filter: blur(3px);
+  border: 2px dashed rgba(16, 185, 129, 0.85);
+  pointer-events: none;
+  animation: dropZonePulse 1.2s ease-in-out infinite;
+}
+
+.drop-zone-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 22px 36px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.18);
+  animation: dropCardIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.drop-zone-icon {
+  font-size: 42px;
+  color: rgba(16, 185, 129, 0.9);
+  animation: dropIconBounce 1s ease-in-out infinite;
+}
+
+.drop-zone-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(16, 185, 129, 1);
+}
+
+.drop-zone-hint {
+  font-size: 11px;
+  color: #6b7280;
+  direction: ltr;
+}
+
+@keyframes dropZonePulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(16, 185, 129, 0.35); }
+  50% { box-shadow: inset 0 0 0 6px rgba(16, 185, 129, 0.20); }
+}
+
+@keyframes dropIconBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.12); }
+}
+
+@keyframes dropCardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.drop-shade-enter-active {
+  transition: opacity 0.3s ease;
+}
+.drop-shade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.drop-shade-enter-from,
+.drop-shade-leave-to {
+  opacity: 0;
 }
 </style>
 

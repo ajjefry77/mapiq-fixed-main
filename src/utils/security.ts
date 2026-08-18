@@ -125,6 +125,8 @@ export function clearAllSensitiveData(): void {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
   localStorage.removeItem('fb_token')
+  localStorage.removeItem('login_attempts')
+  localStorage.removeItem('lockout_until')
   sessionStorage.clear()
 
   const cookies = document.cookie.split(';')

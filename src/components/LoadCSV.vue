@@ -379,6 +379,7 @@ async function renderPoints() {
       lon : lng,
       lat : lat,
       color : result.valid  ? Cesium.Color.LIME  : Cesium.Color.RED,
+      _row : row
     })
   })
 

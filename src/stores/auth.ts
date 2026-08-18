@@ -28,43 +28,6 @@ interface UserData {
   roles?: string[]
 }
 
-const LOGIN_ATTEMPTS_KEY = 'login_attempts'
-const LOCKOUT_KEY = 'lockout_until'
-const MAX_LOGIN_ATTEMPTS = 5
-const LOCKOUT_DURATION = 15 * 60 * 1000
-
-function getLoginAttempts(): number {
-  const attempts = localStorage.getItem(LOGIN_ATTEMPTS_KEY)
-  return attempts ? parseInt(attempts, 10) : 0
-}
-
-function incrementLoginAttempts(): number {
-  const attempts = getLoginAttempts() + 1
-  localStorage.setItem(LOGIN_ATTEMPTS_KEY, String(attempts))
-  return attempts
-}
-
-function resetLoginAttempts(): void {
-  localStorage.removeItem(LOGIN_ATTEMPTS_KEY)
-  localStorage.removeItem(LOCKOUT_KEY)
-}
-
-function isLockedOut(): boolean {
-  const lockoutUntil = localStorage.getItem(LOCKOUT_KEY)
-  if (!lockoutUntil) return false
-  const until = parseInt(lockoutUntil, 10)
-  if (Date.now() >= until) {
-    localStorage.removeItem(LOCKOUT_KEY)
-    return false
-  }
-  return true
-}
-
-function setLockout(): void {
-  const until = Date.now() + LOCKOUT_DURATION
-  localStorage.setItem(LOCKOUT_KEY, String(until))
-}
-
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserData | null>(
     localStorage.getItem('user')
@@ -101,31 +64,6 @@ export const useAuthStore = defineStore('auth', () => {
   const fbRoles = ref<string[]>([])
   const displayName = computed(() => user.value?.name || user.value?.username || '')
 
-  const loginAttempts = ref(getLoginAttempts())
-  const isLocked = ref(isLockedOut())
-  const lockoutRemaining = ref(0)
-  let lockoutTimer: ReturnType<typeof setInterval> | null = null
-
-  function updateLockoutStatus() {
-    isLocked.value = isLockedOut()
-    loginAttempts.value = getLoginAttempts()
-    if (isLocked.value) {
-      const lockoutUntil = parseInt(localStorage.getItem(LOCKOUT_KEY) || '0', 10)
-      lockoutRemaining.value = Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000))
-    } else {
-      lockoutRemaining.value = 0
-      if (lockoutTimer) {
-        clearInterval(lockoutTimer)
-        lockoutTimer = null
-      }
-    }
-  }
-
-  function startLockoutTimer() {
-    if (lockoutTimer) clearInterval(lockoutTimer)
-    lockoutTimer = setInterval(updateLockoutStatus, 1000)
-  }
-
   const setAuthData = (authToken: string, userData: UserData) => {
     token.value = authToken
     user.value = userData
@@ -134,9 +72,6 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('token', authToken)
     if (userData.id) localStorage.setItem('user', String(userData.id))
     axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`
-
-    resetLoginAttempts()
-    updateLockoutStatus()
 
     trackActivity()
 
@@ -162,18 +97,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const login = async (username: string, password: string) => {
-    if (isLockedOut()) {
-      updateLockoutStatus()
-      if (!lockoutTimer) startLockoutTimer()
-      const remaining = Math.ceil(
-        (parseInt(localStorage.getItem(LOCKOUT_KEY) || '0', 10) - Date.now()) / 1000
-      )
-      return {
-        success: false,
-        error: `حساب شما قفل شده است. ${Math.ceil(remaining / 60)} دقیقه صبر کنید.`
-      }
-    }
-
     const sanitizedUsername = sanitizeInput(username)
 
     try {
@@ -192,23 +115,9 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { success: true }
     } catch (error: any) {
-      const attempts = incrementLoginAttempts()
-      loginAttempts.value = attempts
-
-      if (attempts >= MAX_LOGIN_ATTEMPTS) {
-        setLockout()
-        updateLockoutStatus()
-        startLockoutTimer()
-        return {
-          success: false,
-          error: `تلاش‌های ناموفق بیش از حد. حساب شما برای ۱۵ دقیقه قفل شد.`
-        }
-      }
-
-      const remaining = MAX_LOGIN_ATTEMPTS - attempts
       return {
         success: false,
-        error: error.response?.data?.error || `خطای احراز هویت. ${remaining} تلاش باقی‌مانده.`
+        error: error.response?.data?.error || 'خطای احراز هویت.'
       }
     }
   }
@@ -351,8 +260,6 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('mapEngine', isMapboxMode.value ? 'mapbox' : 'cesium')
   }
 
-  updateLockoutStatus()
-
   return {
     user,
     token,
@@ -364,9 +271,6 @@ export const useAuthStore = defineStore('auth', () => {
     isUser,
     fbRoles,
     displayName,
-    loginAttempts,
-    isLocked,
-    lockoutRemaining,
     isMapboxMode,
     switchMapEngine,
     login,

@@ -73,7 +73,11 @@ const send = async (data) => {
   const form = new FormData();
   form.append("sender_id", authStore.user.id);
   if (data.selected) form.append("receiver_id", data.selected);
-  else form.append("rec_phone", data.phone);
+  if (data.phone) form.append("rec_phone", data.phone);
+  if (!data.selected && !data.phone) {
+    showMessage("گیرنده مشخص نشده است", "error");
+    return;
+  }
   form.append("document_id", pin.save);
   form.append("descr", data.description);
   if (pin.save < 0) {

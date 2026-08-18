@@ -459,6 +459,7 @@ const csvRef = ref(null);
 const exportDialog = ref(false);
 const createFolderDialog = ref(false);
 const OpenSend = ref(false);
+const sendTarget = ref(null);
 const loading = ref(false);
 const activeTab = ref("my2");
 const sharedSubTab = ref("files");
@@ -720,6 +721,7 @@ function shareGroupProject(proj, group) {
     $toast?.error?.("فقط مدیر گروه می‌تواند پروژه را به اشتراک بگذارد");
     return;
   }
+  sendTarget.value = proj;
   OpenSend.value = true;
   $toast?.info?.("اشتراک‌گذاری پروژه گروهی (فقط مدیر گروه)");
 }
@@ -1486,15 +1488,15 @@ const ArchiveDesktop = async () => {
 
 const send = async (data) => {
   if (!authStore.user) return;
-  let pin = props.pins[index_pin_id.value];
+  let pin = sendTarget.value || props.pins[index_pin_id.value];
+  if (!pin) return;
+  sendTarget.value = null;
   const form = new FormData();
   form.append("sender_id", authStore.user.id);
   // کاربر عادی به لیست کاربران دسترسی ندارد؛ در این حالت با شماره همراه (rec_phone) ارسال می‌شود
-  if (data.selected) {
-    form.append("receiver_id", data.selected);
-  } else if (data.phone) {
-    form.append("rec_phone", data.phone);
-  } else {
+  if (data.selected) form.append("receiver_id", data.selected);
+  if (data.phone) form.append("rec_phone", data.phone);
+  if (!data.selected && !data.phone) {
     showMessage("گیرنده مشخص نشده است", "error");
     return;
   }

@@ -741,9 +741,11 @@ const send = async (data) => {
   // کاربر عادی به لیست کاربران دسترسی ندارد؛ در این حالت با شماره همراه (rec_phone) ارسال می‌شود
   if (data.selected) {
     form.append("receiver_id", data.selected);
-  } else if (data.phone) {
+  }
+  if (data.phone) {
     form.append("rec_phone", data.phone);
-  } else {
+  }
+  if (!data.selected && !data.phone) {
     showMessage('گیرنده مشخص نشده است', 'error');
     return;
   }

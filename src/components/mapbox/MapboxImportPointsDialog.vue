@@ -538,7 +538,8 @@ function doImport() {
       alt,
       label: rawLabel,
       rotation,
-      color: '#00ff00'
+      color: '#00ff00',
+      _row: row
     })
   }
 

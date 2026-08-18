@@ -171,7 +171,7 @@ async function renderPoints() {
     features.push({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [lng, lat] },
-      properties: { valid: result.valid }
+      properties: { valid: result.valid, _row: row }
     });
   });
 
@@ -197,7 +197,8 @@ async function renderPoints() {
   const positions = features.map(f => ({
     lon: f.geometry.coordinates[0],
     lat: f.geometry.coordinates[1],
-    color: f.properties.valid ? '#00ff00' : '#ff0000'
+    color: f.properties.valid ? '#00ff00' : '#ff0000',
+    _row: f.properties._row
   }));
 
   let pin = {

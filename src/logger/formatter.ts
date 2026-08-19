@@ -15,18 +15,53 @@ export function formatMessage(entry: LogEntry): string {
     if (entry.context?.component) parts.push(`(component: ${String(entry.context.component)})`);
     return parts.join(' ');
   }
+  if (entry.message) return entry.message;
   if (entry.context && typeof entry.context.message === 'string' && entry.context.message) {
     return String(entry.context.message);
   }
   return entry.event;
 }
 
-/** Human-readable single-line rendering used by the Console transport. */
+function localTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  const date = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, '0')}`;
+  return `${date} ${time}`;
+}
+
+/**
+ * Human-readable single-line rendering used by the Console transport.
+ *
+ * Layout:  [MM-DD HH:MM:SS.mmm] LEVEL  event — message  (GET /api/x · 500 · 312ms)  req=… trace=… session=…
+ *
+ * The extra tags are pulled straight from the (already sanitized) context, so a
+ * failing API call, slow request, or broken component is identifiable at a glance.
+ */
 export function formatForConsole(entry: LogEntry): string {
   const meta = LEVEL_META[entry.level];
-  const requestTag = entry.requestId ? ` reqId=${entry.requestId}` : '';
-  const traceTag = entry.traceId ? ` traceId=${entry.traceId}` : '';
-  return `[${entry.timestamp}] ${meta.label} ${entry.event} — ${formatMessage(entry)}${requestTag}${traceTag}`;
+  const parts = [`[${localTime(entry.timestamp)}] ${meta.label.padEnd(5)} ${entry.event}`];
+
+  const message = formatMessage(entry);
+  if (message && message !== entry.event) parts.push(`— ${message}`);
+
+  const ctx = entry.context ?? {};
+  const tags: string[] = [];
+  if (ctx.method) tags.push(String(ctx.method).toUpperCase());
+  if (ctx.url) tags.push(String(ctx.url));
+  if (entry.error?.status) tags.push(`status=${entry.error.status}`);
+  else if (ctx.status !== undefined) tags.push(`status=${String(ctx.status)}`);
+  if (ctx.durationMs !== undefined) tags.push(`${String(ctx.durationMs)}ms`);
+  if (ctx.component) tags.push(`component=${String(ctx.component)}`);
+  if (tags.length) parts.push(`(${tags.join(' · ')})`);
+
+  const ids: string[] = [];
+  if (entry.requestId) ids.push(`req=${entry.requestId}`);
+  if (entry.traceId) ids.push(`trace=${entry.traceId}`);
+  if (entry.sessionId) ids.push(`session=${entry.sessionId.slice(0, 8)}`);
+  if (ids.length) parts.push(ids.join(' '));
+
+  return parts.join(' ');
 }
 
 /**

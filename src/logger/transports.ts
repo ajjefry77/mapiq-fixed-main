@@ -26,6 +26,13 @@ const CONSOLE_METHOD: Record<number, 'log' | 'info' | 'warn' | 'error'> = {
   [LOG_LEVELS.FATAL]: 'error',
 };
 
+// WARN/ERROR/FATAL keep their native browser colors/icons; TRACE/DEBUG get a
+// muted tint so the devtools console stays scannable without fighting defaults.
+const CONSOLE_STYLE: Record<number, string> = {
+  [LOG_LEVELS.TRACE]: 'color:#9e9e9e;',
+  [LOG_LEVELS.DEBUG]: 'color:#0288d1;',
+};
+
 export class ConsoleTransport implements Transport {
   readonly name = 'console';
   level: LogLevelNumber;
@@ -42,8 +49,16 @@ export class ConsoleTransport implements Transport {
     if (!this.enabled || !isLevelEnabled(entry.level, this.level)) return;
     try {
       const method = CONSOLE_METHOD[entry.level] ?? 'log';
-      // eslint-disable-next-line no-console
-      console[method](formatForConsole(entry), toJSON(entry));
+      const line = formatForConsole(entry);
+      const detail = JSON.stringify(toJSON(entry), null, 2);
+      const style = CONSOLE_STYLE[entry.level];
+      if (style) {
+        // eslint-disable-next-line no-console
+        console[method](`%c${line}`, style, detail);
+      } else {
+        // eslint-disable-next-line no-console
+        console[method](line, detail);
+      }
     } catch {
       /* never let the console transport break the app */
     }

@@ -7,6 +7,7 @@ import { ref } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import Loading from '../Loading.vue';
 import shp from 'shpjs';
+import { logger } from "@/logger";
 
 const loading = ref(false);
 
@@ -93,7 +94,7 @@ const handleFileUpload = async (event) => {
       addGeoJSONSourceAndLayers(sourceId, geojson, pin);
       props.pins.push(pin);
     } catch (error) {
-      console.error("خطا در بارگذاری فایل:", error);
+      logger.error("file.load.failed", { resource: "kml" }, error);
     } finally {
       loading.value = false;
     }
@@ -117,7 +118,7 @@ const handleFileUpload = async (event) => {
         addGeoJSONSourceAndLayers(sourceId, geojson, pin);
         props.pins.push(pin);
       } catch (error) {
-        console.error("خطا در بارگذاری Shapefile:", error);
+        logger.error("file.load.failed", { resource: "shapefile" }, error);
       } finally {
         loading.value = false;
       }

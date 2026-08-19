@@ -201,6 +201,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { logger } from "@/logger"
 
 // Props
 const props = defineProps({
@@ -292,7 +293,7 @@ const performSearch = async () => {
 
   } catch (err) {
     error.value = err.message || 'خطا در ارتباط با سرور'
-    console.error('Search error:', err)
+    logger.error("search.location.failed", {}, err)
     results.value = []
   } finally {
     loading.value = false

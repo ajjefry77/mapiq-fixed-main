@@ -189,6 +189,7 @@ import {
 } from "vue";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { logger } from "@/logger";
 
 import MapboxNorthIcon from "../components/mapbox/MapboxNorthIcon.vue";
 import MapboxFlyPosition from "../components/mapbox/MapboxFlyPosition.vue";
@@ -618,7 +619,7 @@ async function savePickedPoint(data) {
       { headers: { "Content-Type": "multipart/form-data" } },
     );
   } catch (err) {
-    console.error("خطا در ذخیره نقطه:", err);
+    logger.error("file.save.failed", { operation: "savePoint" }, err);
   }
 }
 

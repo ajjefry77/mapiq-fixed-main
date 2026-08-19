@@ -51,6 +51,7 @@ import axios from 'axios'
 import { useAuthStore } from '../../stores/auth'
 import { useToast } from 'vue-toast-notification'
 import { pointIcon, ensurePointSymbolImages } from '../../utils/drawStyle'
+import { logger } from "@/logger"
 
 const authStore = useAuthStore()
 const $toast = useToast()
@@ -183,7 +184,7 @@ async function persistColor(pin) {
     }
     $toast?.success?.('رنگ ترسیم ذخیره شد')
   } catch (e) {
-    console.error('خطا در ذخیره رنگ:', e)
+    logger.warn("map.legend.save.failed", {}, e)
   }
 }
 </script>

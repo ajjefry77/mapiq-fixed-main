@@ -30,6 +30,7 @@
 <script setup>
 import { ref } from "vue";
 import MaskedInput from './MaskedInput.vue'
+import { logger } from "@/logger"
 const GEOSERVER = import.meta.env.VITE_GEOSERVER //?? 'http://localhost:8080';
 
 const props = defineProps({
@@ -51,11 +52,11 @@ async function searchFeatures() {
   if (!searchText.value.trim()) return alert("عبارتی وارد کنید.");
 
   const viewer = props.viewer;
-  if (!viewer) return console.error("Viewer پاس داده نشده!");
+  if (!viewer) { logger.error("map.viewer.missing", { component: "SearchCode" }); return; }
   //searchText.value = '4-3-2-4';
   const rawKeyword = searchText.value.replace(/'/g, "''"); // escape single quotes
   const cql = `strToLowerCase(code) LIKE '%${rawKeyword}%'`;
-  console.log('nosazi : '+ cql);
+  logger.info("search.started", { cql })
   // const url =
   //     `${GEOSERVER}/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature` +
   //     `&typeName=${workspace.value}:${layer.value}` +
@@ -106,7 +107,7 @@ async function searchFeatures() {
     });
 
   } catch (err) {
-    console.log(err);
+    logger.warn("search.failed", {}, err)
     alert("خطایی رخ داد. جزئیات در کنسول موجود است.");
   }
 }

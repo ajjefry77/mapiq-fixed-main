@@ -202,6 +202,7 @@ import MultiPointsList from '../components/MultiPointsList.vue'
 import SaveDialog from '../components/SaveDialog.vue'
 import {useAuthStore} from '../stores/auth';
 import { useToast } from "vue-toast-notification";
+import { logger } from "@/logger"
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 const authStore = useAuthStore();
 const $toast = useToast();
@@ -902,7 +903,7 @@ const saveOneWorks = async (item) => {
         { headers: { "Content-Type": "multipart/form-data" } })
 
   } catch (err) {
-    console.error(err)
+    logger.error("user.action.failed", { operation: "draw.save" }, err)
   }
 }
 
@@ -931,7 +932,7 @@ const saveWork = async () => {
     const res = await axios.post(SERVER + '/api/Save/myWork/' + authStore.user?.id, payload)
 
   } catch (err) {
-    console.error(err)
+    logger.error("user.action.failed", { operation: "draw.save" }, err)
   }
 }
 

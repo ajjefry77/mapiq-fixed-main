@@ -86,6 +86,7 @@
 
 <script setup>
 import { ref, watch } from "vue";
+import { logger } from "@/logger"
 
 const SERVER = import.meta.env.VITE_SERVER;
 
@@ -112,7 +113,7 @@ async function fetchDepartments() {
     departments.value = data.map((d) => ({ ...d, open: false }));
   } catch (err) {
     error.value = true;
-    console.error(err);
+    logger.warn("data.load.failed", { resource: "users" }, err);
   } finally {
     loading.value = false;
   }

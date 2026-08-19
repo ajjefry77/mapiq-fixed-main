@@ -151,6 +151,7 @@ import { ref, inject, onMounted } from 'vue'
 import UserSelect from '../components/UserSelect.vue'
 import RoleSelect from '../components/RoleSelect.vue'
 import Loading from '../components/Loading.vue'
+import { logger } from '@/logger'
 import { useToast } from "vue-toast-notification";
 import axios from 'axios';
 
@@ -219,7 +220,7 @@ const loadUsers = async () => {
     const response = await axios.get(SERVER + '/api/users3');
     users.value = response.data;
   } catch (error) {
-    console.error('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -228,7 +229,7 @@ const loadRoles = async () => {
     const response = await axios.get(SERVER + '/api/roles/works');
     roles.value = response.data;
   } catch (error) {
-    console.error('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "roles" }, error);
   }
 };
 

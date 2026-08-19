@@ -440,6 +440,7 @@ import {
 import { dxfToGeoJSON } from "../../utils/dxfToGeoJSON";
 import { pinsToDXF } from "../../utils/geoJSONToDXF";
 import proj4 from "proj4";
+import { logger } from "@/logger";
 
 const {
   getExtendedIds,
@@ -630,7 +631,7 @@ async function loadGroupProjects(group) {
         }))
       : [];
   } catch (err) {
-    console.warn("پروژه‌های گروه بارگذاری نشد:", err?.response?.status || err.message);
+    logger.warn("data.load.failed", { resource: "groupProjects", groupId: id }, err);
     groupProjects.value[id] = [];
   } finally {
     loadingGroupProjects.value[id] = false;
@@ -712,7 +713,7 @@ async function loadGroupProject(proj, group) {
       const res = await axios.get(SERVER + `/api/load/myWork/item/${proj.save || proj.id}`);
     }
   } catch (err) {
-    console.error(err);
+    logger.error("data.load.failed", { resource: "groupProject" }, err);
   }
 }
 
@@ -731,7 +732,7 @@ const load_Users = async () => {
     const response = await axios.get(SERVER + "/api/users");
     users.value = response.data;
   } catch (error) {
-    console.log("Error loading users:", error);
+    logger.debug("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -745,7 +746,7 @@ const loadInbox = async () => {
     inboxFiles.value = response.data;
     unreadCount.value = inboxFiles.value.filter((a) => !a.opened).length;
   } catch (error) {
-    console.error("Error loading inbox:", error);
+    logger.warn("data.load.failed", { resource: "inbox" }, error);
   }
 };
 
@@ -759,7 +760,7 @@ const drawInbox = async (idx) => {
     inboxFiles.value[idx].opened = true;
     unreadCount.value--;
   } catch (err) {
-    console.error("Failed to sync opened state", err);
+    logger.warn("data.sync.failed", { operation: "inbox.opened" }, err);
   }
 
   if (pin.show != undefined) {
@@ -868,7 +869,7 @@ const addInboxToDesktop = async (idx) => {
     await saveOneWorks(newPin);
     showMessage("لایه دریافتی به میز کار اضافه شد", "success");
   } catch (e) {
-    console.error("خطا در افزودن به میز کار:", e);
+    logger.error("user.action.failed", { operation: "addToDesktop" }, e);
     showMessage("خطا در افزودن به میز کار", "error");
   } finally {
     loading.value = false;
@@ -906,7 +907,7 @@ const loadWorks = async () => {
     props.pins.push(...tmp);
     await drawPins();
   } catch (err) {
-    console.error("خطا در دریافت pins از سرور", err);
+    logger.error("data.load.failed", { resource: "pins" }, err);
   } finally {
     loading.value = false;
   }
@@ -999,7 +1000,7 @@ const saveOneWorks = async (item) => {
       headers: { "Content-Type": "multipart/form-data" },
     });
   } catch (err) {
-    console.error(err);
+    logger.error("file.save.failed", { operation: "saveOneWorks" }, err);
   }
 };
 
@@ -1269,7 +1270,7 @@ async function drawKML(pin, visible = false) {
     pin.loaded = true;
     registerLayersForSource(props.map, sourceId);
   } catch (err) {
-    console.error("خطا در خواندن KML:", pin.name, err);
+    logger.error("file.load.failed", { resource: "kml", fileName: pin.name }, err);
   }
 }
 
@@ -1423,7 +1424,7 @@ const getData = async (token) => {
       }
     }
   } catch (err) {
-    console.error("خطا در دریافت pins از سرور", err);
+    logger.error("data.load.failed", { resource: "pins" }, err);
   } finally {
     loading.value = false;
   }
@@ -1457,7 +1458,7 @@ const createFolder = async (name) => {
     // همگام‌سازی با سرور
     try { await loadWorks(); } catch (_) {}
   } catch (err) {
-    console.error(err);
+    logger.error("user.action.failed", { operation: "createFolder" }, err);
     // fallback محلی اگر API خطا داد
     props.pins.unshift({
       id: crypto.randomUUID(),
@@ -1636,7 +1637,7 @@ const handleFileUpload = async (event) => {
       }
       await saveOneWorks(pin);
     } catch (error) {
-      console.error("خطا در بارگذاری فایل:", error);
+      logger.error("file.load.failed", { resource: "kml" }, error);
       loading.value = false;
     }
   } else if (fileName.endsWith(".zip")) {
@@ -1697,7 +1698,7 @@ const handleFileUpload = async (event) => {
         }
         await saveOneWorks(pin);
       } catch (error) {
-        console.error("خطا در بارگذاری Shapefile:", error);
+        logger.error("file.load.failed", { resource: "shapefile" }, error);
         loading.value = false;
       }
     };
@@ -1718,7 +1719,7 @@ const handleFileUpload = async (event) => {
       }
       await addGeoJsonFileToMap(geojson, fileName, file);
     } catch (error) {
-      console.error("خطا در بارگذاری DXF/DWG:", error);
+      logger.error("file.load.failed", { resource: "dxf" }, error);
       showMessage(
         fileName.endsWith(".dwg")
           ? "فایل DWG باینری در مرورگر قابل‌خواندن نیست. فایل را به DXF تبدیل کنید."

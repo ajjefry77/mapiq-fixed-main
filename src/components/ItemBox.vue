@@ -53,6 +53,7 @@ import axios from 'axios';
 import { useToast } from "vue-toast-notification";
 import Loading from '../components/Loading.vue'
 import SendDialog from '../components/SendDialog.vue'
+import { logger } from "@/logger"
 
 const SERVER = import.meta.env.VITE_SERVER
 const $toast = useToast();
@@ -108,7 +109,6 @@ const setDescr = async (idx) => {
 
 const zoomOnPin = async (idx) => {
   //const pin = props.pins.find(x => x.id == id)
-  //console.log(JSON.stringify(props.loadedFiles))
   if ( !isActive.value)
     showMessage('برای نمایش موقعیت ابتدا آیتم را فعال کنید', 'warning')
   const pin = props.loadedFiles[idx].MyWork;
@@ -148,7 +148,7 @@ async function remove(idx) {
       showMessage('گزینه مورد نظر حذف شد','success')
 
     } catch (err) {
-      console.error(err);
+      logger.error("user.action.failed", { operation: "itemBox" }, err);
       showMessage('خطا در حذف گزینه مورد نظر','error')
     }
   }

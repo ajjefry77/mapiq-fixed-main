@@ -226,6 +226,7 @@
 import { ref, reactive, computed, nextTick, watch } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import proj4 from 'proj4'
+import { logger } from "@/logger"
 
 const props = defineProps({
   map: { type: Object, required: true },
@@ -863,7 +864,7 @@ async function generate() {
         return { lat: r.lat, lon: r.lon, utm: { x, y, zone }, address: r.display || '' }
       })
     } catch (e) {
-      console.warn('خطا در آدرس‌یابی:', e)
+      logger.warn("search.location.failed", {}, e)
       shapeCentroids.value = metas.map(() => ({ lat: 0, lon: 0, utm: null, address: '' }))
     } finally {
       addressLoading.value = false
@@ -878,7 +879,7 @@ async function generate() {
     await nextTick()
     drawSketch()
   } catch (err) {
-    console.error('خطا در تولید کروکی:', err)
+    logger.error("report.generate.failed", {}, err)
     errorMsg.value = 'خطا در تولید کروکی. کنسول را برای جزئیات بررسی کنید.'
   } finally {
     generating.value = false
@@ -1055,7 +1056,7 @@ function doPrint() {
       iframe.contentWindow.focus()
       iframe.contentWindow.print()
     } catch (e) {
-      console.error('خطا در چاپ:', e)
+      logger.error("report.print.failed", {}, e)
     }
     setTimeout(() => {
       if (document.body.contains(iframe)) {

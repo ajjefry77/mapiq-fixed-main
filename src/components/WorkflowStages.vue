@@ -99,6 +99,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios';
 import NodeBox from "../components/NodeBox.vue";
+import { logger } from "@/logger"
 const SERVER = import.meta.env.VITE_SERVER
 import { useToast } from "vue-toast-notification";
 
@@ -125,7 +126,7 @@ const load_Users = async () => {
     const response = await axios.get(SERVER + '/api/users');
     users.value = response.data;
   } catch (error) {
-    console.log('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -134,7 +135,7 @@ const load_Departments = async () => {
     const response = await axios.get(SERVER + '/api/departments');
     departments.value = response.data;
   } catch (error) {
-    console.log('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -178,7 +179,7 @@ async function submitForm() {
   try {
     await axios.post(SERVER + '/api/workflow', workflow);
   } catch (error) {
-    console.error('Error saving workflow:', error);
+    logger.error("user.action.failed", { operation: "workflow.save" }, error);
   }
 }
 

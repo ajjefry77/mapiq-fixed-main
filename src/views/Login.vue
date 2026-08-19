@@ -237,6 +237,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import { logger } from "@/logger";
 import axios from "axios";
 
 const router = useRouter();
@@ -407,7 +408,7 @@ async function send_code() {
         data?.error || data?.message || "خطا در ارسال رمز، دوباره تلاش کنید";
     }
   } catch (err) {
-    console.error("❌ خطای ارسال رمز:", err.response?.data || err.message);
+    logger.warn("auth.login.failed", { status: err?.response?.status }, err);
     error.value =
       err.response?.data?.error ||
       err.response?.data?.message ||

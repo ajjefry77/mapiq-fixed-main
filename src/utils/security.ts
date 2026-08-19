@@ -1,3 +1,5 @@
+import { logger, EV } from '../logger'
+
 const API_BASE_URL = import.meta.env.VITE_SERVER + '/api'
 
 export interface SecurityConfig {
@@ -45,6 +47,7 @@ export function trackActivity(): void {
 export function resetSessionTimer(): void {
   if (sessionTimer) clearTimeout(sessionTimer)
   sessionTimer = setTimeout(() => {
+    logger.warn(EV.AUTH_SESSION_EXPIRED, { reason: 'inactivity-timeout' })
     const event = new CustomEvent('session-expired')
     window.dispatchEvent(event)
   }, DEFAULT_CONFIG.sessionTimeout)
@@ -78,7 +81,8 @@ export function setupTokenRefresh(getToken: () => string | null, refreshFn: () =
     if (token && !isSessionValid()) {
       try {
         await refreshFn()
-      } catch {
+      } catch (err) {
+        logger.warn('auth.token.refresh.failed', {}, err)
         const event = new CustomEvent('auth-error')
         window.dispatchEvent(event)
       }

@@ -8,6 +8,7 @@ import {
   isSessionValid,
   trackActivity
 } from '../utils/security'
+import { logger, EV } from '../logger'
 
 const API_BASE_URL = import.meta.env.VITE_SERVER + '/api'
 
@@ -113,8 +114,17 @@ export const useAuthStore = defineStore('auth', () => {
       setAuthData(authToken, userData)
       await loadUserPermissions()
 
+      logger.info(EV.AUTH_LOGIN_SUCCESS, {
+        userId: String(userData.id ?? ''),
+        role: Array.isArray(userData.roles) ? userData.roles.join(',') : undefined,
+      })
+
       return { success: true }
     } catch (error: any) {
+      logger.warn(EV.AUTH_LOGIN_FAILED, {
+        status: error?.response?.status,
+        username: sanitizedUsername,
+      }, error)
       return {
         success: false,
         error: error.response?.data?.error || 'خطای احراز هویت.'
@@ -141,8 +151,10 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       setAuthData(authToken, userInfo)
+      logger.info(EV.AUTH_REGISTER_SUCCESS, { userId: String(userInfo.id ?? '') })
       return { success: true }
     } catch (error: any) {
+      logger.warn(EV.AUTH_REGISTER_FAILED, { status: error?.response?.status }, error)
       return {
         success: false,
         error: error.response?.data?.error || 'خطای ثبت نام',
@@ -151,6 +163,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = () => {
+    logger.info(EV.AUTH_LOGOUT, { userId: String(user.value?.id ?? '') })
     clearAuthData()
   }
 
@@ -251,7 +264,9 @@ export const useAuthStore = defineStore('auth', () => {
         return data.data
       }
     } catch (e) {
-      console.warn('syncFb failed')
+      logger.warn(EV.AUTH_SYNC_FB_FAILED, {
+        status: (e as { response?: { status?: number } })?.response?.status,
+      }, e)
     }
   }
 

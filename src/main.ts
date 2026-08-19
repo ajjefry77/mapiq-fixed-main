@@ -4,6 +4,13 @@ import router from './router';
 import App from './App.vue';
 import axios from 'axios';
 import { initSecurity } from './utils/security';
+import {
+  initLogging,
+  installGlobalErrorHandlers,
+  setupApiLogging,
+  logger,
+  EV,
+} from './logger';
 
 import ToastPlugin from "vue-toast-notification";
 import "vue-toast-notification/dist/theme-sugar.css";
@@ -13,6 +20,10 @@ import './style.css';
 import { Icon } from '@iconify/vue'
 
 initSecurity()
+
+initLogging()
+
+setupApiLogging(axios)
 
 axios.interceptors.request.use(
   (config) => {
@@ -52,7 +63,7 @@ axios.interceptors.response.use(
 
     if (error.response?.status === 429) {
       const retryAfter = error.response.headers['retry-after']
-      console.warn(`Rate limited. Retry after ${retryAfter}s`)
+      logger.warn(EV.API_REQUEST_RATE_LIMITED, { retryAfter })
     }
 
     return Promise.reject(error)
@@ -63,13 +74,17 @@ const app = createApp(App);
 app.component('Icon', Icon);
 const pinia = createPinia();
 
+installGlobalErrorHandlers(app)
+
 fetch('/dictionary.json')
   .then(res => res.json())
   .then(cfg => {
     const dict = reactive(cfg)
     app.provide('dict', dict)
   })
-  .catch(() => {})
+  .catch((err) => {
+    logger.warn(EV.APP_CONFIG_LOAD_FAILED, { resource: 'dictionary.json' }, err)
+  })
 
 fetch('/features.json')
   .then(res => res.json())
@@ -77,7 +92,9 @@ fetch('/features.json')
     const features = reactive(cfg)
     app.provide('features', features)
   })
-  .catch(() => {})
+  .catch((err) => {
+    logger.warn(EV.APP_CONFIG_LOAD_FAILED, { resource: 'features.json' }, err)
+  })
 
 fetch('/mbtiles.json')
   .then(res => res.json())
@@ -85,8 +102,15 @@ fetch('/mbtiles.json')
     const features = reactive(cfg)
     app.provide('mbtiles', features)
   })
-  .catch(() => {})
+  .catch((err) => {
+    logger.warn(EV.APP_CONFIG_LOAD_FAILED, { resource: 'mbtiles.json' }, err)
+  })
 
 app.use(pinia);
 app.use(router);
 app.mount('#app');
+
+logger.info(EV.APP_BOOT, {
+  environment: import.meta.env.MODE,
+  engine: 'mapiq',
+});

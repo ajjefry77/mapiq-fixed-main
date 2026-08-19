@@ -54,6 +54,7 @@ import { useToast } from "vue-toast-notification";
 import { useSharedArray } from '../../stores/app';
 import axios from "axios";
 import { useAuthStore } from '../../stores/auth';
+import { logger } from "@/logger";
 const { toggleExtended, toggleVisible } = useSharedArray();
 
 const $toast = useToast();
@@ -92,7 +93,7 @@ async function remove(item, index) {
     props.items.splice(index, 1);
     showMessage('پوشه حذف شد', 'success');
   } catch (e) {
-    console.error(e);
+    logger.warn("data.load.failed", { resource: "layers" }, e);
     showMessage('خطا در حذف پوشه از سرور', 'error');
   }
 }

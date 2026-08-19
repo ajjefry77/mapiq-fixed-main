@@ -255,6 +255,7 @@ import { useAuthStore } from '../stores/auth'
 import { useGeolocation } from '../composables/fb/useGeolocation.js'
 import { useToast } from 'vue-toast-notification'
 import axios from 'axios'
+import { logger } from "@/logger"
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -329,7 +330,7 @@ const assignedForms = computed(() => {
     })
     return filtered
   } catch (e) {
-    console.error('assignedForms error:', e)
+    logger.error("data.load.failed", { resource: "assignedForms" }, e)
     return Array.isArray(allForms.value) ? allForms.value : []
   }
 })
@@ -359,7 +360,7 @@ async function loadForms() {
       }
     }
   } catch (e) {
-    console.error('loadForms error:', e)
+    logger.error("data.load.failed", { resource: "forms" }, e)
     formsError.value = e.message || 'خطا در بارگذاری فرم‌ها'
     allForms.value = []
     allGroups.value = []

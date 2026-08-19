@@ -1,5 +1,6 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { logger } from '@/logger'
 
 export const AppStore = defineStore('app', {
   state: () => ({
@@ -20,7 +21,7 @@ export function useSharedArray() {
     try {
       extendedIds.value = JSON.parse(localStorage.getItem("expandedIds") || "[]");
     } catch (error) {
-      console.error('Error loading expandedIds:', error);
+      logger.warn('storage.read.failed', { key: 'expandedIds' }, error);
       extendedIds.value = [];
     }
   }
@@ -30,7 +31,7 @@ export function useSharedArray() {
       // ✅ اصلاح شده: استفاده از extendedIds.value
       localStorage.setItem("expandedIds", JSON.stringify(extendedIds.value));
     } catch (error) {
-      console.error('Error saving expandedIds:', error);
+      logger.warn('storage.write.failed', { key: 'expandedIds' }, error);
     }
   }
 
@@ -42,7 +43,7 @@ export function useSharedArray() {
     try {
       visibleIds.value = JSON.parse(localStorage.getItem("visibleIds") || "[]");
     } catch (error) {
-      console.error('Error loading visibleIds:', error);
+      logger.warn('storage.read.failed', { key: 'visibleIds' }, error);
       visibleIds.value = [];
     }
   }
@@ -52,7 +53,7 @@ export function useSharedArray() {
       // ✅ اصلاح شده: استفاده از visibleIds.value
       localStorage.setItem("visibleIds", JSON.stringify(visibleIds.value));
     } catch (error) {
-      console.error('Error saving visibleIds:', error);
+      logger.warn('storage.write.failed', { key: 'visibleIds' }, error);
     }
   }
 

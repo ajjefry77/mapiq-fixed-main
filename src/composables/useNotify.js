@@ -1,4 +1,5 @@
 import { useToast } from "vue-toast-notification"
+import { logger } from "@/logger"
 
 export function useNotify() {
   const $toast = useToast()
@@ -8,8 +9,6 @@ export function useNotify() {
   }
 
   function handleError(error) {
-    console.error(error)
-
     const data = error?.response?.data
 
     let msg = "خطایی رخ داد"
@@ -23,6 +22,8 @@ export function useNotify() {
     } else if (error?.message) {
       msg = error.message
     }
+
+    logger.warn("user.action.failed", { userMessage: msg }, error)
 
     showMessage(msg, "error")
   }

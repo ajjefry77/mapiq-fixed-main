@@ -67,6 +67,7 @@
 import { ref, onMounted, onActivated } from "vue";
 import axios from "axios";
 import { useAuthStore } from '../stores/auth';
+import { logger } from "@/logger"
 const authStore = useAuthStore();
 
 const SERVER = import.meta.env.VITE_SERVER;
@@ -96,7 +97,7 @@ async function fetchPins() {
     const res = await axios.get(`${SERVER}/api/pins/${userId}`);
     items.value = res.data;
   } catch (e) {
-    console.error("Error fetching list:", e);
+    logger.warn("data.load.failed", { resource: "fileList" }, e);
   }
 }
 
@@ -258,12 +259,10 @@ async function drawShapes(shapesArray) {
   props.viewer.screenSpaceEventHandler.setInputAction((movement) => {
     const picked = viewer.scene.pick(movement.position);
     
-    //console.log(".");
     if (Cesium.defined(picked) && picked.id) {
       const entity = picked.id;
       //viewer.selectedEntity = entity;
       if (entity.properties) {
-        //console.log("clicked entity:", entity.properties.getValue());
         let item = entity.properties;
         selectedPin.value = {
           name: item.name,

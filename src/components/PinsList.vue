@@ -242,6 +242,7 @@ import LayerTree from "../components/LayerTree.vue";
 import LoadCSV from "../components/LoadCSV.vue";
 import {useToast} from "vue-toast-notification";
 import { useSharedArray } from '../stores/app'
+import { logger } from "@/logger"
 
 const {getExtendedIds,getVisibleIds, isExtended, isVisible, setExtendedIds,setVisibleIds, extendedIds, visibleIds} = useSharedArray()
 
@@ -372,11 +373,11 @@ async function getData(token) {
       });
 
     } else {
-      console.warn(res.message)
+      logger.warn("pin.load.failed", { reason: res.message })
     }
 
   } catch (err) {
-    console.error('خطا در دریافت pins از سرور', err)
+    logger.error("data.load.failed", { resource: "pins" }, err)
   } finally {
     loading.value = false
   }}
@@ -427,7 +428,7 @@ const loadUserGroups = async () => {
       }),
     )
   } catch (error) {
-    console.error('Error loading user groups:', error)
+    logger.warn("data.load.failed", { resource: "userGroups" }, error)
     userGroups.value = []
   }
 };
@@ -437,7 +438,7 @@ const load_Users = async () => {
     const response = await axios.get(SERVER + '/api/users');
     users.value = response.data;
   } catch (error) {
-    console.log('Error loading users:', error);
+    logger.debug("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -473,7 +474,7 @@ const loadInbox = async () => {
 
       unreadCount.value = inboxFiles.value.filter(a => !a.opened).length
     } catch (error) {
-      console.error('Error loading users:', error);
+      logger.warn("data.load.failed", { resource: "inbox" }, error);
     }
   }
 };
@@ -487,7 +488,7 @@ const drawInbox = async (idx) => {
     unreadCount.value--;
 
   } catch (err) {
-    console.error("Failed to sync opened state", err)
+    logger.warn("data.sync.failed", { operation: "inbox.opened" }, err)
   }
 
   if (!viewer) return
@@ -549,7 +550,7 @@ const loadWorks = async () => {
       await drawPins()
 
     } catch (err) {
-      console.error('خطا در دریافت pins از سرور', err)
+      logger.error("data.load.failed", { resource: "pins" }, err)
     } finally {
       loading.value = false
     }
@@ -670,7 +671,7 @@ const saveOneWorks = async (item) => {
         { headers: { "Content-Type": "multipart/form-data" } })
 
   } catch (err) {
-    console.error(err)
+    logger.error("file.save.failed", { operation: "saveOneWorks" }, err)
   }
 }
 
@@ -703,7 +704,7 @@ const saveWorks = async () => {
       }
     });
   } catch (err) {
-    console.error(err)
+    logger.error("file.save.failed", { operation: "saveWorks" }, err)
   }
 }
 
@@ -717,7 +718,7 @@ const createFolder = async (name) => {
     const res = await axios.post(SERVER + '/api/createFolder/' + authStore.user?.id, payload)
 
   } catch (err) {
-    console.error(err)
+    logger.error("user.action.failed", { operation: "createFolder" }, err)
   }
 }
 
@@ -1283,7 +1284,7 @@ const handleFileUpload = async (event) => {
         csvRows.value = results.data
       },
       error(error) {
-        console.error(error)
+        logger.warn("file.parse.failed", { resource: "csv" }, error)
       }
     })
     loading.value = false;
@@ -1346,7 +1347,7 @@ const handleFileUpload = async (event) => {
         }
 
       } catch (error) {
-        console.error("خطا در بارگذاری فایل:", error);
+        logger.error("file.load.failed", { resource: "kml" }, error);
         loading.value = false;
       }
     };
@@ -1409,7 +1410,7 @@ const handleFileUpload = async (event) => {
         });
 
       } catch (error) {
-        console.error("خطا در بارگذاری Shapefile:", error)
+        logger.error("file.load.failed", { resource: "shapefile" }, error)
         loading.value = false;
       }
     }
@@ -1813,11 +1814,11 @@ async function drawKML(viewer, pin , visible = false) {
     // زوم کردن روی فایل لود شده (اختیاری)
     // viewer.zoomTo(dataSource);
 
-    console.log(`✅ فایل با موفقیت لود شد: ${pin.name}`);
+    logger.info("map.layer.loaded", { name: pin.name });
     return dataSource;
 
   } catch (err) {
-    console.error('خطا در خواندن یا لود KML/KMZ از فولدر کاری:', pin.name, err);
+    logger.error("file.load.failed", { resource: "kml", fileName: pin.name }, err);
     return null;
   }
 }

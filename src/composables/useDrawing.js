@@ -1,4 +1,4 @@
-import {
+﻿import {
   ref,
   reactive,
   toRaw,
@@ -9,6 +9,7 @@ import {
   nextTick,
 } from "vue";
 import axios from "axios";
+import { logger } from "@/logger";
 import { useAuthStore } from "../stores/auth";
 import { useToast } from "vue-toast-notification";
 import { useSharedArray } from "../stores/app";
@@ -1860,7 +1861,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         if (response.data?.id) item.save = response.data.id;
       }
     } catch (err) {
-      console.error("خطا در ذخیره‌سازی:", err);
+      logger.error("file.save.failed", { operation: "drawing.save" }, err);
     } finally {
       loading.value = false;
     }

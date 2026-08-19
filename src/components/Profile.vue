@@ -100,6 +100,7 @@ import { useToast } from "vue-toast-notification";
 import { useAuthStore } from '../stores/auth';
 import axios from "axios";
 import { useRouter } from 'vue-router'
+import { logger } from "@/logger"
 
 const $toast = useToast();
 const authStore = useAuthStore();
@@ -162,7 +163,7 @@ const saveUser = async () => {
       showMessage('پسورد و تکرارش مغایرت دارد', 'error')
     }
   } catch (error) {
-    console.error('Error saving user:', error);
+    logger.error("user.profile.save.failed", {}, error);
   }
 };
 

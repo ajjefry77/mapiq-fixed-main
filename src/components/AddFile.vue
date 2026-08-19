@@ -13,6 +13,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import Loading from './Loading.vue'
+import { logger } from "@/logger"
 
 const loading = ref(false)
 
@@ -75,7 +76,7 @@ const handleFileUpload = async (event) => {
         });
 
       } catch (error) {
-        console.error("خطا در بارگذاری KML:", error)
+        logger.error("file.load.failed", { resource: "kml" }, error)
         loading.value = false;
       }
     }
@@ -118,7 +119,7 @@ const handleFileUpload = async (event) => {
         });
 
       } catch (error) {
-        console.error("خطا در بارگذاری Shapefile:", error)
+        logger.error("file.load.failed", { resource: "shapefile" }, error)
         loading.value = false;
       }
     }

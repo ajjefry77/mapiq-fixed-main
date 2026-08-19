@@ -1,4 +1,4 @@
-<template xmlns="http://www.w3.org/1999/html">
+﻿<template xmlns="http://www.w3.org/1999/html">
   <div class="flex h-[calc(100vh-60px)] bg-gray-50">
 
     <div class="flex-1 h-full overflow-hidden">
@@ -210,6 +210,7 @@ import {useRouter} from 'vue-router';
 import {useAuthStore} from '../stores/auth';
 import axios from "axios";
 import proj4 from "proj4";
+import { logger, EV } from "@/logger";
 
 //#region  -- Variable
 const maps = [
@@ -625,7 +626,7 @@ const show3D = async (file) => {
 
     await viewer.zoomTo(tileset);
   } catch (error) {
-    console.error(`Error creating tileset: ${error}`);
+    logger.error(EV.MAP_TILESET_FAILED, {}, error);
   }
 
 }
@@ -636,7 +637,7 @@ const loadUsers = async () => {
     users.value = response.data;
     workspaces.value = users.value.find(a => a.id == authStore.user.id).workspaces
   } catch (error) {
-    console.error('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -645,7 +646,7 @@ const loadFiles = async () => {
     const response = await axios.get(SERVER + '/api/myFiles/' + authStore.user.id);
     draws.value = response.data;
   } catch (error) {
-    console.error('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -654,7 +655,7 @@ const loadInbox = async () => {
     const response = await axios.get(SERVER + '/api/inbox/' + authStore.user.id);
     inboxFiles.value = response.data;
   } catch (error) {
-    console.error('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -663,7 +664,7 @@ const loadOutbox = async () => {
     const response = await axios.get(SERVER + '/api/outbox/' + authStore.user.id);
     outboxFiles.value = response.data;
   } catch (error) {
-    console.error('Error loading users:', error);
+    logger.warn("data.load.failed", { resource: "users" }, error);
   }
 };
 
@@ -723,7 +724,7 @@ const handleFileUpload = async (event) => {
         });
 
       } catch (error) {
-        console.error("خطا در بارگذاری KML:", error)
+        logger.error("file.load.failed", { resource: "kml" }, error)
         loading.value = false;
       } finally {
         URL.revokeObjectURL(url)
@@ -767,7 +768,7 @@ const handleFileUpload = async (event) => {
         });
 
       } catch (error) {
-        console.error("خطا در بارگذاری Shapefile:", error)
+        logger.error("file.load.failed", { resource: "shapefile" }, error)
         loading.value = false;
       }
     }
@@ -796,7 +797,7 @@ const uploadToGeoserver = async () => {
     if (response.ok)
       alert("فایل با موفقیت به سرور ارسال شد.")
   } catch (err) {
-    console.error(err)
+    logger.error("file.upload.failed", { operation: "geoserver.upload" }, err)
     alert("ارسال فایل به GeoServer با خطا مواجه شد.")
   }
 };
@@ -914,10 +915,10 @@ const toggleLayer =async (layerName, work_id) => {
         );
         viewer.camera.flyTo({destination: rectangle});
       } else {
-        console.warn("Bounding box not found for layer:", layerName);
+        logger.warn("map.layer.failed", { reason: "bbox-not-found", layerName });
       }
     } catch (err) {
-      console.error("Error fetching bounding box:", err);
+      logger.warn("map.layer.failed", { operation: "fetch-bbox", layerName }, err);
     }
   */
   } else {
@@ -976,7 +977,7 @@ async function fetchFiles() {
       workspaces.value.push(work);
     }
   } catch (e) {
-    console.error('Error fetching files:', e)
+    logger.warn("data.load.failed", { resource: "files" }, e)
   }
 }
 
@@ -1133,7 +1134,7 @@ async function savePickedPoint(data) {
     await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
       { headers: { "Content-Type": "multipart/form-data" } })
   } catch (err) {
-    console.error('خطا در ذخیره نقطه:', err)
+    logger.error("file.save.failed", { operation: "savePoint" }, err)
   }
 }
 

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { setupApiLogging } from "../logger";
 
 function getToken() {
   return localStorage.getItem('token');
@@ -10,6 +11,8 @@ const api = axios.create({
     : "/api",
   headers: { "Content-Type": "application/json" },
 });
+
+setupApiLogging(api)
 
 api.interceptors.request.use((config) => {
   const token = getToken();

@@ -95,6 +95,7 @@
 <script setup>
 import { ref, defineProps, onMounted, watch } from "vue";
 import axios from "axios";
+import { logger } from "@/logger"
 //import * as turf from "@turf/turf";
 
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
@@ -589,7 +590,7 @@ async function save() {
     }
     pin.name = shapeName.value;
   } catch (error) {
-    console.error("خطا در ذخیره‌سازی:", error);
+    logger.error("file.save.failed", { operation: "feature.update" }, error);
   }
 }
 
@@ -877,7 +878,7 @@ function rebuildHandles( entity, activeIndex = null) {
 
 function updateStyle(entity, borderColor, bgColor, newWidth) {
   if (!entity) {
-    console.warn("updateStyle: Entity is null or undefined.");
+    logger.warn("map.feature.style.failed", { reason: "entity-null" });
     return;
   }
 
@@ -947,7 +948,7 @@ function updateStyle(entity, borderColor, bgColor, newWidth) {
   }
 
   // اگر Entity از نوع دیگری بود که در بالا پوشش داده نشد
-  console.warn(`updateStyle: Entity type not supported or graphics not found for entity ID: ${entity.id}`);
+  logger.warn("map.feature.style.failed", { reason: "unsupported-type", entityId: entity.id });
 }
 
 function getEntityValue(entity) {

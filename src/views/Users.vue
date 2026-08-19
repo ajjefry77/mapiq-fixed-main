@@ -162,6 +162,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useNotify } from '../composables/useNotify';
+import { logger } from '@/logger';
 import axios from 'axios';
 
 const SERVER = import.meta.env.VITE_SERVER;
@@ -281,14 +282,14 @@ async function loadUsers() {
       createdAt: u.created_at || u.createdAt,
       code: u.code || '',
     })) : [];
-  } catch (e) { console.error(e); }
+  } catch (e) { logger.warn("data.load.failed", { resource: "users" }, e); }
 }
 
 async function loadRoles() {
   try {
     const res = await axios.get(SERVER + '/api/roles');
     roles.value = Array.isArray(res.data.data || res.data) ? (res.data.data || res.data) : [];
-  } catch (e) { console.error(e); }
+  } catch (e) { logger.warn("data.load.failed", { resource: "roles" }, e); }
 }
 
 async function saveUser() {

@@ -101,6 +101,7 @@ import {
   pointIcon,
   ensurePointSymbolImages,
 } from "../../utils/drawStyle";
+import { logger } from "@/logger";
 
 const props = defineProps({
   map: { type: Object, required: true },
@@ -244,7 +245,7 @@ function applyShapeStyle() {
         }
       }
     } catch (e) {
-      console.warn("applyShapeStyle", e);
+      logger.warn("map.point.style.failed", { operation: "applyShapeStyle" }, e);
     }
   }
 }

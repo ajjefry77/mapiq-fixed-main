@@ -8,7 +8,8 @@
     "server": "nodemon server/index.js",
     "client": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
@@ -43,12 +44,14 @@
     "autoprefixer": "^10.4.21",
     "cesium": "^1.143.0",
     "concurrently": "^8.2.2",
+    "happy-dom": "^20.11.2",
     "nodemon": "^3.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.21",
     "vite-plugin-cesium": "^1.2.23",
+    "vitest": "^4.1.11",
     "vue-tsc": "^2.1.4"
   }
 }

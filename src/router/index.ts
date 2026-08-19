@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { logger, EV } from '../logger';
 
 const Login = () => import('../views/Login.vue');
 const Register = () => import('../views/Register.vue');
@@ -202,5 +203,20 @@ router.beforeEach(async (to, _from, next) => {
 
   next()
 });
+
+router.afterEach((to, from) => {
+  logger.info(EV.ROUTE_ENTER, {
+    to: to.fullPath,
+    name: String(to.name ?? ''),
+    from: from.fullPath,
+  })
+})
+
+router.onError((error, to) => {
+  logger.error(EV.ROUTE_NAVIGATION_FAILED, {
+    to: to.fullPath,
+    name: String(to.name ?? ''),
+  }, error)
+})
 
 export default router;

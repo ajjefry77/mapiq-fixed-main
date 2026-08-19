@@ -1,6 +1,7 @@
 /**
  * استایل‌های خط (نوع خط) و نمادهای نقطه برای ترسیم‌ها
  */
+import { logger } from "@/logger";
 
 export const DASH_STYLES = [
   { id: "solid", label: "پیوسته", value: [1, 0] },
@@ -79,6 +80,6 @@ export function ensurePointSymbolImages(map) {
       map.addImage(name, ctx.getImageData(0, 0, canvas.width, canvas.height), { sdf: true });
     }
   } catch (e) {
-    console.warn("خطا در ساخت نماد نقطه:", e);
+    logger.warn("map.point.style.failed", { operation: "create-point-symbols" }, e);
   }
 }

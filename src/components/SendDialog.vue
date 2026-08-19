@@ -43,6 +43,7 @@
 import { ref, watch, defineEmits, defineProps, onMounted } from 'vue'
 import axios from 'axios';
 import UserSearch from "./UserSearch.vue";
+import { logger } from "@/logger"
 
 const SERVER = import.meta.env.VITE_SERVER
 
@@ -79,7 +80,7 @@ const load_Users = async () => {
     users.value = response.data;
   } catch (error) {
     // 403 برای کاربر عادی طبیعی است؛ نادیده می‌گیریم
-    console.log('Error loading users (permission denied is expected for normal users):', error?.response?.status || error);
+    logger.debug("users.list.denied", { status: error?.response?.status }, error);
   }
 };
 
@@ -88,10 +89,9 @@ const load_Works = async () => {
     const response = await axios.get(SERVER + '/api/workflows');
     workflows.value = response.data;
   } catch (error) {
-    console.log('Error loading users:', error);
+    logger.debug("data.load.failed", { resource: "users" }, error);
   }
 };
-
 
 const props = defineProps({
   show: Boolean,

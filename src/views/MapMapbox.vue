@@ -132,7 +132,6 @@
 
       <MapboxSearchAddress v-if="mapReady" :map="map" />
       <MapboxNorthIcon v-if="mapReady" :map="map" />
-      <MapboxFlyPosition v-if="mapReady" :map="map" :latlon="latlon" />
       <MapboxDrawTools
         ref="drawing"
         v-if="mapReady"
@@ -192,7 +191,6 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { logger } from "@/logger";
 
 import MapboxNorthIcon from "../components/mapbox/MapboxNorthIcon.vue";
-import MapboxFlyPosition from "../components/mapbox/MapboxFlyPosition.vue";
 import MapboxDrawTools from "../components/mapbox/MapboxDrawTools.vue";
 import MapboxPinsList from "../components/mapbox/MapboxPinsList.vue";
 import MapboxSearchAddress from "../components/mapbox/MapboxSearchAddress.vue";

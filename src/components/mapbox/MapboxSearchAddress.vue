@@ -27,7 +27,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
-                جستجوی آدرس
+                جستجو
               </h2>
               <button @click="closePanel" class="text-gray-700 hover:text-gray-700">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,8 +36,41 @@
               </button>
             </div>
 
-            <div class="mb-4">
-              <div class="flex gap-2">
+            <div class="mb-4 flex gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                @click="activeTab = 'address'"
+                :class="[
+                  'flex-1 py-2 text-sm rounded-md transition',
+                  activeTab === 'address'
+                    ? 'bg-white text-accent shadow-sm font-medium'
+                    : 'text-gray-500 hover:text-gray-700',
+                ]"
+              >
+                آدرس
+              </button>
+              <button
+                @click="activeTab = 'coords'"
+                :class="[
+                  'flex-1 py-2 text-sm rounded-md transition',
+                  activeTab === 'coords'
+                    ? 'bg-white text-accent shadow-sm font-medium'
+                    : 'text-gray-500 hover:text-gray-700',
+                ]"
+              >
+                مختصات
+              </button>
+              <button
+                disabled
+                class="flex-1 py-2 text-sm rounded-md bg-white/60 text-gray-400 opacity-60 cursor-not-allowed"
+                title="به‌زودی"
+              >
+                کد نوسازی
+              </button>
+            </div>
+
+            <div v-if="activeTab === 'address'">
+              <div class="mb-4">
+                <div class="flex gap-2">
                 <div class="flex-1 relative">
                   <input type="text" v-model="searchText" @keyup.enter="performSearch"
                     placeholder="متن جستجو را وارد کنید..."
@@ -145,6 +178,92 @@
               </svg>
               <p class="mt-2 text-sm text-gray-500">نتیجه‌ای یافت نشد</p>
             </div>
+            </div>
+
+            <div v-else-if="activeTab === 'coords'" class="space-y-3">
+              <p class="text-[11px] text-gray-500 leading-relaxed">
+                مختصات جغرافیایی را وارد کنید تا آدرس (شهر، خیابان و …) نمایش داده شود.
+              </p>
+
+              <div class="flex gap-1 text-[11px]">
+                <button
+                  type="button"
+                  @click="coordSystem = 'latlon'"
+                  :class="coordSystem === 'latlon' ? 'bg-gray-800 text-white' : 'bg-gray-100'"
+                  class="px-2 py-0.5 rounded"
+                >Lat/Lon</button>
+                <button
+                  type="button"
+                  @click="coordSystem = 'utm'"
+                  :class="coordSystem === 'utm' ? 'bg-gray-800 text-white' : 'bg-gray-100'"
+                  class="px-2 py-0.5 rounded"
+                >UTM</button>
+              </div>
+
+              <template v-if="coordSystem === 'latlon'">
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[10px] text-gray-500 mb-1">عرض جغرافیایی (lat)</label>
+                    <input v-model="manual.lat" type="text" dir="ltr" class="w-full border rounded px-2 py-1 text-xs font-mono" placeholder="35.6892" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-gray-500 mb-1">طول جغرافیایی (lon)</label>
+                    <input v-model="manual.lon" type="text" dir="ltr" class="w-full border rounded px-2 py-1 text-xs font-mono" placeholder="51.3890" />
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="grid grid-cols-3 gap-2">
+                  <div>
+                    <label class="block text-[10px] text-gray-500 mb-1">Easting</label>
+                    <input v-model="manual.easting" type="text" dir="ltr" class="w-full border rounded px-1 py-1 text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-gray-500 mb-1">Northing</label>
+                    <input v-model="manual.northing" type="text" dir="ltr" class="w-full border rounded px-1 py-1 text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-gray-500 mb-1">Zone</label>
+                    <input v-model.number="manual.zone" type="number" min="1" max="60" dir="ltr" class="w-full border rounded px-1 py-1 text-xs font-mono" />
+                  </div>
+                </div>
+              </template>
+
+              <button
+                type="button"
+                @click="performCoordSearch"
+                :disabled="loading"
+                class="w-full py-2 bg-accent text-white rounded-lg hover:bg-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ loading ? 'در حال دریافت…' : 'یافتن آدرس' }}
+              </button>
+
+              <div v-if="coordError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-center gap-2 text-red-700 text-sm">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>{{ coordError }}</span>
+                </div>
+              </div>
+
+              <div v-if="coordAddress" class="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1.5 text-[11px]">
+                <div class="font-medium text-gray-800">{{ coordAddress.display || 'آدرس یافت شد' }}</div>
+                <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-gray-600">
+                  <span v-if="coordAddress.country"><b>کشور:</b> {{ coordAddress.country }}</span>
+                  <span v-if="coordAddress.province"><b>استان:</b> {{ coordAddress.province }}</span>
+                  <span v-if="coordAddress.city"><b>شهر:</b> {{ coordAddress.city }}</span>
+                  <span v-if="coordAddress.district"><b>منطقه:</b> {{ coordAddress.district }}</span>
+                  <span v-if="coordAddress.neighbourhood" class="col-span-2"><b>محله:</b> {{ coordAddress.neighbourhood }}</span>
+                  <span v-if="coordAddress.road" class="col-span-2"><b>خیابان:</b> {{ coordAddress.road }}</span>
+                  <span v-if="coordAddress.house_number"><b>پلاک:</b> {{ coordAddress.house_number }}</span>
+                  <span v-if="coordAddress.postcode"><b>کدپستی:</b> {{ coordAddress.postcode }}</span>
+                </div>
+                <div v-if="lastCoord" class="text-gray-400 font-mono pt-1 border-t" dir="ltr">
+                  {{ lastCoord.lat.toFixed(6) }}, {{ lastCoord.lon.toFixed(6) }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -153,8 +272,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import mapboxgl from 'mapbox-gl';
+import proj4 from 'proj4';
 
 const props = defineProps({
   map: { type: Object, required: true }
@@ -169,6 +289,20 @@ const results = ref([])
 const error = ref(null)
 const searched = ref(false)
 let searchMarker = null
+
+const activeTab = ref('address')
+const coordSystem = ref('latlon')
+const manual = reactive({
+  lat: '',
+  lon: '',
+  easting: '',
+  northing: '',
+  zone: 39,
+})
+const coordError = ref('')
+const coordAddress = ref(null)
+const lastCoord = ref(null)
+let coordMarker = null
 
 const filters = ref({ city: '', select: '', top: 20 })
 
@@ -229,4 +363,100 @@ const togglePanel = () => { isOpen.value = !isOpen.value }
 const closePanel = () => { isOpen.value = false }
 const clearSearch = () => { searchText.value = ''; results.value = []; searched.value = false; error.value = null }
 const clearResults = () => { results.value = []; searched.value = false; error.value = null }
+
+const MAP_IR_KEY = import.meta.env.VITE_MAP_IR_KEY
+
+function placeCoordMarker(lon, lat) {
+  if (!props.map) return
+  if (coordMarker) coordMarker.remove()
+  coordMarker = new mapboxgl.Marker({ color: '#ea580c' })
+    .setLngLat([lon, lat])
+    .addTo(props.map)
+  props.map.flyTo({ center: [lon, lat], zoom: Math.max(props.map.getZoom(), 15), essential: true })
+}
+
+function performCoordSearch() {
+  coordError.value = ''
+  coordAddress.value = null
+  let lat, lon
+  if (coordSystem.value === 'latlon') {
+    lat = parseFloat(manual.lat)
+    lon = parseFloat(manual.lon)
+    if (!isFinite(lat) || !isFinite(lon)) {
+      coordError.value = 'مختصات معتبر نیست'
+      return
+    }
+  } else {
+    const e = parseFloat(manual.easting)
+    const n = parseFloat(manual.northing)
+    const z = Number(manual.zone) || 39
+    if (!isFinite(e) || !isFinite(n)) {
+      coordError.value = 'مختصات UTM معتبر نیست'
+      return
+    }
+    try {
+      ;[lon, lat] = proj4(
+        `+proj=utm +zone=${z} +datum=WGS84 +units=m +no_defs`,
+        'EPSG:4326',
+        [e, n],
+      )
+    } catch (err) {
+      coordError.value = 'تبدیل UTM ناموفق بود'
+      return
+    }
+  }
+  reverseLookup(lat, lon)
+}
+
+async function reverseLookup(lat, lon) {
+  loading.value = true
+  coordError.value = ''
+  coordAddress.value = null
+  lastCoord.value = { lat, lon }
+  placeCoordMarker(lon, lat)
+  try {
+    const url = `https://map.ir/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'x-api-key': MAP_IR_KEY,
+      },
+    })
+    if (!res.ok) throw new Error('خطا در سرویس آدرس (' + res.status + ')')
+    const data = await res.json()
+    const a = data.address || data || {}
+    coordAddress.value = {
+      display:
+        data.address_compact ||
+        data.address ||
+        data.postal_address ||
+        data.last ||
+        [a.province, a.city, a.neighbourhood, a.primary].filter(Boolean).join('، ') ||
+        data.display_name ||
+        '',
+      country: a.country || data.country || 'ایران',
+      province: a.province || data.province || a.state || '',
+      city: a.city || data.city || a.county || data.county || '',
+      district: a.district || data.district || a.region || '',
+      neighbourhood: a.neighbourhood || data.neighbourhood || a.suburb || '',
+      road: a.primary || a.road || data.primary || data.road || a.last || '',
+      house_number: a.plaque || a.house_number || data.plaque || '',
+      postcode: a.postal_code || a.postcode || data.postal_code || '',
+    }
+    if (!coordAddress.value.display) {
+      coordAddress.value.display = [coordAddress.value.province, coordAddress.value.city, coordAddress.value.neighbourhood, coordAddress.value.road]
+        .filter(Boolean)
+        .join('، ') || 'آدرس یافت شد'
+    }
+  } catch (err) {
+    coordError.value = err.message || 'دریافت آدرس ناموفق بود'
+  } finally {
+    loading.value = false
+  }
+}
+
+onUnmounted(() => {
+  if (searchMarker) searchMarker.remove()
+  if (coordMarker) coordMarker.remove()
+})
 </script>

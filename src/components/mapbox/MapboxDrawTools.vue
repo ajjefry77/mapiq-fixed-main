@@ -12,12 +12,10 @@
     @setBaseLayer="$emit('setBaseLayer', $event)"
     @start-cut-mode="startCutMode"
     @openKroki="openKroki"
-    @openAddressFinder="openAddressFinder"
     @openIntersectPanel="openIntersectPanel"
   />
 
   <MapboxKrokiDialog ref="krokiDialogRef" :map="map" :pins="pins" />
-  <MapboxAddressFinder ref="addressFinderRef" :map="map" :hide-trigger="true" />
 
   <Transition name="modal">
     <div
@@ -92,7 +90,6 @@ import Loading from "../Loading.vue";
 import DrawToolbar from "./DrawToolbar.vue";
 import DrawPanel from "./DrawPanel.vue";
 import MapboxKrokiDialog from "./MapboxKrokiDialog.vue";
-import MapboxAddressFinder from "./MapboxAddressFinder.vue";
 import { useDrawing } from "../../composables/useDrawing";
 import { useDragPanel } from "../../composables/useDragPanel";
 import IntersectPanel from "./IntersectPanel.vue";
@@ -116,13 +113,9 @@ const SelectGroup = inject("SelectGroup", null);
 const toolbarComponent = ref(null);
 const panelComponent = ref(null);
 const krokiDialogRef = ref(null);
-const addressFinderRef = ref(null);
 
 function openKroki() {
   krokiDialogRef.value?.open();
-}
-function openAddressFinder() {
-  addressFinderRef.value?.openPanel?.();
 }
 
 

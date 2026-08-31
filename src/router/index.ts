@@ -46,7 +46,7 @@ const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
-    meta: { requiresAuth: true, permission: 'view_dashboard' }
+    meta: { requiresAuth: true }
   },
   {
     path: '/wallet/charge',

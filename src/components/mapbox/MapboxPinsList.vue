@@ -41,7 +41,7 @@
         "
         @click="activeTab = 'in'"
       >
-        فضای اشتراکی
+        ارجاع کار
         <span
           v-if="unreadCount > 0"
           class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full px-1 min-w-[16px] text-center animate-pulse"
@@ -58,7 +58,7 @@
         "
         @click="activeTab = 'out'"
       >
-        تاریخچه
+        بایگانی
       </button>
       <button
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
@@ -356,6 +356,7 @@
           :selectedGroup="selectedGroup"
           :selectGroup="selectGroup"
           :Icons="['back']"
+          :onRenameArchive="renameArchive"
         />
       </div>
     </div>
@@ -971,7 +972,7 @@ function groupByCreatedAtDay(items) {
     if (!map.has(dayKey))
       map.set(dayKey, {
         id: dayKey,
-        name: moment(dayKey).format("jYYYY/jMM/jDD"),
+        name: getArchiveName(dayKey),
         type: "group",
         history: true,
         expanded: false,
@@ -1528,14 +1529,46 @@ const createFolder = async (name) => {
   }
 };
 
+const archiveNameKey = (dayKey) => "archiveName_" + dayKey;
+
+const defaultArchiveName = () => moment().format("jYYYY/jMM/jDD");
+
+const getArchiveName = (dayKey) => {
+  try {
+    return localStorage.getItem(archiveNameKey(dayKey)) || defaultArchiveName();
+  } catch {
+    return defaultArchiveName();
+  }
+};
+
+const renameArchive = async (dayKey, current) => {
+  const name = window.prompt("نام پوشه‌ی بایگانی:", current);
+  if (!name || !name.trim()) return;
+  try {
+    localStorage.setItem(archiveNameKey(dayKey), name.trim());
+    const g = History.value.find((x) => x.id === dayKey);
+    if (g) g.name = name.trim();
+    showMessage("نام پوشه‌ی بایگانی تغییر کرد", "success");
+  } catch (e) {
+    showMessage("خطا در تغییر نام پوشه‌ی بایگانی", "error");
+  }
+};
+
 const ArchiveDesktop = async () => {
   const confirmed = window.confirm(
-    "تمامی آیتم های میز کار به بخش آرشیو منتقل میشوند ، مطمئن هستید ؟",
+    "آیتم‌های فعال میز کار به بایگانی منتقل می‌شوند ، مطمئن هستید ؟",
   );
   if (!confirmed) return;
-  let ids = props.pins.map((item) => item.save);
-  await axios.post(SERVER + "/api/archive", { ids });
+  const name = window.prompt("نام پوشه‌ی بایگانی (پیش‌فرض: تاریخ امروز):", defaultArchiveName());
+  if (!name) return;
+  // فقط پوشه‌ها و فایل‌های فعال (نمایش داده‌شده) به بایگانی منتقل می‌شوند
+  let ids = props.pins.filter((item) => {
+    if (item.type === "group" || item.type === "folder") return true;
+    return item.shape && item.shape.show !== false;
+  }).map((item) => item.save);
+  await axios.post(SERVER + "/api/archive", { ids, name: name.trim() });
   emit("clearPins");
+  await loadWorks().catch(() => {});
 };
 
 const send = async (data) => {

@@ -27,6 +27,10 @@
 
         <div class="flex ml-0.5">
           <input v-if="!item.history" type="checkbox" @click="selectedItems(item)" v-model="item.show" class="ml-2 accent-green-600"/>
+          <button v-if="item.history" class="text-amber-500 hover:text-amber-700 w-6 h-6 flex items-center justify-center"
+                  @click.stop="onRenameArchive?.(item.id, item.name)" title="تغییر نام پوشه‌ی بایگانی">
+            <i class="fas fa-pen w-3 h-3"></i>
+          </button>
           <button class="text-red-500 hover:text-red-700 w-6 h-6 flex items-center justify-center"
                   @click="remove(item,idx)" title="حذف پوشه">
             <i class="fas fa-trash-alt"></i>
@@ -72,7 +76,8 @@ const props = defineProps({
   selectedGroup: Object,
   selectGroup: Function,
   parentGroup: Object,
-  Icons : Array
+  Icons : Array,
+  onRenameArchive: Function
 });
 
 

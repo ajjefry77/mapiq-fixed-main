@@ -24,7 +24,7 @@
           <i :class="authStore.isMapboxMode ? 'fas fa-globe' : 'fas fa-map'" class="mr-1"></i>
           {{ authStore.isMapboxMode ? '2D' : '3D' }}
         </router-link>
-        <router-link v-if="authStore.isAdmin || authStore.isGroupManager" to="/dashboard" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">داشبورد</router-link>
+        <router-link v-if="authStore.isAdmin || authStore.isGroupManager || authStore.isAuthenticated" to="/dashboard" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">داشبورد</router-link>
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_users')" to="/users" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">کاربران</router-link>
         <router-link v-if="authStore.isAdmin && authStore.hasPermission('view_roles')" to="/roles" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقش‌ها</router-link>
         <router-link v-if="authStore.isAdmin || authStore.isAuthenticated && authStore.isGroupManager" to="/groups" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">گروه‌ها</router-link>
@@ -36,6 +36,34 @@
           <router-link v-if="authStore.isAdmin" to="/setting" class="gear-btn" title="تنظیمات">
             <i class="fas fa-cog"></i>
           </router-link>
+
+          <div class="notif-wrap" ref="notifRef">
+            <button class="notif-btn" title="اعلان‌ها" @click.stop="toggleNotif">
+              <i class="fas fa-bell"></i>
+              <span v-if="notifStore.unreadCount" class="notif-badge">{{ notifStore.unreadCount }}</span>
+            </button>
+            <teleport to="body">
+              <div v-if="notifOpen" class="notif-dropdown card" ref="notifDropdownRef" :style="notifStyle" @click.stop>
+                <div class="notif-head">
+                  <strong>اعلان‌ها</strong>
+                  <button class="notif-clear" @click="notifStore.markAllRead">خواندن همه</button>
+                </div>
+                <div v-if="notifStore.items.length === 0" class="notif-empty">اعلانی ندارید</div>
+                <div v-else class="notif-list">
+                  <div
+                    v-for="n in notifStore.items"
+                    :key="n.id"
+                    class="notif-item"
+                    :class="{ 'notif-unread': !n.read }"
+                    @click="notifStore.markRead(n.id)"
+                  >
+                    <div class="notif-title"><i :class="notifIcon(n.type)"></i>{{ n.title }}</div>
+                    <div v-if="n.message" class="notif-msg">{{ n.message }}</div>
+                  </div>
+                </div>
+              </div>
+            </teleport>
+          </div>
 
           <div class="user-menu" @click="toggleUserMenu" ref="userMenuRef">
             <span class="user-avatar">{{ initials }}</span>
@@ -80,11 +108,13 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useAuthStore } from "../stores/auth"
+import { useNotificationsStore } from "../stores/notifications"
 import axios from "axios"
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const notifStore = useNotificationsStore()
 const SERVER = import.meta.env.VITE_SERVER
 
 const menuOpen = ref(false)
@@ -93,6 +123,34 @@ const userMenuRef = ref(null)
 const dropdownRef = ref(null)
 const dropdownStyle = ref({})
 const walletBalance = ref(0)
+
+// اعلان‌ها
+const notifOpen = ref(false)
+const notifRef = ref(null)
+const notifDropdownRef = ref(null)
+const notifStyle = ref({})
+
+function notifIcon(type) {
+  return type === "success" ? "fas fa-check-circle notif-ic--success"
+    : type === "warning" ? "fas fa-exclamation-triangle notif-ic--warning"
+    : type === "error" ? "fas fa-times-circle notif-ic--error"
+    : "fas fa-info-circle notif-ic--info"
+}
+
+function toggleNotif() {
+  notifOpen.value = !notifOpen.value
+  if (notifOpen.value) {
+    notifRef.value?.getBoundingClientRect()
+    const rect = notifRef.value.getBoundingClientRect()
+    const width = 300
+    const margin = 8
+    let right = window.innerWidth - rect.right
+    right = Math.max(margin, Math.min(right, window.innerWidth - width - margin))
+    let top = rect.bottom + 8
+    if (top + 360 > window.innerHeight) top = window.innerHeight - 370
+    notifStyle.value = { position: "fixed", width: `${width}px`, right: `${right}px`, top: `${top}px` }
+  }
+}
 
 function formatMoney(n) {
   return (Number(n) || 0).toLocaleString("fa-IR")
@@ -185,6 +243,11 @@ function handleClickOutside(e) {
   const inDropdown = dropdownRef.value && dropdownRef.value.contains(e.target)
   if (!inMenu && !inDropdown) {
     menuOpen.value = false
+  }
+  const inNotif = notifRef.value && notifRef.value.contains(e.target)
+  const inNotifDropdown = notifDropdownRef.value && notifDropdownRef.value.contains(e.target)
+  if (!inNotif && !inNotifDropdown) {
+    notifOpen.value = false
   }
 }
 
@@ -346,6 +409,114 @@ onUnmounted(() => {
   align-items: center;
   flex-shrink: 0;
   margin-inline-start: auto;
+}
+
+.notif-wrap {
+  position: relative;
+}
+.notif-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  transition: color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.notif-btn:hover {
+  color: var(--text);
+  background: var(--surface2);
+  transform: translateY(-1px);
+}
+.notif-badge {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--danger, #ef4444);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.notif-dropdown {
+  width: 300px;
+  padding: 12px;
+  z-index: 300;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  animation: dropdownIn 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+.notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.notif-clear {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+}
+.notif-empty {
+  padding: 18px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.notif-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.notif-item {
+  padding: 8px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notif-item:hover {
+  background: var(--surface2);
+}
+.notif-item.notif-unread {
+  background: var(--accent-glow);
+}
+.notif-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.notif-title i {
+  font-size: 12px;
+}
+.notif-ic--success { color: var(--success, #22c55e); }
+.notif-ic--warning { color: var(--warning, #f59e0b); }
+.notif-ic--error { color: var(--danger, #ef4444); }
+.notif-ic--info { color: var(--accent); }
+.notif-msg {
+  margin-top: 2px;
+  color: var(--text-muted);
 }
 
 .user-menu {

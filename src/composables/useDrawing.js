@@ -65,6 +65,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     rightClick: null,
     key: null,
     featureClick: null,
+    featureContext: null,
     styleLoad: null,
   };
   const es = {
@@ -75,6 +76,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     mouseDown: null,
     mouseMove: null,
     mouseUp: null,
+    handleContext: null,
   };
   const ts = {
     sourceId: null,
@@ -1093,6 +1095,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     }
     hs.featureClick = (e) => onExistingFeatureClick(e);
     map.on("click", hs.featureClick);
+    hs.featureContext = (e) => onExistingFeatureContext(e);
+    map.on("contextmenu", hs.featureContext);
     hs.styleLoad = () => reassertDrawingOrder();
     map.on("style.load", hs.styleLoad);
   });
@@ -1103,6 +1107,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     if (hs.featureClick) {
       map.off("click", hs.featureClick);
       hs.featureClick = null;
+    }
+    if (hs.featureContext) {
+      map.off("contextmenu", hs.featureContext);
+      hs.featureContext = null;
     }
     if (hs.styleLoad) {
       map.off("style.load", hs.styleLoad);
@@ -1139,6 +1147,45 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     const pinId = feature.layer.source.replace(/^draw-pin-/, "");
     const pin = findPinRecursive(pins, pinId);
     if (pin) startEditFeature(pin);
+  }
+  // کلیک راست روی یک شکل موجود → باز کردن حالت ویرایش/خواص
+  function onExistingFeatureContext(e) {
+    if (
+      drawMode.value ||
+      pickForForm.value ||
+      measureActive.value ||
+      showForm.value ||
+      intersectActive.value
+    )
+      return;
+    const rendered = map.queryRenderedFeatures(e.point);
+    const feature = rendered.find((f) =>
+      f.layer?.source?.startsWith("draw-pin-"),
+    );
+    if (!feature) return;
+    const pinId = feature.layer.source.replace(/^draw-pin-/, "");
+    const pin = findPinRecursive(pins, pinId);
+    if (pin) {
+      startEditFeature(pin);
+    }
+  }
+  // حذف رأس با کلیک راست روی دستگیره‌ها
+  function onHandleContext(e) {
+    if (!e.features?.length || !shape.value) return;
+    const idx = Number(e.features[0].properties.index);
+    const pts = shape.value.positions || [];
+    if (Number.isNaN(idx) || idx < 0 || idx >= pts.length) return;
+    if (shape.value.type === "polygon" && pts.length - 1 <= 3) return;
+    if (shape.value.type === "polyline" && pts.length <= 2) return;
+    if (shape.value.type === "multi_point" && pts.length <= 1) return;
+    pts.splice(idx, 1);
+    if (shape.value.type === "polygon") {
+      // قفل حلقه: اولین و آخرین نقطه باید یکی باشند
+      pts[0] = { ...pts[pts.length - 1] };
+    }
+    if (editingPin.value)
+      renderUpdatedShape(editingPin.value, toRaw(shape.value));
+    refreshEditHandles();
   }
   // Vertex drag editing
   function enableVertexEditing() {
@@ -1233,6 +1280,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     map.on("mousedown", handlesLayerId, es.mouseDown);
     map.on("mousemove", es.mouseMove);
     map.on("mouseup", es.mouseUp);
+    es.handleContext = (e) => onHandleContext(e);
+    map.on("contextmenu", handlesLayerId, es.handleContext);
   }
   function refreshEditHandles() {
     if (!es.sourceId || !shape.value) return;
@@ -1254,6 +1303,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     if (es.sourceId) {
       const handlesLayerId = es.sourceId + "-points";
       if (es.mouseDown) map.off("mousedown", handlesLayerId, es.mouseDown);
+      if (es.handleContext) map.off("contextmenu", handlesLayerId, es.handleContext);
       if (map.getLayer(handlesLayerId)) map.removeLayer(handlesLayerId);
       if (es.haloLayerId) {
         if (map.getLayer(es.haloLayerId)) map.removeLayer(es.haloLayerId);
@@ -1267,6 +1317,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     es.mouseDown = null;
     es.mouseMove = null;
     es.mouseUp = null;
+    es.handleContext = null;
     es.dragging = false;
     es.dragIndex = null;
     map.dragPan.enable();

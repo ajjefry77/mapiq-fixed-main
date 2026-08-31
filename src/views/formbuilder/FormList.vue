@@ -142,6 +142,14 @@ function formatDate(str) {
   return d.toLocaleDateString("fa-IR", { year: "numeric", month: "short", day: "numeric" })
 }
 
+async function confirmDelete(form) {
+  if (!confirm(`فرم «${form.title}» حذف شود؟`)) return
+  try {
+    await deleteForm(form.id)
+    success('فرم حذف شد')
+  } catch (e) { handleError(e) }
+}
+
 async function copyLink(form) {
   const url = `${window.location.origin}/f/${form.id}`
   try {

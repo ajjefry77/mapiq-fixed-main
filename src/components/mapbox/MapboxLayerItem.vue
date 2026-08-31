@@ -106,6 +106,32 @@ const zoomOnPin = () => {
       coords.forEach(c => bounds.extend(c));
       props.map.fitBounds(bounds, { padding: 50, duration: 1500 });
     }
+  } else if (shape._sourceIds && shape._sourceIds.length > 0) {
+    const bounds = new mapboxgl.LngLatBounds();
+    for (const sid of shape._sourceIds) {
+      const src = props.map.getSource(sid);
+      if (!src) continue;
+      try {
+        const data = src._data;
+        const geojson = typeof data === 'string' ? JSON.parse(data) : data;
+        if (!geojson) continue;
+        const coords = [];
+        const extractCoords = (g) => {
+          if (!g) return;
+          if (g.type === 'FeatureCollection') g.features?.forEach(extractCoords);
+          else if (g.type === 'Feature') extractCoords(g.geometry);
+          else if (g.type === 'Point') coords.push(g.coordinates);
+          else if (g.type === 'MultiPoint' || g.type === 'LineString') g.coordinates?.forEach(c => coords.push(c));
+          else if (g.type === 'MultiLineString' || g.type === 'Polygon') g.coordinates?.flat(1).forEach(c => coords.push(c));
+          else if (g.type === 'MultiPolygon') g.coordinates?.flat(2).forEach(c => coords.push(c));
+        };
+        extractCoords(geojson);
+        coords.forEach(c => { if (c?.length >= 2) bounds.extend(c); });
+      } catch (_) {}
+    }
+    if (!bounds.isEmpty()) {
+      props.map.fitBounds(bounds, { padding: 50, duration: 1500 });
+    }
   } else if (shape.center) {
     props.map.flyTo({ center: [shape.center.lng || shape.center.lon, shape.center.lat], zoom: 14, duration: 1500 });
   } else if (shape.lon !== undefined && shape.lat !== undefined) {
@@ -230,7 +256,14 @@ function selectIcon(item) {
       case 'circle': return 'fas fa-circle-dot text-accent';
     }
   }
-  if (item.type === 'file') return 'fas fa-file text-gray-500';
+  {
+    const name = String(item.name || (item.content && JSON.stringify(item.content)) || '').toLowerCase();
+    if (name.includes('.csv') || name.includes('.txt')) return 'fas fa-file-csv text-success';
+    if (name.includes('.kml') || name.includes('.kmz')) return 'fas fa-globe text-accent';
+    if (name.includes('.dxf')) return 'fas fa-compress-arrows-alt text-info';
+    if (name.includes('.dwg')) return 'fas fa-layer-group text-warning';
+    if (name.includes('.shp') || name.includes('.zip')) return 'fas fa-archive text-warning';
+  }
   return 'fas fa-file text-gray-500';
 }
 

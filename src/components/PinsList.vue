@@ -33,7 +33,7 @@
         class="relative px-2 py-1 text-sm rounded"
         :class="activeTab === 'in' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'in'" >
-       فضای اشتراکی
+       ارجاع کار
       <span
           v-if="unreadCount > 0" class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full px-1 min-w-[16px] text-center">
           {{ unreadCount }}
@@ -43,7 +43,7 @@
         class="px-2 py-1 text-sm rounded"
         :class="activeTab === 'out' ? 'bg-accent text-white' : 'bg-white border'"
         @click="activeTab = 'out'" >
-       تاریخچه
+       بایگانی
     </button>
   </div>
 
@@ -208,7 +208,7 @@
 
   <div v-if="activeTab === 'out'" class="text-xs flex flex-col h-full min-h-0">
     <div class="overflow-y-auto">
-      <LayerTree :items="History" :viewer="viewer" :depth="0" :selectedGroup="selectedGroup" :selectGroup="selectGroup" :Icons="['back']"/>
+      <LayerTree :items="History" :viewer="viewer" :depth="0" :selectedGroup="selectedGroup" :selectGroup="selectGroup" :Icons="['back']" :onRenameArchive="renameArchive"/>
     </div>
   </div>
 
@@ -568,7 +568,7 @@ function groupByCreatedAtDay(items) {
       map.set(dayKey, {
         //id: `day-${dayKey}`,       // می‌تونی عددی هم بسازی
         id: dayKey,
-        name: moment(dayKey).format('jYYYY/jMM/jDD'),              // یا فرمت فارسی (پایین‌تر توضیح دادم)
+        name: getArchiveName(dayKey),              // نام پیش‌فرض: تاریخ روز (قابل تغییر توسط کاربر)
         type: "group",
         history : true ,
         expanded: false , //isExtented(dayKey),
@@ -722,16 +722,47 @@ const createFolder = async (name) => {
   }
 }
 
+const archiveNameKey = (dayKey) => "archiveName_" + dayKey;
+
+const defaultArchiveName = () => moment().format("jYYYY/jMM/jDD");
+
+const getArchiveName = (dayKey) => {
+  try {
+    return localStorage.getItem(archiveNameKey(dayKey)) || defaultArchiveName();
+  } catch {
+    return defaultArchiveName();
+  }
+};
+
+const renameArchive = async (dayKey, current) => {
+  const name = window.prompt("نام پوشه‌ی بایگانی:", current);
+  if (!name || !name.trim()) return;
+  try {
+    localStorage.setItem(archiveNameKey(dayKey), name.trim());
+    const g = History.value.find((x) => x.id === dayKey);
+    if (g) g.name = name.trim();
+    showMessage("نام پوشه‌ی بایگانی تغییر کرد", "success");
+  } catch (e) {
+    showMessage("خطا در تغییر نام پوشه‌ی بایگانی", "error");
+  }
+};
+
 const ArchiveDesktop = async () => {
-  const confirmed = window.confirm("تمامی آیتم های میز کار به بخش آرشیو منتقل میشوند ، مطمئن هستید ؟");
+  const confirmed = window.confirm("آیتم‌های فعال میز کار به بایگانی منتقل می‌شوند ، مطمئن هستید ؟");
   if (!confirmed) return;
 
-  let ids=[];
+  const name = window.prompt("نام پوشه‌ی بایگانی (پیش‌فرض: تاریخ امروز):", defaultArchiveName());
+  if (!name) return;
+
+  let ids = [];
   for (const item of props.pins) {
-    ids.push(item.save);
+    // فقط پوشه‌ها و فایل‌های فعال (نمایش داده‌شده) به بایگانی منتقل می‌شوند
+    if (item.type === 'group') ids.push(item.save);
+    else if (item.shape && item.shape.show !== false) ids.push(item.save);
   }
-  const res = await axios.post(SERVER + '/api/archive' , {ids : ids})
-  emit('clearPins')
+  const res = await axios.post(SERVER + '/api/archive', { ids: ids, name: name.trim() });
+  emit('clearPins');
+  await loadWorks();
 }
 
 const send = async (data) => {

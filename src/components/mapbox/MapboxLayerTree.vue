@@ -71,7 +71,8 @@ const props = defineProps({
   selectedGroup: Object,
   selectGroup: Function,
   parentGroup: Object,
-  Icons: Array
+  Icons: Array,
+  onRenameArchive: Function
 });
 
 function isContainer(item) {

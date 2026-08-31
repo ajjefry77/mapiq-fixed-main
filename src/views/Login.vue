@@ -447,7 +447,7 @@ const handleLogin = async () => {
     if (result.success) {
       // 🆕 ریست تایمر بعد از لاگین موفق
       resetTimer();
-      await router.push("/mapbox");
+      await router.push(authStore.isAdmin || authStore.isGroupManager ? "/dashboard" : "/dashboard");
     } else {
       error.value = result.error;
     }

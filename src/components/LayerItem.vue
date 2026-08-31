@@ -187,8 +187,16 @@ const zoomOnPin = async (idx) => {
     emit('change-active', props.item.id)
   }
   let item = props.item;
+
+  if (item.shape && typeof item.shape.entities !== 'undefined') {
+    try {
+      await props.viewer.flyTo(item.shape, { duration: 1.5, offset: new Cesium.HeadingPitchRange(0, -90, 0) });
+    } catch (_) {}
+    return;
+  }
+
   let b = item.bounding;
-  if (item.save < 0 ) {
+  if (!b || item.save < 0 ) {
     const toCartesian = (p) => Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.height || 0)
     const positionsCartesian = item.shape.positions.map(toCartesian)
     item.bounding = Cesium.BoundingSphere.fromPoints(positionsCartesian);
@@ -302,8 +310,15 @@ function selectIcon(item) {
     case 'circle' :
       return 'fas fa-circle-dot';
     }
-  } else
+  } else {
+    const name = String(item.name || (item.content && JSON.stringify(item.content)) || '').toLowerCase();
+    if (name.includes('.csv') || name.includes('.txt')) return 'fas fa-file-csv text-success';
+    if (name.includes('.kml') || name.includes('.kmz')) return 'fas fa-globe text-accent';
+    if (name.includes('.dxf')) return 'fas fa-compress-arrows-alt text-info';
+    if (name.includes('.dwg')) return 'fas fa-layer-group text-warning';
+    if (name.includes('.shp') || name.includes('.zip')) return 'fas fa-archive text-warning';
     return 'fas fa-file';
+  }
 }
 
 // 🔹 پیام Toast

@@ -18,7 +18,7 @@
     </div>
 
     <!-- Stats overview -->
-    <div class="stats-row">
+    <div v-if="isAdmin" class="stats-row">
       <div class="stat-card">
         <div class="stat-icon stat-icon--accent"><i class="fas fa-users"></i></div>
         <div class="stat-body">
@@ -45,6 +45,38 @@
         <div class="stat-body">
           <span class="stat-value">{{ stats.forms }}</span>
           <span class="stat-label">فرم‌ها</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quality stats for group-manager / regular user -->
+    <div v-else class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--info"><i class="fas fa-layer-group"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ groups.length }}</span>
+          <span class="stat-label">گروه‌ها</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--warning"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-body">
+          <span class="stat-value">{{ forms.length }}</span>
+          <span class="stat-label">فرم‌ها</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--accent"><i class="fas fa-wallet"></i></div>
+        <div class="stat-body">
+          <span class="stat-value" dir="ltr">{{ formatMoney(walletBalance) }}</span>
+          <span class="stat-label">موجودی کیف پول</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--success"><i class="fas fa-calendar-alt"></i></div>
+        <div class="stat-body">
+          <span class="stat-value stat-value--sm">{{ jToday }}</span>
+          <span class="stat-label">تاریخ امروز</span>
         </div>
       </div>
     </div>
@@ -201,65 +233,48 @@
 
     <!-- REGULAR USER -->
     <div v-else>
-      <div class="profile-grid">
-        <div class="card profile-card">
-          <h3 class="card-title">
-            <i class="fas fa-user-edit"></i> ویرایش اطلاعات
-          </h3>
-          <div class="profile-form">
-            <div class="form-row">
-              <label>نام</label>
-              <input v-model="profileForm.name" class="input" />
-            </div>
-            <div class="form-row">
-              <label>تلفن</label>
-              <input v-model="profileForm.phone" class="input" dir="ltr" />
-            </div>
-            <div class="form-row">
-              <label>کد ملی</label>
-              <input v-model="profileForm.code" class="input" dir="ltr" />
-            </div>
-            <div class="form-row">
-              <label>رمز عبور جدید</label>
-              <input
-                v-model="profileForm.password"
-                type="password"
-                class="input"
-                placeholder="اختیاری"
-              />
-            </div>
-            <button
-              class="btn btn-primary"
-              @click="updateProfile"
-              :disabled="saving"
-            >
-              {{ saving ? "در حال ذخیره..." : "ذخیره" }}
-            </button>
-          </div>
-        </div>
-
-        <div class="side-stack">
-          <div class="card mini-card">
+      <div class="user-dash">
+        <div class="user-dash-main">
+          <div class="card user-card">
             <h3 class="card-title">
-              <i class="fas fa-file-alt"></i> فرم‌های من
+              <i class="fas fa-user-edit"></i> ویرایش اطلاعات
             </h3>
-            <div v-if="forms.length === 0" class="empty-sm">
-              فرمی اختصاص ندارد
-            </div>
-            <div v-else class="mini-list">
-              <div
-                v-for="f in forms"
-                :key="f.id"
-                class="mini-item"
-                @click="$router.push('/f/' + f.id)"
-              >
-                <span>{{ f.title || "بدون عنوان" }}</span>
-                <i class="fas fa-chevron-left"></i>
+            <div class="profile-form profile-form--grid">
+              <div class="form-row">
+                <label>نام</label>
+                <input v-model="profileForm.name" class="input" />
               </div>
+              <div class="form-row">
+                <label>تلفن</label>
+                <input v-model="profileForm.phone" class="input" dir="ltr" />
+              </div>
+              <div class="form-row">
+                <label>کد ملی</label>
+                <input v-model="profileForm.code" class="input" dir="ltr" />
+              </div>
+              <div class="form-row">
+                <label>رمز عبور جدید</label>
+                <input
+                  v-model="profileForm.password"
+                  type="password"
+                  class="input"
+                  placeholder="اختیاری"
+                />
+              </div>
+              <button
+                class="btn btn-primary profile-save"
+                @click="updateProfile"
+                :disabled="saving"
+              >
+                {{ saving ? "در حال ذخیره..." : "ذخیره" }}
+              </button>
             </div>
           </div>
-          <div class="card mini-card">
-            <h3 class="card-title"><i class="fas fa-users"></i> گروه‌های من</h3>
+
+          <div class="card user-card">
+            <h3 class="card-title">
+              <i class="fas fa-users"></i> گروه‌های من
+            </h3>
             <div v-if="groups.length === 0" class="empty-sm">
               عضو گروهی نیستید
             </div>
@@ -278,6 +293,90 @@
             </div>
           </div>
         </div>
+
+        <div class="user-dash-side">
+          <div class="card user-card">
+            <h3 class="card-title">
+              <i class="fas fa-file-alt"></i> فرم‌های من
+            </h3>
+            <div v-if="forms.length === 0" class="empty-sm">
+              فرمی اختصاص ندارد
+            </div>
+            <div v-else class="mini-list">
+              <div
+                v-for="f in forms"
+                :key="f.id"
+                class="mini-item"
+                @click="$router.push('/f/' + f.id)"
+              >
+                <span>{{ f.title || "بدون عنوان" }}</span>
+                <i class="fas fa-chevron-left"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="widget-row">
+            <div class="card widget">
+              <h3 class="card-title compact-title">
+                <i class="fas fa-wallet" style="color: #c2410c"></i> کیف پول
+              </h3>
+              <div class="wallet-body">
+                <span class="wallet-value" dir="ltr">{{ formatMoney(walletBalance) }}</span>
+                <span class="wallet-unit">ریال</span>
+              </div>
+              <button
+                class="btn btn-primary btn-sm"
+                :disabled="walletLoading"
+                @click="requestCharge"
+              >
+                <i class="fas fa-plus" style="margin-left: 4px"></i> افزایش موجودی
+              </button>
+            </div>
+
+            <div class="card widget">
+              <h3 class="card-title compact-title">
+                <i class="fas fa-cloud-sun" style="color: var(--accent)"></i> آب‌وهوا
+              </h3>
+              <div v-if="weatherError" class="empty-sm">{{ weatherError }}</div>
+              <div v-else-if="!weather" class="empty-sm">در حال دریافت...</div>
+              <div v-else class="weather-body">
+                <div class="weather-top">
+                  <span class="weather-temp" dir="ltr">{{ weather.temp }}°</span>
+                  <span class="weather-desc">{{ weather.desc }}</span>
+                </div>
+                <div class="weather-meta">
+                  <span title="بیشینه / کمینه">↑<b dir="ltr">{{ weather.tmax }}°</b> ↓<b dir="ltr">{{ weather.tmin }}°</b></span>
+                  <span title="سرعت باد"><i class="fas fa-wind"></i> <b dir="ltr">{{ weather.wind }}</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card user-card">
+            <h3 class="card-title compact-title">
+              <i class="fas fa-calendar-alt" style="color: var(--accent)"></i> {{ jTodayFull }}
+            </h3>
+            <div class="cal-wrap">
+              <div class="cal-header">
+                <button class="btn btn-ghost btn-sm" @click="calShift(-1)"><i class="fas fa-chevron-right"></i></button>
+                <span class="cal-title">{{ calTitle }}</span>
+                <button class="btn btn-ghost btn-sm" @click="calShift(1)"><i class="fas fa-chevron-left"></i></button>
+              </div>
+              <div class="cal-grid">
+                <div v-for="d in calWeek" :key="d" class="cal-cell cal-week">{{ d }}</div>
+                <div
+                  v-for="(c, i) in calCells"
+                  :key="i"
+                  class="cal-cell"
+                  :class="{
+                    'cal-other': c.other,
+                    'cal-today': c.today
+                  }"
+                >{{ c.day }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -285,6 +384,8 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
+import moment from "moment-jalaali";
+moment.loadPersian({ usePersianDigits: true });
 import { useAuthStore } from "../stores/auth";
 import { useNotify } from "../composables/useNotify";
 import axios from "axios";
@@ -423,12 +524,14 @@ async function loadMyData() {
       );
     } else if (!isAdmin.value) {
       const [formsRes, meRes] = await Promise.all([
-        axios.get(SERVER + "/api/forms"),
+        axios.get(SERVER + "/api/forms").catch(() => ({ data: [] })),
         axios.get(SERVER + "/api/auth/me"),
       ]);
       forms.value = Array.isArray(formsRes.data)
         ? formsRes.data
-        : formsRes.data?.data || [];
+        : Array.isArray(formsRes.data?.data)
+          ? formsRes.data.data
+          : [];
       const me = meRes.data?.data || meRes.data;
       const myGroups = me?.Groups ?? me?.groups ?? [];
       if (Array.isArray(myGroups) && myGroups.length) {
@@ -507,10 +610,110 @@ async function updateProfile() {
   }
 }
 
+// ---- تقویم شمسی ----
+const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+function faNum(v) {
+  return String(v).replace(/[0-9]/g, (d) => PERSIAN_DIGITS[Number(d)]);
+}
+const jToday = computed(() => faNum(moment().locale("fa").format("jD jMMMM jYYYY")));
+const jTodayFull = computed(() => faNum(moment().locale("fa").format("jD jMMMM jYYYY")));
+const calWeek = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+const calYear = ref(moment().jYear());
+const calMonth = ref(moment().jMonth());
+const calCells = ref([]);
+const calTitle = computed(() =>
+  faNum(moment(`${calYear.value}/${calMonth.value + 1}/1`, "jYYYY/jM/jD").locale("fa").format("jMMMM jYYYY")),
+);
+
+function jalahliMonthDays(year, month0based) {
+  // ماه‌ها ۰تا۵ (فروردین..شهریور) ۳۱ روز، ۶تا۱۰ (مهر..بهمن) ۳۰ روز، اسفند (۱۱) ۲۹/۳۰
+  if (month0based <= 5) return 31;
+  if (month0based <= 10) return 30;
+  return moment.jIsLeapYear(year) ? 30 : 29;
+}
+
+function buildCalendar() {
+  const first = moment(`${calYear.value}/${calMonth.value + 1}/1`, "jYYYY/jM/jD");
+  const daysInMonth = jalahliMonthDays(calYear.value, calMonth.value);
+  // هفته شمسی از شنبه شروع می‌شود؛ day(): 0=یکشنبه ... 6=شنبه
+  const startWeekday = (first.day() + 1) % 7; // 0=شنبه، 1=یکشنبه ...
+  const today = moment();
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) {
+    const prev = moment(first).subtract(startWeekday - i, "days");
+    cells.push({ day: faNum(prev.jDate()), other: true, today: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const c = moment(`${calYear.value}/${calMonth.value + 1}/${d}`, "jYYYY/jM/jD");
+    cells.push({
+      day: faNum(d),
+      other: false,
+      today: c.format("jYYYY/jM/jD") === today.format("jYYYY/jM/jD"),
+    });
+  }
+  while (cells.length % 7 !== 0) {
+    cells.push({ day: "", other: true, today: false });
+  }
+  calCells.value = cells;
+}
+
+function calShift(dir) {
+  if (dir < 0) {
+    calMonth.value -= 1;
+    if (calMonth.value < 0) { calMonth.value = 11; calYear.value -= 1; }
+  } else {
+    calMonth.value += 1;
+    if (calMonth.value > 11) { calMonth.value = 0; calYear.value += 1; }
+  }
+  buildCalendar();
+}
+
+// ---- وضعیت آب‌وهوا (open-meteo) ----
+const weather = ref(null);
+const weatherError = ref("");
+// مختصات پیش‌فرض: تهران
+const DEFAULT_COORDS = { lat: 35.6892, lng: 51.389 };
+
+async function loadWeather() {
+  try {
+    let lat = DEFAULT_COORDS.lat;
+    let lng = DEFAULT_COORDS.lng;
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 }),
+        );
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch (_) {}
+    }
+    const url =
+      "https://api.open-meteo.com/v1/forecast?latitude=" +
+      lat +
+      "&longitude=" +
+      lng +
+      "&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto";
+    const res = await axios.get(url);
+    const cw = res.data?.current_weather || {};
+    const daily = res.data?.daily || {};
+    weather.value = {
+      temp: Math.round(cw.temperature ?? 0),
+      wind: Math.round((cw.windspeed ?? 0) * 100) / 100,
+      desc: "وضعیت فعلی",
+      tmax: Math.round(daily.temperature_2m_max?.[0] ?? 0),
+      tmin: Math.round(daily.temperature_2m_min?.[0] ?? 0),
+    };
+  } catch (e) {
+    weatherError.value = "دریافت آب‌وهوا ممکن نشد";
+  }
+}
+
 onMounted(() => {
   loadProfile();
   loadWallet();
   loadMyData();
+  buildCalendar();
+  loadWeather();
 });
 </script>
 
@@ -757,16 +960,16 @@ onMounted(() => {
 .group-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 240px;
+  gap: 5px;
+  max-height: 220px;
   overflow-y: auto;
 }
 .group-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
   background: var(--surface2);
   transition: background 0.12s;
 }
@@ -775,35 +978,165 @@ onMounted(() => {
 }
 .group-avatar {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--accent-glow);
   color: var(--accent);
-  font-size: 14px;
+  font-size: 12px;
 }
 .group-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 .group-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .group-desc {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.user-dash {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.user-dash-main,
+.user-dash-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.user-card {
+  padding: 16px;
+}
+.widget-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.widget {
+  padding: 14px;
+}
+.stat-value--sm {
+  font-size: 14px;
+}
+
+/* فرم پروفایل فشرده: دو ستونه */
+.profile-form--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.profile-form--grid .profile-save {
+  grid-column: 1 / -1;
+  justify-self: stretch;
+}
+
+/* ردیف فشرده کیف پول / آب‌وهوا */
+.compact-title {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.wallet-body {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+.wallet-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #c2410c;
+}
+.wallet-unit {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.weather-body {
+  margin: 2px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.weather-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.weather-temp {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+.weather-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.weather-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.weather-meta i {
+  font-size: 11px;
+}
+.cal-wrap {
+  margin-top: 2px;
+}
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.cal-title {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-cell {
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.cal-week {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+}
+.cal-other {
+  color: var(--text-muted);
+  opacity: .35;
+}
+.cal-today {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {
@@ -835,6 +1168,18 @@ onMounted(() => {
     font-size: 18px;
   }
   .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .db-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .user-dash {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .widget-row {
     grid-template-columns: 1fr;
     gap: 12px;
   }

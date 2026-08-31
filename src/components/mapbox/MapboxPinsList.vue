@@ -805,10 +805,60 @@ const drawInbox = async (idx) => {
   pin.show = true;
 };
 
+function findPinBySourceInboxId(pins, inboxSourceId) {
+  for (const p of pins) {
+    if (p.shape && p.shape._source_inbox_id === inboxSourceId) return p;
+    if (p.children) {
+      const found = findPinBySourceInboxId(p.children, inboxSourceId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function shapeContentEqual(a, b) {
+  const strip = (obj) => {
+    if (!obj || typeof obj !== "object") return obj;
+    const copy = { ...obj };
+    delete copy.show;
+    delete copy._source_inbox_id;
+    return copy;
+  };
+  return JSON.stringify(strip(a)) === JSON.stringify(strip(b));
+}
+
 const addInboxToDesktop = async (idx) => {
   const file = inboxFiles.value[idx];
   const pin = file?.MyWork;
   if (!pin) return;
+  const inboxSourceId = file.id;
+
+  if (pin.type == "draw") {
+    let existingPin = findPinBySourceInboxId(props.pins, inboxSourceId);
+    if (existingPin) {
+      let inboxShape;
+      const content =
+        typeof pin.content === "string"
+          ? pin.content.replace(/^"|"$/g, "")
+          : pin.content;
+      try {
+        inboxShape = JSON.parse(content);
+      } catch (e) {
+        inboxShape = content;
+      }
+      if (inboxShape && shapeContentEqual(existingPin.shape, inboxShape)) {
+        showMessage("این ترسیم قبلاً به میز کار اضافه شده است", "warning");
+        return;
+      }
+    }
+  } else {
+    const existingPin = findPinBySourceInboxId(props.pins, inboxSourceId);
+    if (existingPin) {
+      showMessage("این لایه قبلاً به میز کار اضافه شده است", "warning");
+      return;
+    }
+  }
+
   loading.value = true;
   try {
     const newPin = {
@@ -834,12 +884,13 @@ const addInboxToDesktop = async (idx) => {
         return;
       }
       shape.show = true;
+      shape._source_inbox_id = inboxSourceId;
       newPin.shape = shape;
     } else if (pin.type == "file") {
-      newPin.shape = { show: true };
+      newPin.shape = { show: true, _source_inbox_id: inboxSourceId };
       newPin.content = pin.content;
     } else {
-      newPin.shape = { show: true };
+      newPin.shape = { show: true, _source_inbox_id: inboxSourceId };
     }
 
     if (SelectGroup.value !== null && props.pins[SelectGroup.value]) {

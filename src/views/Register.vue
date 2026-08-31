@@ -103,6 +103,9 @@
           </div>
         </div>
 
+        <!-- کد امنیتی -->
+        <Captcha ref="captchaRef" />
+
         <!-- دکمه ثبت نام (گرادیانی با سایه) -->
         <button
           type="submit"
@@ -132,12 +135,14 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import Captcha from '../components/Captcha.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const loading = ref(false);
 const error = ref('');
+const captchaRef = ref(null);
 
 const form = reactive({
   name: '',
@@ -148,6 +153,11 @@ const form = reactive({
 });
 
 const handleRegister = async () => {
+  if (!captchaRef.value?.validate?.()) {
+    error.value = 'کد امنیتی صحیح نیست';
+    return;
+  }
+
   loading.value = true;
   error.value = '';
   

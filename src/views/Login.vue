@@ -145,6 +145,9 @@
           </div>
         </div>
 
+        <!-- کد امنیتی -->
+        <Captcha ref="captchaRef" />
+
         <!-- دکمه ورود -->
         <button
           type="submit"
@@ -239,10 +242,13 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { logger } from "@/logger";
 import axios from "axios";
+import Captcha from "../components/Captcha.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const API_BASE_URL = import.meta.env.VITE_SERVER + "/api";
+
+const captchaRef = ref(null);
 
 const loading = ref(false);
 const error = ref("");
@@ -377,6 +383,11 @@ function showSuccessToast() {
 async function send_code() {
   if (countdown.value > 0 || !form.username) return;
 
+  if (!captchaRef.value?.validate?.()) {
+    error.value = "کد امنیتی صحیح نیست";
+    return;
+  }
+
   loading.value = true;
   error.value = "";
   smsAnimating.value = true;
@@ -422,6 +433,11 @@ async function send_code() {
 }
 
 const handleLogin = async () => {
+  if (!captchaRef.value?.validate?.()) {
+    error.value = "کد امنیتی صحیح نیست";
+    return;
+  }
+
   loading.value = true;
   error.value = "";
 

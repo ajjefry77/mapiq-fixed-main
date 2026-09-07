@@ -28,6 +28,7 @@ formatVertexLabel,
 } from "./useDrawingHelpers";
 import { createCutHandler } from "./useDrawingCut";
 import { createIntersectHandler } from "./useDrawingIntersect";
+import { createFishnetHandler } from "./useDrawingFishnet";
 import {
   getDashArray,
   pointIcon,
@@ -1400,7 +1401,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           "fill-color",
           s.color || "#ff0000",
         );
-        map.setPaintProperty(sourceId + "-fill", "fill-opacity", opacity);
+        map.setPaintProperty(sourceId + "-fill", "fill-opacity", s.fillOpacity ?? opacity);
       }
       if (map.getLayer(sourceId + "-line")) {
         map.setPaintProperty(
@@ -1714,7 +1715,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
           source: sourceId,
           paint: {
             "fill-color": s.color || "#ff0000",
-            "fill-opacity": opacity,
+            "fill-opacity": s.fillOpacity ?? opacity,
           },
           layout: { visibility },
         });
@@ -2064,6 +2065,31 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     generateIntersectReport,
     exportIntersectReportCSV,
   } = createIntersectHandler(intersectCtx);
+  // Fishnet module
+  const fishnetCtx = {
+    map,
+    pins,
+    emit,
+    $toast,
+    renderNewPin,
+    saveOneWorks,
+    addVisibleId,
+  };
+  const {
+    fishnetPanelOpen,
+    fishnetCells,
+    fishnetSourceLabel,
+    generating: fishnetGenerating,
+    cellSize,
+    cellUnit,
+    clipToPolygon,
+    selectedPinId,
+    openFishnetPanel,
+    clearFishnet,
+    generateFishnet,
+    saveFishnet,
+    exportFishnetCSV,
+  } = createFishnetHandler(fishnetCtx);
   return {
     loading,
     drawMode,
@@ -2118,5 +2144,19 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     clearIntersect,
     generateIntersectReport,
     exportIntersectReportCSV,
+    // --- Fishnet ---
+    fishnetPanelOpen,
+    fishnetCells,
+    fishnetSourceLabel,
+    fishnetGenerating,
+    cellSize,
+    cellUnit,
+    clipToPolygon,
+    selectedPinId,
+    openFishnetPanel,
+    clearFishnet,
+    generateFishnet,
+    saveFishnet,
+    exportFishnetCSV,
   };
 }

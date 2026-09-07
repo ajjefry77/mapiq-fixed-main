@@ -169,6 +169,21 @@
       </button>
       <!-- ================================= -->
 
+      <!-- === دکمه جدید: شبکه‌بندی (Fishnet) === -->
+      <button
+        @click="$emit('openFishnet')"
+        :class="[
+          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          fishnetPanelOpen
+            ? 'text-white bg-orange-500'
+            : 'text-black bg-gray-200 hover:bg-orange-100',
+        ]"
+        title="شبکه‌بندی پلیگان (Fishnet)"
+      >
+        <i class="fas fa-th"></i>
+      </button>
+      <!-- ================================= -->
+
       <div class="relative">
         <button
           @click.stop="expanded = !expanded"
@@ -240,6 +255,7 @@ defineProps({
   pickForForm: { type: Boolean, default: false },
   baseMaps: { type: Array, default: () => [] },
   intersectPanelOpen: { type: Boolean, default: false }, // جدید
+  fishnetPanelOpen: { type: Boolean, default: false },
 });
 
 // اضافه کردن startCutMode به لیست emitها
@@ -251,6 +267,7 @@ defineEmits([
   "startCutMode",
   "openKroki",
   "openIntersectPanel",
+  "openFishnet",
 ]);
 
 defineExpose({ toolbarEl });

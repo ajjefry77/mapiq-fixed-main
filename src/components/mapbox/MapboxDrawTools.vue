@@ -6,6 +6,7 @@
     :pickForForm="pickForForm"
     :baseMaps="baseMaps"
     :intersectPanelOpen="intersectPanelOpen"
+    :fishnetPanelOpen="fishnetPanelOpen"
     @toggleMeasure="toggleMeasure"
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
@@ -13,6 +14,7 @@
     @start-cut-mode="startCutMode"
     @openKroki="openKroki"
     @openIntersectPanel="openIntersectPanel"
+    @openFishnet="openFishnetPanel"
   />
 
   <MapboxKrokiDialog ref="krokiDialogRef" :map="map" :pins="pins" />
@@ -81,6 +83,26 @@
     @exportCSV="exportIntersectReportCSV"
   />
 
+  <FishnetPanel
+    :panelOpen="fishnetPanelOpen"
+    :pins="pins"
+    :selectedPinId="selectedPinId"
+    :cellSize="cellSize"
+    :cellUnit="cellUnit"
+    :clipToPolygon="clipToPolygon"
+    :generating="fishnetGenerating"
+    :cells="fishnetCells"
+    :sourceLabel="fishnetSourceLabel"
+    @update:selectedPinId="selectedPinId = $event"
+    @update:cellSize="cellSize = $event"
+    @update:cellUnit="cellUnit = $event"
+    @update:clipToPolygon="clipToPolygon = $event"
+    @generate="onFishnetGenerate"
+    @save="onFishnetSave"
+    @exportCSV="exportFishnetCSV"
+    @clearFishnet="clearFishnet"
+  />
+
   <Loading :active="loading" />
 </template>
 
@@ -93,6 +115,7 @@ import MapboxKrokiDialog from "./MapboxKrokiDialog.vue";
 import { useDrawing } from "../../composables/useDrawing";
 import { useDragPanel } from "../../composables/useDragPanel";
 import IntersectPanel from "./IntersectPanel.vue";
+import FishnetPanel from "./FishnetPanel.vue";
 import {
   getDashArray,
   pointIcon,
@@ -165,7 +188,28 @@ const {
   clearIntersect,
   generateIntersectReport,
   exportIntersectReportCSV,
+  fishnetPanelOpen,
+  fishnetCells,
+  fishnetSourceLabel,
+  fishnetGenerating,
+  cellSize,
+  cellUnit,
+  clipToPolygon,
+  selectedPinId,
+  openFishnetPanel,
+  clearFishnet,
+  generateFishnet,
+  saveFishnet,
+  exportFishnetCSV,
 } = useDrawing(props.map, props.pins, emit, SelectGroup);
+
+function onFishnetGenerate() {
+  generateFishnet(selectedPinId.value, cellSize.value, cellUnit.value, clipToPolygon.value);
+}
+
+async function onFishnetSave() {
+  await saveFishnet();
+}
 
 function applyShapeStyle() {
   if (!shape.value || !props.map) return;

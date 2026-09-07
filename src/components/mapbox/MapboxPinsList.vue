@@ -1113,7 +1113,7 @@ function drawShape(pin, dataSourceName = "draw", visible = false) {
       source: sourceId,
       paint: {
         "fill-color": shape.color || "#ff0000",
-        "fill-opacity": shape.opacity ?? 0.5,
+        "fill-opacity": shape.fillOpacity ?? shape.opacity ?? 0.5,
       },
       layout: {
         visibility: visible ? "visible" : shape.show ? "visible" : "none",

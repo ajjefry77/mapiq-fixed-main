@@ -3,7 +3,7 @@
     <div class="page-header">
       <h1 class="page-title">کاربران</h1>
       <button v-if="authStore.hasPermission('manage_users')" class="btn btn-primary btn-sm" @click="openCreate">
-        <i class="fas fa-plus" style="margin-left:4px"></i> کاربر جدید
+        <i class="fas fa-plus ms-1"></i> کاربر جدید
       </button>
     </div>
 

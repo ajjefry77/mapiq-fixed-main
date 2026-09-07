@@ -5,11 +5,11 @@
     نمونه
   </button>
 
-  <div class="fixed inset-0 flex items-center justify-center bg-black/40 z-40">
-    <div class="bg-white w-11/12 md:w-3/4 lg:w-2/3 h-[600px] rounded-md shadow-2xl border flex flex-col overflow-hidden">
+  <div class="modal-backdrop z-40">
+    <div class="modal modal-xl w-11/12 md:w-3/4 lg:w-2/3 flex flex-col overflow-hidden" style="height:min(600px,86vh);padding:0">
 
-      <div class="flex justify-between items-center p-4 border-b bg-gray-50 sticky top-0 z-10">
-        <h2 class="text-xl font-bold">
+      <div class="flex justify-between items-center p-4 border-b sticky top-0 z-10" style="border-color:var(--border)">
+        <h2 class="text-lg font-bold">
           رکوردها ({{ workspace }}:{{ layer }})
         </h2>
         <!--        <button @click="togglePanel" class="text-gray-700 font-bold text-lg px-2 py-1 rounded hover:bg-gray-200">-->
@@ -19,14 +19,14 @@
       </div>
 
       <!-- Search Input -->
-      <div class="p-4 border-b bg-gray-50 sticky top-[56px] z-10">
-        <input  type="text" v-model="searchQuery"  placeholder="جستجو..." class="w-full border rounded px-3 py-1 text-sm"/>
+      <div class="p-4 border-b sticky top-[56px] z-10" style="border-color:var(--border)">
+        <input  type="text" v-model="searchQuery"  placeholder="جستجو..." class="input"/>
       </div>
 
       <!-- Table Contents  -->
-      <div class="overflow-y-auto flex-1 p-4" style="padding-top: 0">
-        <div v-if="loading" class="text-gray-500">در حال بارگذاری...</div>
-        <!--        <div v-else-if="error" class="text-red-600">{{ error }}</div>-->
+      <div class="overflow-x-auto overflow-y-auto flex-1 p-4" style="padding-top: 0">
+        <div v-if="loading" class="flex items-center justify-center gap-2 text-gray-500 py-8" role="status" aria-live="polite"><i class="fas fa-spinner animate-spin"></i> در حال بارگذاری...</div>
+        <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm" role="alert">{{ error }}</div>
 
         <table v-else class="table-auto w-full text-sm border-collapse">
           <thead>
@@ -96,9 +96,10 @@ const fetchFeatures = async () => {
   loading.value = true
   error.value = null
   try {
-    const url = `${props.geoserverUrl}/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=${props.workspace}:${props.layer}&maxFeatures=500&outputFormat=application/json`
+    const maxFeatures = Number(import.meta.env.VITE_WFS_MAX_FEATURES) || 5000
+    const url = `${props.geoserverUrl}/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=${encodeURIComponent(props.workspace)}:${encodeURIComponent(props.layer)}&maxFeatures=${maxFeatures}&outputFormat=application/json`
     const res = await fetch(url)
-    if (!res.ok) throw new Error("خطا در دریافت داده‌ها")
+    if (!res.ok) throw new Error(`خطا در دریافت داده‌ها (${res.status})`)
     const data = await res.json()
     features.value = data.features.map(f => f.properties)
     filteredFeatures.value = features.value

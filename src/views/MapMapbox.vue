@@ -3,8 +3,10 @@
     <div class="flex-1 h-full overflow-hidden">
       <div class="relative">
         <button
-          class="absolute top-4 right-[5px] h-8 w-8 z-50 bg-black/30 text-white rounded md:hidden py-1.5"
+          class="icon-btn absolute top-4 right-[5px] z-50 md:hidden"
+          style="border-radius:12px"
           @click="isOpen = !isOpen"
+          aria-label="باز کردن پنل"
         >
           ☰
         </button>

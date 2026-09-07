@@ -3,22 +3,23 @@
     <!-- آیکن کوچک مشکی و مربع -->
     <button
         @click="expanded = !expanded"
-        class="bg-[var(--primary-color)] text-white border border-gray-300 rounded-lg px-2 py-1 shadow transition hover:bg-blue-400"
-        title="جستجو بر اساس کد نوسازی">
+        class="icon-btn"
+        style="border-radius:12px"
+        title="جستجو بر اساس کد نوسازی" aria-label="جستجو بر اساس کد نوسازی" :aria-expanded="expanded">
       <i class="fas fa-qrcode m-1"></i>
     </button>
 
     <!-- فیلد باز شونده کنار آیکن -->
     <div
         v-show="expanded"
-        class="absolute top-0 right-full mr-2 w-[287px] flex items-center bg-white border border-gray-300 rounded shadow-md overflow-hidden h-[34px]"
+        class="glass-panel absolute top-0 right-full ms-2 w-[287px] max-w-[calc(100vw-16px)] flex items-center overflow-hidden min-h-[44px]"
         @click.stop>
 
 <!--      <MaskedInput v-model="searchText"/>-->
-      <input v-model="searchText" placeholder="کد نوسازی" class="border p-2 rounded w-full text-center"/>
+      <input v-model="searchText" placeholder="کد نوسازی" @keyup.enter="searchFeatures" class="flex-1 bg-transparent px-3 text-center text-sm outline-none" style="color:var(--text)"/>
       <button
           @click="searchFeatures"
-          class="bg-[var(--primary-color)] text-white px-1 h-full hover:bg-blue-700 transition rounded-sm">
+          class="btn btn-primary btn-sm self-stretch" style="border-radius:0" aria-label="جستجو">
         <i class="fas fa-search m-1"></i>
       </button>
     </div>
@@ -31,6 +32,8 @@
 import { ref } from "vue";
 import MaskedInput from './MaskedInput.vue'
 import { logger } from "@/logger"
+import { useNotify } from "@/composables/useNotify";
+const { warning: notifyWarning, error: notifyError } = useNotify();
 const GEOSERVER = import.meta.env.VITE_GEOSERVER //?? 'http://localhost:8080';
 
 const props = defineProps({
@@ -45,11 +48,9 @@ const expanded = ref(false);
 const coords = ref("");
 const workspace = ref('Amlak')
 const layer = ref('عرصه')
-const username = ref('admin')
-const password = ref('geoserver')
 
 async function searchFeatures() {
-  if (!searchText.value.trim()) return alert("عبارتی وارد کنید.");
+  if (!searchText.value.trim()) { notifyWarning("عبارتی وارد کنید."); return; }
 
   const viewer = props.viewer;
   if (!viewer) { logger.error("map.viewer.missing", { component: "SearchCode" }); return; }
@@ -73,7 +74,7 @@ async function searchFeatures() {
     viewer.dataSources.removeAll();
 
     if (!geojson.features.length) {
-      alert("هیچ فیچری یافت نشد.");
+      notifyWarning("هیچ فیچری یافت نشد.");
       return;
     }
 
@@ -108,7 +109,7 @@ async function searchFeatures() {
 
   } catch (err) {
     logger.warn("search.failed", {}, err)
-    alert("خطایی رخ داد. جزئیات در کنسول موجود است.");
+    notifyError("خطا در جستجو. اتصال را بررسی و دوباره تلاش کنید.");
   }
 }
 

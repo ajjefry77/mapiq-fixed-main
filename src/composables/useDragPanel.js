@@ -1,4 +1,4 @@
-import { ref, reactive, watch, nextTick } from 'vue';
+import { ref, reactive, watch, nextTick, onUnmounted } from 'vue';
 
 export function useDragPanel(showPanel) {
   const panelReady = ref(false);
@@ -50,6 +50,11 @@ export function useDragPanel(showPanel) {
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', stopDrag);
   };
+
+  onUnmounted(() => {
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
+  });
 
   watch(showPanel, async (newVal) => {
     if (newVal) {

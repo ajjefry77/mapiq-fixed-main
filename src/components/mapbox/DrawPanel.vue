@@ -2,7 +2,7 @@
   <div
     ref="panelEl"
     v-show="panelReady"
-    class="fixed bg-white rounded-lg shadow-2xl w-80 overflow-hidden pointer-events-auto z-50"
+    class="fixed bg-white rounded-lg shadow-2xl w-80 max-w-[calc(100vw-16px)] overflow-hidden pointer-events-auto z-50"
     :class="{ invisible: !panelPositioned }"
     :style="{
       left: panelTranslate.x + 'px',
@@ -49,7 +49,7 @@
                 })
               "
               :class="[
-                'w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none',
+                'w-full border rounded-lg px-3.5 py-2.5 min-h-[40px] text-sm focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] outline-none',
                 nameError ? 'border-red-500' : '',
               ]"
               placeholder="نام ترسیم را وارد کنید"
@@ -70,7 +70,7 @@
               "
               placeholder="توضیحات اضافی..."
               rows="2"
-              class="w-full border rounded p-1.5 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+              class="w-full border rounded-lg px-3.5 py-2.5 min-h-[40px] text-sm focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] outline-none"
             ></textarea>
           </div>
           <div v-if="drawMode === 'circle' || shape?.type === 'circle'">
@@ -415,8 +415,8 @@
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 stroke="none"
-                v-html="sym.svg"
-              ></svg>
+                aria-hidden="true"
+              ><path :d="sym.path" /></svg>
             </button>
           </div>
         </div>
@@ -568,14 +568,16 @@ function miniLineStyle(id) {
   return { borderTop: "2px " + (id === "dashed" ? "dashed" : id === "dotted" ? "dotted" : "solid") + " #333" };
 }
 
+const ALLOWED_SYMBOL_IDS = new Set(["circle", "square", "triangle", "diamond", "star", "pin"]);
 const pointSymbolOptions = [
-  { id: "circle", label: "دایره", svg: '<path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2"/>' },
-  { id: "square", label: "مربع", svg: '<path d="M3 3v18h18V3"/>' },
-  { id: "triangle", label: "مثلث", svg: '<path d="M1 21h22L12 2"/>' },
-  { id: "diamond", label: "لوزی", svg: '<path d="M6 2L2 8l10 14L22 8l-4-6z"/>' },
-  { id: "star", label: "ستاره", svg: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2L9.19 8.62L2 9.24l5.45 4.73L5.82 21z"/>' },
-  { id: "pin", label: "نشان", svg: '<path d="M12 11.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5A2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7"/>' },
+  { id: "circle", label: "دایره", path: "M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2", get svg() { return `<path d="${this.path}"/>`; } },
+  { id: "square", label: "مربع", path: "M3 3v18h18V3", get svg() { return `<path d="${this.path}"/>`; } },
+  { id: "triangle", label: "مثلث", path: "M1 21h22L12 2", get svg() { return `<path d="${this.path}"/>`; } },
+  { id: "diamond", label: "لوزی", path: "M6 2L2 8l10 14L22 8l-4-6z", get svg() { return `<path d="${this.path}"/>`; } },
+  { id: "star", label: "ستاره", path: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2L9.19 8.62L2 9.24l5.45 4.73L5.82 21z", get svg() { return `<path d="${this.path}"/>`; } },
+  { id: "pin", label: "نشان", path: "M12 11.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5A2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7", get svg() { return `<path d="${this.path}"/>`; } },
 ];
+function isAllowedSymbol(id) { return ALLOWED_SYMBOL_IDS.has(id); }
 
 const centerText = computed(() => {
   const c = props.liveCenter;

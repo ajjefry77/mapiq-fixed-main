@@ -6,7 +6,7 @@
       <div class="relative">
 
         <!-- ✅ آیکن فقط در موبایل -->
-        <button class="absolute top-4 right-[5px] h-8 w-8 z-50 bg-black/30 text-white rounded md:hidden py-1.5" @click="isOpen = !isOpen">
+        <button class="icon-btn absolute top-4 right-[5px] z-50 md:hidden" style="border-radius:12px" @click="isOpen = !isOpen" aria-label="باز کردن پنل">
           ☰
         </button>
 
@@ -31,9 +31,9 @@
           <!-- بخش لایه های سرور فقط در موبایل داخل همین پنل -->
           <div class="md:hidden mt-3 pt-3 border-t border-gray-200">
             <h3 class="mb-2 text-sm">لایه های سرور : </h3>
-            <hr style="border-top: 1px solid #aaa; margin-bottom: 10px"/>
-            <span v-if="authStore?.user?.phone == '09153333989' || authStore?.user?.phone == '09156620866'" class="text-xs text-gray-800 truncate" >
-              <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
+            <hr class="border-[var(--border)] mb-2"/>
+            <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-gray-800 truncate" >
+              <input type="checkbox" class="ms-2 accent-green-600 min-h-[20px] min-w-[20px]" @change="ShowTile" aria-label="عکس هوایی طرقبه 1340"/>
               <i class="text-accent"/>
               عکس هوایی طرقبه 1340
             </span>
@@ -42,12 +42,12 @@
 
         <!-- پنل لایه های سرور (فقط دسکتاپ) -->
         <div id="layer-panel"
-             class="absolute top-[70.5%] right-1 w-[340px] h-[29%] bg-white border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden">
+             class="absolute top-[70.5%] right-1 w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden">
           <div class=" overflow-y-auto h-[95%]">
               <h3 class="mb-2 text-sm">لایه های سرور : </h3>
-              <hr style="border-top: 1px solid #aaa; margin-bottom: 10px"/>
+              <hr class="border-[var(--border)] mb-2"/>
 
-            <span v-if="authStore?.user?.phone == '09153333989' || authStore?.user?.phone == '09156620866'" class="text-xs text-gray-800 truncate" >
+            <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-gray-800 truncate" >
               <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
               <i class="text-accent"/>
               عکس هوایی طرقبه 1340
@@ -74,15 +74,16 @@
           <div class="absolute bottom-36 md:bottom-16 left-[8px] ml-1 z-50" >
             <button
                 @click="expanded = !expanded"
-                class="w-12 h-12 bg-gray-700 text-white rounded flex flex-col items-center justify-center shadow-md"
-                title="نقشه پایه">
-              <i class="fas fa-layer-group text-xl"></i>
-              <span class="text-xs">نقشه</span>
+                class="icon-btn flex-col"
+                style="width:52px;height:52px;border-radius:14px"
+                title="نقشه پایه" aria-label="نقشه پایه" :aria-expanded="expanded">
+              <i class="fas fa-layer-group text-lg"></i>
+              <span class="text-[11px] font-medium">نقشه</span>
             </button>
 
             <!-- show list of Map Tiles -->
             <div v-show="expanded"  @click.stop
-                class="absolute md:top-0 md:left-full md:ml-2 bottom-full left-0 mb-2 w-[300px] max-w-[calc(100vw-24px)] md:w-max p-2 bg-white border border-gray-300 rounded shadow-md flex flex-col" >
+                class="glass-panel absolute md:top-0 md:left-full md:ml-2 bottom-full left-0 mb-2 w-[300px] max-w-[calc(100vw-24px)] md:w-max p-2 flex flex-col" >
               <div class="overflow-x-auto overflow-y-hidden md:overflow-visible flex gap-2 flex-nowrap">
                 <div
                     v-for="map in maps"
@@ -102,7 +103,7 @@
         </div>
 
           <!-- show detail bottom -->
-          <div class="absolute bottom-8 md:bottom-3 left-3 px-2 py-2 rounded-md font-mono text-sm" style="background: rgba(26,29,39,.85); color: var(--text-muted);">
+          <div class="glass-panel absolute bottom-8 md:bottom-3 left-3 px-3 py-2 font-mono text-[13px] tabular-nums" style="color: var(--text-muted);border-radius:12px">
             <div class="float-left mr-4">
               <ToggleSwitch class="inline-block" v-model="latlon" left='UTM' right='GCS'/>
             </div>
@@ -146,8 +147,8 @@
   <Loading :active="loading" />
   <button v-if="isMobileUA"
       @click="getLocation" style="z-index: 9999"
-      class= 'absolute bottom-16 right-[10px] w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md'
-      title="جستجوی آدرس">
+      class= 'absolute bottom-16 right-[10px] min-h-[44px] min-w-[44px] w-11 h-11 bg-gray-200 rounded-full flex items-center justify-center shadow-md'
+      title="جستجوی آدرس" aria-label="موقعیت فعلی">
     <i class="fas fa-location m-1"></i>
   </button>
 
@@ -211,6 +212,8 @@ import {useAuthStore} from '../stores/auth';
 import axios from "axios";
 import proj4 from "proj4";
 import { logger, EV } from "@/logger";
+import { useNotify } from "@/composables/useNotify";
+const { success: notifySuccess, error: notifyError, warning: notifyWarning } = useNotify();
 
 //#region  -- Variable
 const maps = [
@@ -774,7 +777,7 @@ const handleFileUpload = async (event) => {
     }
     reader.readAsArrayBuffer(file)
   } else {
-    alert("فقط فایل‌های KML یا SHP (ZIP) پشتیبانی می‌شوند.")
+    notifyWarning("فقط فایل‌های KML یا SHP (ZIP) پشتیبانی می‌شوند.")
     loading.value = false;
   }
 
@@ -790,15 +793,14 @@ const uploadToGeoserver = async () => {
     const response = await fetch(SERVER + `/api/upload/${type}`, {
       method: "POST",
       body: formData,
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
     });
     if (response.ok)
-      alert("فایل با موفقیت به سرور ارسال شد.")
+      notifySuccess("فایل با موفقیت به سرور ارسال شد.")
+    else
+      notifyError(`ارسال فایل ناموفق بود (${response.status})`)
   } catch (err) {
     logger.error("file.upload.failed", { operation: "geoserver.upload" }, err)
-    alert("ارسال فایل به GeoServer با خطا مواجه شد.")
+    notifyError("ارسال فایل به GeoServer با خطا مواجه شد.")
   }
 };
 
@@ -1249,7 +1251,7 @@ function getLocation() {
             });
 
           } catch (err) {
-            alert (err)
+            notifyError(String(err?.message ?? err))
           }
 
           viewer.camera.flyTo({
@@ -1261,19 +1263,19 @@ function getLocation() {
           // خطا یا رد دسترسی
           switch(error.code) {
             case error.PERMISSION_DENIED:
-              alert("دسترسی به موقعیت مکانی رد شد.");
+              notifyWarning("دسترسی به موقعیت مکانی رد شد.");
               break;
             case error.POSITION_UNAVAILABLE:
-              alert("اطلاعات موقعیت مکانی در دسترس نیست (ممکن است GPS خاموش باشد).");
+              notifyWarning("اطلاعات موقعیت مکانی در دسترس نیست (ممکن است GPS خاموش باشد).");
               break;
             case error.TIMEOUT:
-              alert("زمان درخواست دریافت موقعیت تمام شد.");
+              notifyWarning("زمان درخواست دریافت موقعیت تمام شد.");
               break;
           }
         }
     );
   } else {
-    alert("مرورگر شما از قابلیت موقعیت مکانی پشتیبانی نمی‌کند.");
+    notifyWarning("مرورگر شما از قابلیت موقعیت مکانی پشتیبانی نمی‌کند.");
   }
 }
 

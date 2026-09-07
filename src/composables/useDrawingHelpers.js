@@ -13,13 +13,16 @@ export function measureDistance([lng1, lat1], [lng2, lat2]) {
 }
 
 export function formatDistance(meters) {
+  if (!isFinite(meters) || meters < 0) return "—";
+  if (meters < 0.05) return "≈ 0 m";
   if (meters < 1) return (meters * 100).toFixed(0) + " cm";
   if (meters >= 1000) return (meters / 1000).toFixed(2) + " km";
   return meters.toFixed(2) + " m";
 }
 
 export function formatArea(squareMeters) {
-  if (squareMeters >= 1000)
+  if (!isFinite(squareMeters) || squareMeters < 0) return "—";
+  if (squareMeters >= 10000)
     return (squareMeters / 10000).toFixed(2) + " هکتار";
   return squareMeters.toFixed(2) + " m²";
 }
@@ -33,8 +36,7 @@ export function formatVertexLabel(lng, lat, coordinateSystem) {
       `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs${hemisphere}`,
       [lng, lat],
     );
-    // بدون نمایش zone روی نقشه
-    return `${x.toFixed(2)}, ${y.toFixed(2)}`;
+    return `${x.toFixed(2)}, ${y.toFixed(2)} (Z${zone}${hemisphere ? "S" : "N"})`;
   }
   return `${lng.toFixed(6)}, ${lat.toFixed(6)}`;
 }
@@ -88,12 +90,8 @@ export function getDrawTypeName(type, isEditing) {
 
 export function toUTM(lon, lat) {
   const zone = Math.floor((lon + 180) / 6) + 1;
-  const [x, y] = proj4(
-    "EPSG:4326",
-    `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`,
-    [lon, lat],
-  );
-  return { x, y, zone };
+  const northern = lat >= 0;
+  return { ...toUTMInZone(lon, lat, zone, northern), zone };
 }
 
 export function toUTMInZone(lon, lat, zone, northern = true) {
@@ -106,16 +104,24 @@ export function toUTMInZone(lon, lat, zone, northern = true) {
   return { x, y };
 }
 
-export function computeCircleCoords(center, radius) {
+export function computeCircleCoords(center, radius, steps = 64) {
+  const R = 6371008.8;
+  const lat1 = (center.lat * Math.PI) / 180;
+  const lon1 = (center.lng * Math.PI) / 180;
+  const d = radius / R;
   const coords = [];
-  for (let i = 0; i <= 64; i++) {
-    const angle = (i / 64) * 2 * Math.PI;
-    const rLat = center.lat + (radius / 110540) * Math.sin(angle);
-    const rLng =
-      center.lng +
-      (radius / (111319.9 * Math.cos((center.lat * Math.PI) / 180))) *
-        Math.cos(angle);
-    coords.push([rLng, rLat]);
+  for (let i = 0; i <= steps; i++) {
+    const brng = (i / steps) * 2 * Math.PI;
+    const lat2 = Math.asin(
+      Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(brng),
+    );
+    const lon2 =
+      lon1 +
+      Math.atan2(
+        Math.sin(brng) * Math.sin(d) * Math.cos(lat1),
+        Math.cos(d) - Math.sin(lat1) * Math.sin(lat2),
+      );
+    coords.push([(lon2 * 180) / Math.PI, (lat2 * 180) / Math.PI]);
   }
   coords.push(coords[0]);
   return coords;

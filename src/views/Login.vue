@@ -115,7 +115,7 @@
               class="login-input"
               style="border-color: var(--border); color: var(--text)"
               placeholder="شماره همراه یا ایمیل"
-              @focus="(e) => (e.target.style.borderColor = '#f97316')"
+              @focus="(e) => (e.target.style.borderColor = 'var(--accent)')"
               @blur="(e) => (e.target.style.borderColor = 'var(--border)')"
             />
           </div>
@@ -139,7 +139,7 @@
               class="login-input"
               style="border-color: var(--border); color: var(--text)"
               placeholder="رمز عبور خود را وارد کنید"
-              @focus="(e) => (e.target.style.borderColor = '#f97316')"
+              @focus="(e) => (e.target.style.borderColor = 'var(--accent)')"
               @blur="(e) => (e.target.style.borderColor = 'var(--border)')"
             />
           </div>
@@ -152,8 +152,7 @@
         <button
           type="submit"
           :disabled="loading"
-          class="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-          style="background: linear-gradient(135deg, #f97316, #fb923c)"
+          class="btn btn-primary btn-lg w-full"
         >
           {{ loading ? "در حال ورود..." : "ورود به سامانه" }}
         </button>
@@ -475,20 +474,23 @@ onBeforeUnmount(() => {
 .login-input {
   width: 100%;
   padding: 12px 14px 12px 40px;
+  min-height: 44px;
   border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  background: rgba(26, 29, 39, 0.6);
-  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), rgba(26, 29, 39, 0.6);
+  border-radius: 12px;
   outline: none;
   font-family: var(--font);
   font-size: 14px;
-  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.25s var(--ease-out), background 0.25s var(--ease-out);
   direction: rtl;
 }
 
+.login-input:hover { border-color: var(--border-strong); }
 .login-input:focus {
   background: rgba(26, 29, 39, 0.9);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  border-color: var(--accent);
+  box-shadow: var(--ring-soft);
 }
 
 .login-input::placeholder {

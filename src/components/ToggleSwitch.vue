@@ -34,12 +34,16 @@ defineEmits(['update:modelValue'])
   height: 0;
 }
 
+.toggle-input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .toggle-track {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  width: 46px;
-  height: 24px;
+  width: 52px;
+  min-height: 28px;
   background: var(--surface3);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -70,7 +74,7 @@ defineEmits(['update:modelValue'])
 
 .toggle-label {
   position: absolute;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-muted);
   left: 6px;

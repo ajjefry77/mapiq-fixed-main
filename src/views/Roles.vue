@@ -3,7 +3,7 @@
     <div class="page-header">
       <h1 class="page-title">نقش‌ها</h1>
       <button class="btn btn-primary btn-sm" @click="openModal()">
-        <i class="fas fa-plus" style="margin-left:4px"></i> نقش جدید
+        <i class="fas fa-plus ms-1"></i> نقش جدید
       </button>
     </div>
 

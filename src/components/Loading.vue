@@ -1,6 +1,7 @@
 <template>
-  <div v-if="active" class="loading-overlay">
-    <div class="loading-spinner"></div>
+  <div v-if="active" class="loading-overlay" role="status" aria-live="polite" aria-label="در حال بارگذاری">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <span class="sr-only">در حال بارگذاری...</span>
   </div>
 </template>
 

@@ -3,7 +3,7 @@
     <div class="page-header">
       <h1 class="page-title">گروه‌ها</h1>
       <button class="btn btn-primary btn-sm" @click="openGroupModal()">
-        <i class="fas fa-plus" style="margin-left:4px"></i> گروه جدید
+        <i class="fas fa-plus ms-1"></i> گروه جدید
       </button>
     </div>
 
@@ -33,13 +33,13 @@
             @click="selectGroup(group)"
           >
             <td class="group-name-cell">
-              <i class="fas fa-users" style="margin-left:6px;font-size:12px;color:var(--accent)"></i>{{ group.name }}
+              <i class="fas fa-users me-1.5" style="font-size:12px;color:var(--accent)"></i>{{ group.name }}
             </td>
             <td class="group-desc-cell">{{ group.description || '—' }}</td>
             <td>{{ managerName(group) }}</td>
             <td>
               <span class="member-count-badge">{{ group.Users?.length ?? 0 }}</span>
-              <button class="btn btn-ghost btn-sm" @click.stop="openMemberModal(group)" title="مدیریت اعضا"><i class="fas fa-user-plus"></i></button>
+              <button class="mini-icon-btn" @click.stop="openMemberModal(group)" title="مدیریت اعضا"><i class="fas fa-user-plus"></i></button>
             </td>
             <td :title="groupCreatedAtRaw(group)">{{ groupCreatedAt(group) }}</td>
             <td>
@@ -60,8 +60,8 @@
           <i class="fas fa-users" style="color:var(--accent)"></i> اعضای گروه «{{ selectedGroup.name }}»
           <span class="member-count-badge" style="vertical-align:middle">{{ selectedGroup.Users?.length || 0 }} عضو</span>
         </h3>
-        <button class="btn btn-ghost btn-sm" @click="openMemberModal(selectedGroup)">
-          <i class="fas fa-user-plus" style="margin-left:4px"></i> افزودن عضو
+        <button class="btn btn-ghost btn-xs members-add-btn" @click="openMemberModal(selectedGroup)">
+          <i class="fas fa-user-plus"></i> افزودن عضو
         </button>
       </div>
 
@@ -343,7 +343,8 @@ onMounted(async () => { await loadGroups(); loading.value = false })
   min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px;
   background: var(--surface2); color: var(--text); font-size: 12px; margin-left: 6px;
 }
-.row-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.row-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.row-actions .btn { min-height: 28px; padding: 4px 9px; font-size: 12px; }
 .danger-icon { color: var(--danger) !important; }
 
 .group-row { cursor: pointer; transition: background 0.15s; }
@@ -359,6 +360,16 @@ onMounted(async () => { await loadGroups(); loading.value = false })
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
+.members-panel-header .card-title { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.members-add-btn { flex-shrink: 0; font-size: 11.5px !important; }
+.mini-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 8px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; font-size: 11px;
+  transition: all .15s; vertical-align: middle;
+}
+.mini-icon-btn:hover { background: var(--surface2); color: var(--accent-soft); border-color: var(--accent-dim); }
 .member-cards { display: flex; flex-direction: column; gap: 6px; }
 .member-row {
   display: flex;

@@ -1,11 +1,17 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <h1 class="page-title">پاسخ‌های فرم: {{ form?.title }}</h1>
+      <div class="title-wrap">
+        <div class="title-icon"><i class="fas fa-inbox"></i></div>
+        <div>
+          <h1 class="page-title">پاسخ‌ها <span v-if="form" class="form-name">«{{ form?.title }}»</span> <span v-if="!loading" class="count-pill">{{ submissions.length }} پاسخ</span></h1>
+          <p class="page-subtitle">فیلتر، جستجو و مشاهده روی نقشه</p>
+        </div>
+      </div>
       <router-link
           :to="`/forms/${route.params.id}/edit`"
           class="btn btn-ghost btn-sm back-btn"
-      >← برگشت</router-link
+      >← برگشت به ویرایش</router-link
       >
     </div>
 
@@ -479,9 +485,25 @@ function formatValue(val) {
   z-index: 10;
 }
 
+.title-wrap { display: flex; align-items: center; gap: 12px; }
+.title-icon {
+  width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #d9732b, var(--accent-soft));
+  color: #fff; font-size: 17px;
+  box-shadow: 0 4px 16px var(--accent-glow-strong);
+}
+.form-name { color: var(--accent-soft); }
+.count-pill {
+  font-size: 11px; font-weight: 700; background: var(--accent-glow);
+  border: 1px solid rgba(232,132,60,.3); color: var(--accent-soft);
+  padding: 2px 10px; border-radius: 999px; vertical-align: middle;
+}
+
 .filters {
   padding: 16px;
   margin-bottom: 8px;
+  border-radius: 16px !important;
 }
 
 .simple-filters {
@@ -625,24 +647,28 @@ function formatValue(val) {
 
 .tabs {
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
+  gap: 6px;
+  border-bottom: none;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 5px;
+  border-radius: 14px;
+  width: fit-content;
 }
 
 .tabs button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 9px 18px;
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: 10px;
   color: var(--text-muted);
   font-family: var(--font);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -650,12 +676,12 @@ function formatValue(val) {
 .tabs button:hover {
   color: var(--text);
   background: var(--surface2);
-  border-radius: 8px 8px 0 0;
 }
 
 .tabs button.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  color: #fff;
+  background: linear-gradient(135deg, #d9732b, var(--accent-soft));
+  box-shadow: 0 3px 12px var(--accent-glow-strong);
 }
 
 .tab-icon {

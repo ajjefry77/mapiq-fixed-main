@@ -8,31 +8,31 @@
 
     <!-- Drawing menu -->
     <div  @click.stop
-         class="flex flex-col  rounded shadow-md p-2 gap-2">
+         class="glass-panel flex flex-col p-2 gap-2">
 
       <button
-          @click="toggleMeasure"  title="اندازه گیری" style="margin: 0"
-          class="w-8 h-8 rounded flex items-center justify-center shadow-md"
-          :class ="drawMode === 'measure' ? 'text-white bg-accent' : 'text-black bg-gray-200'">
+          @click="toggleMeasure"  title="اندازه گیری" aria-label="اندازه گیری" style="margin: 0"
+          class="icon-btn"
+          :class ="{ 'is-active': drawMode === 'measure' }">
         <i class="fas fa-ruler  m-1"></i>
       </button>
 
       <!-- pin -->
-      <button @click="togglePointPick" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
-              pickForForm ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="نقطه (انتخاب برای فرم)">
+      <button @click="togglePointPick" :class= "['icon-btn' ,
+              { 'is-active': pickForForm }]" title="نقطه (انتخاب برای فرم)" aria-label="نقطه">
 
         <i class="fas fa-location-pin"></i>
       </button>
 
-      <button @click="setDrawMode('multi_point')" :class= "['w-8 h-8 rounded flex items-center justify-center shadow-md' ,
-              drawMode === 'multi_point' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="چند نقطه">
+      <button @click="setDrawMode('multi_point')" :class= "['icon-btn' ,
+              { 'is-active': drawMode === 'multi_point' }]" title="چند نقطه" aria-label="چند نقطه">
 
         <i class="fas fa-braille"></i>
       </button>
 
       <!-- line -->
-      <button @click="setDrawMode('polyline')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-               drawMode === 'polyline' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="خط">
+      <button @click="setDrawMode('polyline')" :class="['icon-btn',
+               { 'is-active': drawMode === 'polyline' }]" title="خط" aria-label="ترسیم خط">
         <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
           <line x1="25" y1="75" x2="75" y2="25" stroke-width="6" :class="drawMode === 'polyline' ? 'stroke-white' : 'stroke-black'"/>
           <circle cx="25" cy="75" r="6" :class="drawMode === 'polyline' ? 'fill-white' : 'fill-black'" />
@@ -41,19 +41,19 @@
       </button>
 
       <!-- polygon -->
-      <button @click="setDrawMode('polygon')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-              drawMode === 'polygon' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="پلیگون">
+      <button @click="setDrawMode('polygon')" :class="['icon-btn',
+              { 'is-active': drawMode === 'polygon' }]" title="پلیگون" aria-label="پلیگون">
         <i class="fas fa-draw-polygon"></i>
       </button>
 
       <!-- circle -->
-      <button @click="setDrawMode('circle')" :class="['w-8 h-8 rounded flex items-center justify-center shadow-md',
-              drawMode === 'circle' ? 'text-white bg-accent' : 'text-black bg-gray-200']" title="دایره">
+      <button @click="setDrawMode('circle')" :class="['icon-btn',
+              { 'is-active': drawMode === 'circle' }]" title="دایره" aria-label="دایره">
         <i class="fa fa-circle"></i>
       </button>
 
       <!-- color -->
-      <label class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer" title="انتخاب رنگ">
+      <label class="icon-btn cursor-pointer" title="انتخاب رنگ" aria-label="انتخاب رنگ">
         <span class="w-5 h-5 " :style="{ backgroundColor: color }"></span>
         <input type="color" v-model="color" class="hidden" />
       </label>
@@ -80,8 +80,8 @@
     <div v-if="showForm"
          class="absolute inset-0 bg-black/40 flex items-end justify-end px-14 py-32 z-50"
          @contextmenu.prevent @click.self="cancelForm">
-      <div class="bg-white rounded-2xl p-6 w-96 shadow-xl relative flex flex-col" style="max-height:80vh">
-        <button @click="cancelForm" class="absolute top-4 left-4 text-gray-500 hover:text-black">✕</button>
+      <div class="modal card w-96 max-w-[calc(100vw-32px)] relative flex flex-col" style="max-height:80vh">
+        <button @click="cancelForm" aria-label="بستن" class="icon-btn absolute top-4 left-4" style="min-width:36px;min-height:36px">✕</button>
         <h2 class="text-md font-semibold mb-3">افزودن ترسیم جدید</h2>
 
         <!-- تب‌ها -->

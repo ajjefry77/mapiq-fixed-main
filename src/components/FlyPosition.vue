@@ -5,36 +5,36 @@
 <!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-gray-300 rounded px-2 py-1 shadow transition hover:bg-accent-soft items-center"-->
     <button
         @click="expanded = !expanded"
-        class= 'w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md' dir="ltr"
-        title="رفتن به موقعیت">
+        class= 'min-h-[44px] min-w-[44px] w-11 h-11 bg-gray-200 rounded flex items-center justify-center shadow-md' dir="ltr"
+        title="رفتن به موقعیت" aria-label="رفتن به موقعیت" :aria-expanded="expanded">
       <i class="fas fa-location m-1"></i>
     </button>
 
     <!-- فیلد باز شونده کنار آیکن -->
     <div
         v-show="expanded"
-        class="absolute top-0 left-full mr-2 w-80 flex items-center bg-white border border-gray-300 rounded shadow-md overflow-hidden h-[34px]"
+        class="absolute top-0 left-full ms-2 w-80 max-w-[calc(100vw-16px)] flex items-center bg-white border border-gray-300 rounded shadow-md overflow-hidden min-h-[40px]"
         @click.stop>
 
       <button
           @click="goToLocation"
-          title="رفتن به موقعیت"
-          class="bg-[var(--primary-color)] text-white px-3 h-full hover:bg-accent-dim transition flex-shrink-0">
+          title="رفتن به موقعیت" aria-label="برو"
+          class="bg-[var(--primary-color)] text-white px-3 self-stretch hover:bg-accent-dim transition flex-shrink-0 min-w-[44px]">
         <i class="fas fa-arrow-left" />
       </button>
 
       <input v-if="!latlon"
-          v-model="zone" type="text"   :placeholder="String(zone)" @keyup.enter="goToLocation"
-          class="w-12 h-full text-sm focus:outline-none border-r"/>
+          v-model="zone" type="text" inputmode="numeric" :placeholder="String(zone)" @keyup.enter="goToLocation"
+          class="w-12 self-stretch text-sm border-r px-2 focus-visible:outline-2 focus-visible:outline-[var(--accent)]"/>
 
       <div class="flex-1 grid grid-cols-2">
         <input
-            v-model="lng_y" type="text"   :placeholder="latlon ? 'Longitude' : 'Y (Northing)'" @keyup.enter="goToLocation"
-            class="px-2 h-full text-sm focus:outline-none border-r"/>
+            v-model="lng_y" type="text" inputmode="decimal" :placeholder="latlon ? 'Longitude' : 'Y (Northing)'" @keyup.enter="goToLocation"
+            class="px-2 self-stretch text-sm border-r focus-visible:outline-2 focus-visible:outline-[var(--accent)]"/>
 
         <input
-            v-model="lat_x" type="text"   :placeholder="latlon ? 'Latitude' : 'X (Easting)'" @keyup.enter="goToLocation"
-            class="px-2 h-full text-sm focus:outline-none border-r"/>
+            v-model="lat_x" type="text" inputmode="decimal" :placeholder="latlon ? 'Latitude' : 'X (Easting)'" @keyup.enter="goToLocation"
+            class="px-2 self-stretch text-sm border-r focus-visible:outline-2 focus-visible:outline-[var(--accent)]"/>
 
       </div>
     </div>

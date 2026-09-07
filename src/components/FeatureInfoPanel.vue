@@ -93,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, onMounted, watch } from "vue";
+import { ref, defineProps, onMounted, onUnmounted, watch } from "vue";
 import axios from "axios";
 import { logger } from "@/logger"
 //import * as turf from "@turf/turf";
@@ -125,12 +125,21 @@ let highlightEntity = null;
 const emit = defineEmits(["disableDrawing"]);
 let mode='select'
 let pre_val = {}
+let handler1 = null
 
 
+let activateTimer = null;
 onMounted(async () => {
-  setTimeout(() => {
+  activateTimer = setTimeout(() => {
     activate()
   }, 2500)
+});
+
+onUnmounted(() => {
+  if (activateTimer) clearTimeout(activateTimer);
+  if (handler.value) { handler.value.destroy(); handler.value = null; }
+  try { if (handler1) handler1.destroy(); } catch {}
+  handler1 = null;
 });
 
 watch(activeTab, async (newTab) => {
@@ -261,13 +270,6 @@ function showFeatureInfo(entity) {
 
     info.perimeter = formatLength(perimeter)
 
-    // cur_pin = findPinById(props.pins, selectEntity.value.id);
-    // const pos = cur_pin.shape.positions.map(p => [p.lon, p.lat])
-    // const polygon = turf.polygon([
-    //   [...pos, pos[0]]
-    // ])
-    // const area = turf.area(polygon)
-
     const area = calculatePolygonArea(selectEntity.value)
 
     info.area = formatArea(area);
@@ -328,36 +330,6 @@ function polygonArea(coords) {
   area = Math.abs(area * R * R / 2.0);
 
   return area; // متر مربع
-}
-
-function computePolylineArea_new(positions) {
-
-  if (!positions || positions.length < 3) return 0;
-
-  const coords = positions.map(p => {
-    const c = Cesium.Cartographic.fromCartesian(p);
-    return {
-      x: Cesium.Math.toDegrees(c.longitude),
-      y: Cesium.Math.toDegrees(c.latitude)
-    };
-  });
-
-  // بستن شکل
-  coords.push(coords[0]);
-
-  let area = 0;
-
-  for (let i = 0; i < coords.length - 1; i++) {
-    area += coords[i].x * coords[i + 1].y;
-    area -= coords[i + 1].x * coords[i].y;
-  }
-
-  area = Math.abs(area) / 2;
-
-  // تبدیل درجه به متر تقریبی
-  const meterPerDegree = 111319.9;
-
-  return area * meterPerDegree * meterPerDegree;
 }
 
 function computePolylineArea(positions) {
@@ -625,7 +597,6 @@ async function save_kml(pin, entity){
 //******************************************************************************
 // متغیرهای سراسری برای مدیریت ویرایش
 let editHandles = []
-let handler1 = null
 
 const editState = {
   activeHandle: null,

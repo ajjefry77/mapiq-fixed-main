@@ -15,6 +15,7 @@ export function createFishnetHandler(ctx) {
   const cellUnit = ref("m");
   const clipToPolygon = ref(true);
   const selectedPinId = ref("");
+  const fishnetAngle = ref(0);
 
   function removeFishnetLayers() {
     const m = ctx.map;
@@ -44,6 +45,7 @@ export function createFishnetHandler(ctx) {
     fishnetSourceLabel.value = "";
     fishnetPanelOpen.value = false;
     generating.value = false;
+    fishnetAngle.value = 0;
   }
 
   function flattenPins(list, out = []) {
@@ -138,19 +140,88 @@ export function createFishnetHandler(ctx) {
         const { x, y } = toUTMInZone(lon, lat, zone, northern);
         return [x, y];
       });
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
-      utmRing.forEach(([x, y]) => {
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
-      });
 
-      const cols = Math.ceil((maxX - minX) / cell);
-      const rows = Math.ceil((maxY - minY) / cell);
+      // مرکز پلیگان (در UTM) — گرید روی این نقطه قفل می‌شود
+      let centerUTM;
+      try {
+        const centroid = turf.centroid(poly).geometry.coordinates;
+        const { x, y } = toUTMInZone(centroid[0], centroid[1], zone, northern);
+        centerUTM = [x, y];
+      } catch (e) {
+        let sx = 0;
+        let sy = 0;
+        utmRing.forEach(([x, y]) => {
+          sx += x;
+          sy += y;
+        });
+        centerUTM = [sx / utmRing.length, sy / utmRing.length];
+      }
+      const [cx, cy] = centerUTM;
+
+      // زاویه گرید هم‌جهت شکل: مینیمم مستطیل محیطی (دایره → بدون چرخش)
+      let angleDeg = 0;
+      const isCircle = pin?.shape?.type === "circle";
+      if (!isCircle && utmRing.length >= 3) {
+        let bestArea = Infinity;
+        for (let deg = 0; deg < 180; deg += 1) {
+          const rad = (deg * Math.PI) / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          let mnU = Infinity;
+          let mxU = -Infinity;
+          let mnV = Infinity;
+          let mxV = -Infinity;
+          for (const [x, y] of utmRing) {
+            const dx = x - cx;
+            const dy = y - cy;
+            const u = dx * cos + dy * sin;
+            const v = -dx * sin + dy * cos;
+            if (u < mnU) mnU = u;
+            if (u > mxU) mxU = u;
+            if (v < mnV) mnV = v;
+            if (v > mxV) mxV = v;
+          }
+          const area = (mxU - mnU) * (mxV - mnV);
+          if (area < bestArea) {
+            bestArea = area;
+            angleDeg = deg;
+          }
+        }
+        if (angleDeg >= 90) angleDeg -= 180;
+      }
+      fishnetAngle.value = Math.round(angleDeg * 10) / 10;
+      const theta = (angleDeg * Math.PI) / 180;
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+      const toLocal = ([x, y]) => {
+        const dx = x - cx;
+        const dy = y - cy;
+        return [dx * cosT + dy * sinT, -dx * sinT + dy * cosT];
+      };
+      const toUTMxy = ([u, v]) => [
+        cx + u * cosT - v * sinT,
+        cy + u * sinT + v * cosT,
+      ];
+
+      // bbox در قاب محلی + اسنپ به مرکز (مرکز و گوشه‌ها حتما داخل شبکه‌اند)
+      let minU = Infinity;
+      let minV = Infinity;
+      let maxU = -Infinity;
+      let maxV = -Infinity;
+      utmRing.forEach((p) => {
+        const [u, v] = toLocal(p);
+        if (u < minU) minU = u;
+        if (v < minV) minV = v;
+        if (u > maxU) maxU = u;
+        if (v > maxV) maxV = v;
+      });
+      const u0 = Math.floor(minU / cell) * cell;
+      const v0 = Math.floor(minV / cell) * cell;
+      const u1 = Math.ceil(maxU / cell) * cell;
+      const v1 = Math.ceil(maxV / cell) * cell;
+
+      const cols = Math.max(1, Math.round((u1 - u0) / cell));
+      const rows = Math.max(1, Math.round((v1 - v0) / cell));
       if (cols <= 0 || rows <= 0) {
         ctx.$toast?.error("محدوده پلیگان برای شبکه‌بندی خیلی کوچک است");
         return [];
@@ -163,18 +234,11 @@ export function createFishnetHandler(ctx) {
       const cells = [];
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          const x0 = minX + c * cell;
-          const y0 = minY + r * cell;
-          const x1 = Math.min(x0 + cell, maxX + cell);
-          const cx1 = x0 + cell;
-          const cy1 = y0 + cell;
-          const cornersUTM = [
-            [x0, y0],
-            [cx1, y0],
-            [cx1, cy1],
-            [x0, cy1],
-            [x0, y0],
-          ];
+          const cu0 = u0 + c * cell;
+          const cv0 = v0 + r * cell;
+          const cu1 = cu0 + cell;
+          const cv1 = cv0 + cell;
+          const cornersUTM = [toUTMxy([cu0, cv0]), toUTMxy([cu1, cv0]), toUTMxy([cu1, cv1]), toUTMxy([cu0, cv1]), toUTMxy([cu0, cv0])];
           const cornersLonLat = cornersUTM.map(([x, y]) => {
             const { lng, lat } = fromUTM(x, y, zone, northern);
             return [lng, lat];
@@ -216,7 +280,6 @@ export function createFishnetHandler(ctx) {
               centroid: centroid.geometry.coordinates,
             });
           });
-          void x1;
         }
       }
 
@@ -224,7 +287,7 @@ export function createFishnetHandler(ctx) {
       fishnetSourceLabel.value = pin.name || "(بدون نام)";
       selectedPinId.value = String(pin.id);
       renderFishnetPreview(cells);
-      ctx.$toast?.success(`${cells.length} سلول شبکه ساخته شد (${cols}×${rows})`);
+      ctx.$toast?.success(`${cells.length} سلول شبکه ساخته شد (${cols}×${rows} — زاویه ${fishnetAngle.value}°)`);
       return cells;
     } finally {
       generating.value = false;
@@ -333,6 +396,7 @@ export function createFishnetHandler(ctx) {
     cellUnit,
     clipToPolygon,
     selectedPinId,
+    fishnetAngle,
     openFishnetPanel,
     clearFishnet,
     generateFishnet,

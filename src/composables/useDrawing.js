@@ -2084,12 +2084,77 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     cellUnit,
     clipToPolygon,
     selectedPinId,
-    openFishnetPanel,
+    fishnetAngle,
+    openFishnetPanel: rawOpenFishnetPanel,
     clearFishnet,
     generateFishnet,
     saveFishnet,
     exportFishnetCSV,
   } = createFishnetHandler(fishnetCtx);
+  // --- رفتار انحصاری ابزارها: با فعال شدن یک ابزار، پنل fishnet بسته می‌شود ---
+  function closeFishnetSilent() {
+    try {
+      clearFishnet();
+    } catch (e) {}
+  }
+  const rawSetDrawMode = setDrawMode;
+  function setDrawModeExclusive(mode) {
+    closeFishnetSilent();
+    return rawSetDrawMode(mode);
+  }
+  const rawToggleMeasure = toggleMeasure;
+  function toggleMeasureExclusive() {
+    closeFishnetSilent();
+    return rawToggleMeasure();
+  }
+  const rawTogglePointPick = togglePointPick;
+  function togglePointPickExclusive() {
+    closeFishnetSilent();
+    return rawTogglePointPick();
+  }
+  const rawStartCutMode = startCutMode;
+  function startCutModeExclusive() {
+    closeFishnetSilent();
+    return rawStartCutMode();
+  }
+  const rawOpenIntersectPanel = openIntersectPanel;
+  function openIntersectPanelExclusive() {
+    closeFishnetSilent();
+    return rawOpenIntersectPanel();
+  }
+  const rawStartIntersectMode = startIntersectMode;
+  function startIntersectModeExclusive() {
+    closeFishnetSilent();
+    return rawStartIntersectMode();
+  }
+  // باز کردن fishnet: بقیه ابزارها و پنل‌ها بسته/تمیز می‌شوند
+  function openFishnetPanelExclusive() {
+    if (editingPin.value) {
+      try {
+        renderUpdatedShape(editingPin.value);
+      } catch (e) {}
+      disableVertexEditing();
+    }
+    editingPin.value = null;
+    cleanupHandlers();
+    clearTempLayers();
+    drawMode.value = "";
+    showForm.value = false;
+    pickForForm.value = false;
+    shape.value = null;
+    positions.length = 0;
+    if (measureActive.value) {
+      try {
+        stopMeasure();
+      } catch (e) {
+        measureActive.value = false;
+      }
+    }
+    try {
+      clearIntersect();
+    } catch (e) {}
+    return rawOpenFishnetPanel();
+  }
   return {
     loading,
     drawMode,
@@ -2117,9 +2182,9 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     liveCenter,
     canFinishDrawing,
     isSaveEnabled,
-    togglePointPick,
-    setDrawMode,
-    toggleMeasure,
+    togglePointPick: togglePointPickExclusive,
+    setDrawMode: setDrawModeExclusive,
+    toggleMeasure: toggleMeasureExclusive,
     cancelForm,
     handleSave,
     onFileChange,
@@ -2130,15 +2195,15 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     getDrawTypeName: () =>
       getDrawTypeName(shape.value?.type || drawMode.value, !!editingPin.value),
     inactiveDrawing,
-    startCutMode,
+    startCutMode: startCutModeExclusive,
     // --- Intersect ---
     intersectResults,
     intersectSummary,
     overlapSourceLabel,
     intersectAnalyzing,
     intersectPanelOpen,
-    openIntersectPanel,
-    startIntersectMode,
+    openIntersectPanel: openIntersectPanelExclusive,
+    startIntersectMode: startIntersectModeExclusive,
     loadIntersectFromKML,
     loadIntersectFromPins,
     clearIntersect,
@@ -2153,7 +2218,8 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     cellUnit,
     clipToPolygon,
     selectedPinId,
-    openFishnetPanel,
+    fishnetAngle,
+    openFishnetPanel: openFishnetPanelExclusive,
     clearFishnet,
     generateFishnet,
     saveFishnet,

@@ -6,7 +6,7 @@
     @click.stop
     @contextmenu.stop
   >
-    <div class="flex items-center justify-between px-3 py-2 text-white">
+    <div class="flex items-center justify-between px-3 py-2 bg-orange-500 text-white">
       <h3 class="font-bold flex items-center gap-2">
         <i class="fas fa-th"></i>
         شبکه‌بندی (Fishnet)
@@ -19,7 +19,7 @@
     <div class="p-3 space-y-3">
       <p class="text-gray-500 text-xs leading-relaxed bg-orange-50 border border-orange-100 rounded p-2">
         یک پلیگان را انتخاب کنید و اندازه سلول را وارد کنید (متر یا کیلومتر).
-        شبکه دقیق متری در UTM ساخته و با مرز پلیگان برش می‌خورد.
+        شبکه دقیق متری در UTM، هم‌جهت شکل و قفل روی مرکز و گوشه‌ها ساخته و با مرز پلیگان برش می‌خورد.
       </p>
 
       <div>
@@ -85,6 +85,7 @@
       <div v-if="cells.length" class="bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-xs text-orange-800">
         <div class="font-bold">{{ cells.length }} سلول برای «{{ sourceLabel }}» ساخته شد.</div>
         <div v-if="estSize" class="mt-0.5 text-orange-600">اندازه هر سلول: {{ estSize }}</div>
+        <div class="mt-0.5 text-orange-600">زاویه گرید (هم‌جهت شکل): {{ angle }}°</div>
       </div>
 
       <div v-if="cells.length" class="flex gap-2">
@@ -118,6 +119,7 @@ const props = defineProps({
   generating: { type: Boolean, default: false },
   cells: { type: Array, default: () => [] },
   sourceLabel: { type: String, default: "" },
+  angle: { type: Number, default: 0 },
 });
 
 defineEmits([

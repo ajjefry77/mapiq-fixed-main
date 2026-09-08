@@ -93,6 +93,7 @@
     :generating="fishnetGenerating"
     :cells="fishnetCells"
     :sourceLabel="fishnetSourceLabel"
+    :angle="fishnetAngle"
     @update:selectedPinId="selectedPinId = $event"
     @update:cellSize="cellSize = $event"
     @update:cellUnit="cellUnit = $event"
@@ -196,6 +197,7 @@ const {
   cellUnit,
   clipToPolygon,
   selectedPinId,
+  fishnetAngle,
   openFishnetPanel,
   clearFishnet,
   generateFishnet,

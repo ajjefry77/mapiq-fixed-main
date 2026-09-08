@@ -1,7 +1,7 @@
 <template>
   <!-- دکمه باز/بستن شناور -->
   <button
-      class="fixed bottom-3 right-[100px] bg-gray-600 text-white p-2 rounded-full shadow-lg hover:bg-accent-dim z-40 text-sm"  @click="togglePanel">
+      class="fixed bottom-3 right-[100px] bg-gray-600 text-white p-2 rounded-full shadow-lg hover:bg-orange-800 z-40 text-sm"  @click="togglePanel">
     نمونه
   </button>
 
@@ -12,7 +12,7 @@
         <h2 class="text-lg font-bold">
           رکوردها ({{ workspace }}:{{ layer }})
         </h2>
-        <!--        <button @click="togglePanel" class="text-gray-700 font-bold text-lg px-2 py-1 rounded hover:bg-gray-200">-->
+        <!--        <button @click="togglePanel" class="text-zinc-400 font-bold text-lg px-2 py-1 rounded hover:bg-zinc-700">-->
         <!--          ✖-->
         <!--        </button>-->
         <slot name="close" />
@@ -25,34 +25,34 @@
 
       <!-- Table Contents  -->
       <div class="overflow-x-auto overflow-y-auto flex-1 p-4" style="padding-top: 0">
-        <div v-if="loading" class="flex items-center justify-center gap-2 text-gray-500 py-8" role="status" aria-live="polite"><i class="fas fa-spinner animate-spin"></i> در حال بارگذاری...</div>
+        <div v-if="loading" class="flex items-center justify-center gap-2 text-zinc-400 py-8" role="status" aria-live="polite"><i class="fas fa-spinner animate-spin"></i> در حال بارگذاری...</div>
         <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm" role="alert">{{ error }}</div>
 
         <table v-else class="table-auto w-full text-sm border-collapse">
           <thead>
           <tr>
-            <th v-for="(val, key) in features[0]" :key="key" class="border-b p-2 text-left bg-gray-100 sticky top-0">
+            <th v-for="(val, key) in features[0]" :key="key" class="border-b p-2 text-left bg-zinc-800 sticky top-0">
               {{ key }}
             </th>
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(feat, i) in pagedFeatures" :key="i" class="hover:bg-gray-50">
+          <tr v-for="(feat, i) in pagedFeatures" :key="i" class="hover:bg-neutral-950">
             <td v-for="(val, key) in feat" :key="key" class="p-2 border-b">{{ val }}</td>
           </tr>
           </tbody>
         </table>
 
-        <div v-if="!filteredFeatures.length && !loading" class="text-gray-500 mt-2 text-center">هیچ رکوردی یافت نشد.</div>
+        <div v-if="!filteredFeatures.length && !loading" class="text-zinc-400 mt-2 text-center">هیچ رکوردی یافت نشد.</div>
       </div>
 
       <!-- Footer Table -->
-      <div class="flex justify-between items-center p-4 border-t bg-gray-50">
-        <button @click="prevPage" :disabled="currentPage===1" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
+      <div class="flex justify-between items-center p-4 border-t bg-neutral-950">
+        <button @click="prevPage" :disabled="currentPage===1" class="px-3 py-1 bg-zinc-800 rounded hover:bg-zinc-700">
           <i class="fas fa-chevron-right"></i> قبلی
         </button>
         <span>صفحه {{ currentPage }} / {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="currentPage===totalPages" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
+        <button @click="nextPage" :disabled="currentPage===totalPages" class="px-3 py-1 bg-zinc-800 rounded hover:bg-zinc-700">
           بعدی <i class="fas fa-chevron-left"></i>
         </button>
       </div>

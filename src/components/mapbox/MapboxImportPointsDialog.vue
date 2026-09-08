@@ -1,12 +1,12 @@
 <template>
   <Transition name="modal">
     <div v-if="dialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl text-xs flex flex-col max-h-[90vh]" dir="ltr">
+    <div class="bg-zinc-900 rounded-lg shadow-lg w-full max-w-3xl text-xs flex flex-col max-h-[90vh]" dir="ltr">
 
       <!-- Header (ثابت) -->
       <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b flex-shrink-0" dir="rtl">
         <h2 class="text-base font-semibold">وارد کردن فایل نقاط (CSV / TXT)</h2>
-        <button @click="close" class="text-gray-500 hover:text-gray-700 text-lg leading-none">✕</button>
+        <button @click="close" class="text-zinc-400 hover:text-zinc-100 text-lg leading-none">✕</button>
       </div>
 
       <!-- بدنه قابل اسکرول -->
@@ -34,7 +34,7 @@
 
       <div class="grid grid-cols-2 gap-4 mb-3 items-end">
         <label class="flex items-center gap-2">
-          <input type="checkbox" v-model="settings.ignoreLabels" class="accent-green-600"/>
+          <input type="checkbox" v-model="settings.ignoreLabels" class="accent-orange-500"/>
           Ignore labels
         </label>
 
@@ -52,23 +52,23 @@
           <div class="font-medium mb-2">Delimiter</div>
 
           <label class="flex items-center gap-2 mb-1">
-            <input type="radio" value="tab" v-model="settings.delimiter" class="accent-green-600"/>
+            <input type="radio" value="tab" v-model="settings.delimiter" class="accent-orange-500"/>
             Tab
           </label>
           <label class="flex items-center gap-2 mb-1">
-            <input type="radio" value="semicolon" v-model="settings.delimiter" class="accent-green-600"/>
+            <input type="radio" value="semicolon" v-model="settings.delimiter" class="accent-orange-500"/>
             Semicolon
           </label>
           <label class="flex items-center gap-2 mb-1">
-            <input type="radio" value="comma" v-model="settings.delimiter" class="accent-green-600"/>
+            <input type="radio" value="comma" v-model="settings.delimiter" class="accent-orange-500"/>
             Comma
           </label>
           <label class="flex items-center gap-2 mb-1">
-            <input type="radio" value="space" v-model="settings.delimiter" class="accent-green-600"/>
+            <input type="radio" value="space" v-model="settings.delimiter" class="accent-orange-500"/>
             Space
           </label>
           <label class="flex items-center gap-2 mb-2">
-            <input type="radio" value="other" v-model="settings.delimiter" class="accent-green-600"/>
+            <input type="radio" value="other" v-model="settings.delimiter" class="accent-orange-500"/>
             Other:
             <input type="text" v-model="settings.otherDelimiter" maxlength="3"
                    :disabled="settings.delimiter !== 'other'"
@@ -76,7 +76,7 @@
           </label>
 
           <label class="flex items-center gap-2">
-            <input type="checkbox" v-model="settings.combineConsecutive" class="accent-green-600"/>
+            <input type="checkbox" v-model="settings.combineConsecutive" class="accent-orange-500"/>
             Combine consecutive delimiters
           </label>
         </div>
@@ -90,7 +90,7 @@
             <span>Label:</span>
             <input type="number" min="0" v-model.number="cols.label" class="border rounded w-12 px-1 py-0.5"/>
             <label class="flex items-center gap-1 col-span-2">
-              <input type="checkbox" v-model="cols.labelAccuracy" class="accent-green-600"/>
+              <input type="checkbox" v-model="cols.labelAccuracy" class="accent-orange-500"/>
               Accuracy
             </label>
 
@@ -113,13 +113,13 @@
             <span></span>
 
             <label class="flex items-center gap-1">
-              <input type="checkbox" v-model="cols.rotationEnabled" class="accent-green-600"/>
+              <input type="checkbox" v-model="cols.rotationEnabled" class="accent-orange-500"/>
               Rotation:
             </label>
             <span></span>
             <label class="flex items-center gap-1 col-span-2">
               <input type="checkbox" v-model="cols.rotationAccuracy" :disabled="!cols.rotationEnabled"
-                     class="accent-green-600"/>
+                     class="accent-orange-500"/>
               Accuracy
             </label>
 
@@ -148,7 +148,7 @@
             <span></span>
 
             <label class="flex items-center gap-1 col-span-2">
-              <input type="checkbox" v-model="cols.enabledFlagOn" class="accent-green-600"/>
+              <input type="checkbox" v-model="cols.enabledFlagOn" class="accent-orange-500"/>
               Enabled flag:
             </label>
             <input type="number" min="0" v-model.number="cols.enabledFlag" :disabled="!cols.enabledFlagOn"
@@ -193,7 +193,7 @@
         <div class="font-medium mb-1">First 20 lines preview:</div>
         <div class="border rounded overflow-auto" style="max-height: 220px;">
           <table class="w-full text-[11px] border-collapse">
-            <thead class="sticky top-0 bg-gray-200">
+            <thead class="sticky top-0 bg-zinc-800">
               <tr>
                 <th class="border px-1 py-0.5 bg-gray-400 text-white w-8">#</th>
                 <th v-for="c in maxCols" :key="c"
@@ -209,14 +209,14 @@
             </thead>
             <tbody>
               <tr v-for="(row, rIdx) in previewRows" :key="rIdx"
-                  :class="rIdx + 1 < settings.startRow ? 'text-gray-400' : ''">
-                <td class="border px-1 py-0.5 bg-gray-100 text-center">{{ rIdx + 1 }}</td>
+                  :class="rIdx + 1 < settings.startRow ? 'text-zinc-500' : ''">
+                <td class="border px-1 py-0.5 bg-zinc-800 text-center">{{ rIdx + 1 }}</td>
                 <td v-for="c in maxCols" :key="c" class="border px-1 py-0.5 whitespace-nowrap">
                   {{ row[c-1] ?? '' }}
                 </td>
               </tr>
               <tr v-if="!previewRows.length">
-                <td class="border px-2 py-2 text-center text-gray-400" :colspan="maxCols + 1">
+                <td class="border px-2 py-2 text-center text-zinc-500" :colspan="maxCols + 1">
                   فایلی انتخاب نشده است
                 </td>
               </tr>
@@ -394,7 +394,7 @@ function headerLabel(colIndex) {
 function headerClass(colIndex) {
   return fieldAtColumn(colIndex)
       ? 'bg-gray-400 text-white cursor-move'
-      : 'bg-gray-100 text-gray-400'
+      : 'bg-zinc-800 text-zinc-500'
 }
 
 // جابه‌جایی یک فیلد به ستون جدید؛ اگر ستون مقصد قبلاً فیلد دیگری داشت، جای دو فیلد عوض می‌شود

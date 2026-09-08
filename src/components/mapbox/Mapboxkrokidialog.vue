@@ -5,10 +5,10 @@
       <!-- Header -->
       <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
         <h2 class="text-base font-semibold flex items-center gap-2">
-          <i class="fas fa-print text-gray-600"></i>
+          <i class="fas fa-print text-zinc-400"></i>
           کروکی وضعیت موجود
         </h2>
-        <button @click="close" class="text-gray-500 hover:text-gray-700 text-lg leading-none"><i class="fas fa-times"></i></button>
+        <button @click="close" class="text-zinc-400 hover:text-zinc-100 text-lg leading-none"><i class="fas fa-times"></i></button>
       </div>
       
       <!-- Body -->
@@ -18,23 +18,23 @@
           <button
             type="button"
             @click="openSelectModal"
-            class="px-3 py-1.5 border border-dashed border-accent/60 text-accent rounded hover:bg-accent/10 transition text-xs font-medium"
+            class="px-3 py-1.5 border border-dashed border-orange-500/60 text-orange-500 rounded hover:bg-orange-500/10 transition text-xs font-medium"
           >
             <i class="fas fa-plus ml-1"></i>
             افزودن ترسیم
           </button>
-          <span v-if="!selectedPins.length" class="text-gray-400 text-[11px]">هنوز ترسیمی انتخاب نشده</span>
+          <span v-if="!selectedPins.length" class="text-zinc-500 text-[11px]">هنوز ترسیمی انتخاب نشده</span>
         </div>
         <!-- چیپ‌های ترسیم‌های انتخاب‌شده -->
         <div v-if="selectedPins.length" class="flex flex-wrap gap-1.5 mb-4">
           <span
             v-for="p in selectedPins"
             :key="p.id"
-            class="inline-flex items-center gap-1.5 bg-accent/10 text-accent border border-accent/20 rounded-full px-2.5 py-0.5 text-[11px]"
+            class="inline-flex items-center gap-1.5 bg-orange-500/10 text-orange-500 border border-orange-500/20 rounded-full px-2.5 py-0.5 text-[11px]"
           >
             {{ p.name || 'بدون نام' }}
-            <span class="text-accent-soft">({{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }})</span>
-            <button type="button" class="text-accent hover:text-red-500 leading-none" @click="removeSelected(p.id)" title="حذف"><i class="fas fa-times"></i></button>
+            <span class="text-orange-400">({{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }})</span>
+            <button type="button" class="text-orange-500 hover:text-red-500 leading-none" @click="removeSelected(p.id)" title="حذف"><i class="fas fa-times"></i></button>
           </span>
         </div>
 
@@ -47,7 +47,7 @@
           <div class="kroki-panel rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" dir="rtl">
             <div class="flex items-center justify-between px-4 py-3 border-b">
               <h3 class="font-semibold text-sm">انتخاب ترسیم‌ها</h3>
-              <button type="button" class="text-gray-500 hover:text-gray-800" @click="selectModalOpen = false"><i class="fas fa-times"></i></button>
+              <button type="button" class="text-zinc-400 hover:text-zinc-100" @click="selectModalOpen = false"><i class="fas fa-times"></i></button>
             </div>
             <div class="px-4 py-2 border-b">
               <input
@@ -58,24 +58,24 @@
               />
             </div>
             <div class="overflow-y-auto flex-1 p-3 space-y-1 min-h-[12rem]">
-              <div v-if="!filteredEligible.length" class="text-gray-400 text-center py-6 text-xs">ترسیمی یافت نشد</div>
+              <div v-if="!filteredEligible.length" class="text-zinc-500 text-center py-6 text-xs">ترسیمی یافت نشد</div>
               <label
                 v-for="p in filteredEligible"
                 :key="p.id"
-                class="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-accent/10 border border-transparent hover:border-accent/20"
+                class="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-orange-500/10 border border-transparent hover:border-orange-500/20"
               >
                 <input type="checkbox" :value="p.id" v-model="modalSelectedIds" />
                 <span class="text-xs">
                   {{ p.name || 'بدون نام' }}
-                  <span class="text-gray-400">
+                  <span class="text-zinc-500">
                     — {{ p.shape.type === 'polygon' ? 'پلی‌گان' : 'خط' }}
                     ({{ p.shape.positions.length }} نقطه)
                   </span>
                 </span>
               </label>
             </div>
-            <div class="flex justify-between items-center gap-2 px-4 py-3 border-t bg-gray-50">
-              <button type="button" class="text-xs text-gray-500 hover:text-gray-700" @click="modalSelectedIds = []">پاک کردن</button>
+            <div class="flex justify-between items-center gap-2 px-4 py-3 border-t bg-neutral-950">
+              <button type="button" class="text-xs text-zinc-400 hover:text-zinc-100" @click="modalSelectedIds = []">پاک کردن</button>
               <div class="flex gap-2">
                 <button type="button" class="btn btn-ghost btn-sm" @click="selectModalOpen = false">انصراف</button>
                 <button
@@ -126,7 +126,7 @@
             <div class="kroki-box p-2">
               <div class="flex items-center justify-between mb-1">
                 <span class="font-medium">تصویر نقشه</span>
-                <button @click="downloadImage(mapImage, 'map.png')" class="text-gray-500 hover:text-gray-700" title="دانلود">
+                <button @click="downloadImage(mapImage, 'map.png')" class="text-zinc-400 hover:text-zinc-100" title="دانلود">
                   <i class="fas fa-download"></i>
                 </button>
               </div>
@@ -135,11 +135,11 @@
             <div class="kroki-box p-2">
               <div class="flex items-center justify-between mb-1">
                 <span class="font-medium">کروکی وضعیت موجود</span>
-                <button @click="downloadCanvas" class="text-gray-500 hover:text-gray-700" title="دانلود">
+                <button @click="downloadCanvas" class="text-zinc-400 hover:text-zinc-100" title="دانلود">
                   <i class="fas fa-download"></i>
                 </button>
               </div>
-              <canvas ref="sketchCanvasRef" width="700" height="700" class="border rounded bg-white max-w-full max-h-[60vh] mx-auto block" style="width:auto;height:auto"></canvas>
+              <canvas ref="sketchCanvasRef" width="700" height="700" class="border rounded bg-zinc-900 max-w-full max-h-[60vh] mx-auto block" style="width:auto;height:auto"></canvas>
             </div>
           </div>
 
@@ -147,7 +147,7 @@
           <div v-if="edgeTexts.length" class="kroki-box p-3 mb-4">
             <div class="font-medium mb-2">متن ضلع‌ها</div>
             <div v-for="(shapeTexts, m) in edgeTexts" :key="m" class="mb-3 last:mb-0">
-              <div class="text-[11px] text-gray-500 mb-1">
+              <div class="text-[11px] text-zinc-400 mb-1">
                 {{ selectedPins[m]?.name || 'ترسیم ' + (m + 1) }}
               </div>
               <div class="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@
             <div class="font-medium mb-2">مختصات UTM — Zone: {{ utmZone || '—' }}</div>
             <table class="w-full text-[11px] border-collapse">
               <thead>
-                <tr class="bg-gray-100">
+                <tr class="bg-zinc-800">
                   <th class="border px-2 py-1">شماره نقطه</th>
                   <th class="border px-2 py-1">X</th>
                   <th class="border px-2 py-1">Y</th>
@@ -191,7 +191,7 @@
                 </tr>
               </tbody>
             </table>
-            <div class="mt-2 text-gray-600">مساحت کل: {{ areaM2.toFixed(2) }} متر مربع</div>
+            <div class="mt-2 text-zinc-400">مساحت کل: {{ areaM2.toFixed(2) }} متر مربع</div>
           </div>
         </div>
       </div>

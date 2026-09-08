@@ -1,7 +1,7 @@
 <template>
   <div v-if ="pointList.length"
-       class="fixed bottom-2 right-[1px] md:right-[350px] z-49 w-96 bg-white rounded-lg shadow-lg border">
-    <button @click="close" class="absolute top-[10px] left-[15px] text-gray-500 hover:text-red-600" >
+       class="fixed bottom-2 right-[1px] md:right-[350px] z-49 w-96 bg-zinc-900 rounded-lg shadow-lg border">
+    <button @click="close" class="absolute top-[10px] left-[15px] text-zinc-400 hover:text-red-600" >
       ✖
     </button>
 
@@ -11,7 +11,7 @@
 
     <div class="max-h-80 overflow-y-auto">
       <table class="w-full text-sm">
-        <thead class="sticky top-0 bg-gray-100">
+        <thead class="sticky top-0 bg-zinc-800">
         <tr>
           <th class="p-2 border">ردیف</th>
           <th class="p-2 border">X (UTM)</th>
@@ -20,7 +20,7 @@
         </thead>
 
         <tbody>
-        <tr v-for="point in pointList" :key="point.id" class="hover:bg-gray-50" >
+        <tr v-for="point in pointList" :key="point.id" class="hover:bg-neutral-950" >
           <td class="p-2 border text-center"> {{ point.row }} </td>
           <td class="p-2 border text-left font-mono"> {{ point.x }} </td>
           <td class="p-2 border text-left font-mono"> {{ point.y }} </td>

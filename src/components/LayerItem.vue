@@ -1,14 +1,14 @@
 <template>
   <div  class="grid grid-cols-[1fr_auto] items-center w-full pr-2 px-1 py-0 cursor-pointer"
-     :class="{  'bg-accent/15': isActiveLayer, 'hover:bg-gray-300': !isActiveLayer}"
+     :class="{  'bg-orange-500/15': isActiveLayer, 'hover:bg-zinc-700': !isActiveLayer}"
      :style="{ ['paddingRight']: `${depth * 20}px` }"
       draggable="true"   @dragstart="onDragStart" >
     
     <div class="flex items-center gap-1"  @click.stop="zoomOnPin">
       <i v-if="isGroup" class="fas fa-folder text-yellow-500"></i>
-      <span class="text-xs text-gray-800 truncate" :class="{ 'font-bold': isGroup }" >
-        <input type="checkbox" @click="toggle" v-model="item.shape.show" class="ml-2 accent-green-600"/>
-        <i :class="selectIcon(item)" class="text-accent"/>
+      <span class="text-xs text-zinc-100 truncate" :class="{ 'font-bold': isGroup }" >
+        <input type="checkbox" @click="toggle" v-model="item.shape.show" class="ml-2 accent-orange-500"/>
+        <i :class="selectIcon(item)" class="text-orange-500"/>
         {{ name }}
       </span>
     </div>
@@ -24,14 +24,14 @@
           class="text-green-600 hover:text-green-800"
           @click="Pin = item;OpenSend = true"
           title="ارسال">
-        <i class="fas fa-share rev text-gray-700 text-sm" />
+        <i class="fas fa-share rev text-zinc-400 text-sm" />
       </button>
 
       <button v-if="Icons.includes('back')"
           class="text-green-600 hover:text-green-800"
           @click="backToDesk"
           title="انتقال به میز کار">
-        <i class="fas fa-share rev text-accent text-sm" />
+        <i class="fas fa-share rev text-orange-500 text-sm" />
       </button>
 
       <button class="text-red-500 hover:text-red-700 w-6 h-6 flex items-center justify-center"
@@ -43,7 +43,7 @@
 <!--              class="text-green-600 hover:text-green-800 mr-2"-->
 <!--              @click="Pin = item;OpenSend = true"-->
 <!--              title="ارسال">-->
-<!--        <i class="fas fa-ellipsis-v rev text-gray-700 text-sm" />-->
+<!--        <i class="fas fa-ellipsis-v rev text-zinc-400 text-sm" />-->
 <!--      </button>-->
 
     </div>
@@ -312,11 +312,11 @@ function selectIcon(item) {
     }
   } else {
     const name = String(item.name || (item.content && JSON.stringify(item.content)) || '').toLowerCase();
-    if (name.includes('.csv') || name.includes('.txt')) return 'fas fa-file-csv text-success';
-    if (name.includes('.kml') || name.includes('.kmz')) return 'fas fa-globe text-accent';
-    if (name.includes('.dxf')) return 'fas fa-compress-arrows-alt text-info';
-    if (name.includes('.dwg')) return 'fas fa-layer-group text-warning';
-    if (name.includes('.shp') || name.includes('.zip')) return 'fas fa-archive text-warning';
+    if (name.includes('.csv') || name.includes('.txt')) return 'fas fa-file-csv text-green-500';
+    if (name.includes('.kml') || name.includes('.kmz')) return 'fas fa-globe text-orange-500';
+    if (name.includes('.dxf')) return 'fas fa-compress-arrows-alt text-sky-500';
+    if (name.includes('.dwg')) return 'fas fa-layer-group text-amber-500';
+    if (name.includes('.shp') || name.includes('.zip')) return 'fas fa-archive text-amber-500';
     return 'fas fa-file';
   }
 }

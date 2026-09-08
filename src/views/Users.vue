@@ -138,7 +138,7 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">نقش</label>
+              <label class="block text-sm font-medium text-zinc-400 mb-2">نقش</label>
               <select v-model="userForm.role_id" class="form-input">
                 <option value="">انتخاب نقش</option>
                 <option v-for="role in roles" :key="role.id" :value="role.id">

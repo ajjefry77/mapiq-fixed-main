@@ -1,22 +1,22 @@
 <template>
   <Transition name="modal">
     <div v-if="open" class="fixed inset-0 flex items-center justify-center bg-black/50 z-[400]">
-    <div class="bg-white rounded-2xl p-6 w-96 shadow-lg">
+    <div class="bg-zinc-900 rounded-2xl p-6 w-96 shadow-lg">
       <h2 class="text-lg font-bold mb-4">انتخاب کاربر</h2>
 
-      <div v-if="loading" class="text-gray-500">در حال بارگذاری...</div>
+      <div v-if="loading" class="text-zinc-400">در حال بارگذاری...</div>
       <div v-else-if="error" class="text-red-600">{{ error }}</div>
       <ul v-else class="space-y-2">
         <li v-for="user in users" :key="user.id">
           <button @click="selectUser(user.id)"
-              class="w-full text-right px-4 py-2 rounded-lg border hover:bg-gray-100">
+              class="w-full text-right px-4 py-2 rounded-lg border hover:bg-zinc-700">
             {{ user.name }}
           </button>
         </li>
       </ul>
 
       <button @click="$emit('close')"
-          class="mt-4 w-full py-2 rounded-lg bg-gray-200 hover:bg-gray-300">
+          class="mt-4 w-full py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700">
         بستن
       </button>
     </div>

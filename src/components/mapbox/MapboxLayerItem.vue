@@ -1,11 +1,11 @@
 <template>
   <div class="grid grid-cols-[1fr_auto] items-center w-full pr-2 px-1 py-0 cursor-pointer"
-       :class="{ 'bg-accent/15': isActiveLayer, 'hover:bg-gray-300': !isActiveLayer }"
+       :class="{ 'bg-orange-500/15': isActiveLayer, 'hover:bg-zinc-700': !isActiveLayer }"
        :style="{ ['paddingRight']: `${depth * 20}px` }">
 
     <div class="flex items-center gap-1" @click.stop="zoomOnPin">
-      <span class="text-xs text-gray-800 truncate flex items-center gap-1" :class="{ 'font-bold': isGroup }">
-        <input type="checkbox" :checked="item.shape?.show !== false" @change="toggle" class="ml-2 accent-green-600"/>
+      <span class="text-xs text-zinc-100 truncate flex items-center gap-1" :class="{ 'font-bold': isGroup }">
+        <input type="checkbox" :checked="item.shape?.show !== false" @change="toggle" class="ml-2 accent-orange-500"/>
         <i :class="selectIcon(item)"></i>
         {{ name }}
       </span>
@@ -15,12 +15,12 @@
       <button v-if="Icons.includes('send')"
               class="text-green-600 hover:text-green-800"
               @click="Pin = item; OpenSend = true" title="ارسال">
-        <i class="fas fa-share rev text-gray-700 text-sm"/>
+        <i class="fas fa-share rev text-zinc-400 text-sm"/>
       </button>
       <button v-if="Icons.includes('back')"
               class="text-green-600 hover:text-green-800"
               @click="backToDesk" title="انتقال به میز کار">
-        <i class="fas fa-share rev text-accent text-sm"/>
+        <i class="fas fa-share rev text-orange-500 text-sm"/>
       </button>
       <button class="text-red-500 hover:text-red-700 w-6 h-6 flex items-center justify-center"
               @click="remove" title="حذف لایه">
@@ -249,22 +249,22 @@ function selectIcon(item) {
   if (item.type === 'group') return 'fas fa-folder text-amber-500';
   if (item.type == 'draw') {
     switch (item.shape?.type) {
-      case 'multi_point': return 'fas fa-map-pin text-accent';
-      case 'point': return 'fas fa-location-dot text-accent';
-      case 'polyline': return 'fas fa-bezier-curve text-accent';
-      case 'polygon': return 'fas fa-draw-polygon text-accent';
-      case 'circle': return 'fas fa-circle-dot text-accent';
+      case 'multi_point': return 'fas fa-map-pin text-orange-500';
+      case 'point': return 'fas fa-location-dot text-orange-500';
+      case 'polyline': return 'fas fa-bezier-curve text-orange-500';
+      case 'polygon': return 'fas fa-draw-polygon text-orange-500';
+      case 'circle': return 'fas fa-circle-dot text-orange-500';
     }
   }
   {
     const name = String(item.name || (item.content && JSON.stringify(item.content)) || '').toLowerCase();
-    if (name.includes('.csv') || name.includes('.txt')) return 'fas fa-file-csv text-success';
-    if (name.includes('.kml') || name.includes('.kmz')) return 'fas fa-globe text-accent';
-    if (name.includes('.dxf')) return 'fas fa-compress-arrows-alt text-info';
-    if (name.includes('.dwg')) return 'fas fa-layer-group text-warning';
-    if (name.includes('.shp') || name.includes('.zip')) return 'fas fa-archive text-warning';
+    if (name.includes('.csv') || name.includes('.txt')) return 'fas fa-file-csv text-green-500';
+    if (name.includes('.kml') || name.includes('.kmz')) return 'fas fa-globe text-orange-500';
+    if (name.includes('.dxf')) return 'fas fa-compress-arrows-alt text-sky-500';
+    if (name.includes('.dwg')) return 'fas fa-layer-group text-amber-500';
+    if (name.includes('.shp') || name.includes('.zip')) return 'fas fa-archive text-amber-500';
   }
-  return 'fas fa-file text-gray-500';
+  return 'fas fa-file text-zinc-400';
 }
 
 function showMessage(msg, type) {

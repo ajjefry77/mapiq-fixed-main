@@ -1,28 +1,28 @@
 <template>
   <div class="absolute top-[calc(var(--top)+25px)] left-[12px]">
     <button @click="toggleHandler"  title="اطلاعات"
-            :class="[ 'w-8 h-8 rounded flex items-center justify-center shadow-md', isActive ? 'text-white bg-accent' : 'text-black bg-gray-200']">
+            :class="[ 'w-8 h-8 rounded flex items-center justify-center shadow-md', isActive ? 'text-white bg-orange-500' : 'text-zinc-100 bg-zinc-800']">
             <i class="fas fa-info font-bold"></i>
     </button>
   </div>
 
-  <div  v-if="featureInfo" class="absolute bottom-[10px] right-[350px] bg-white shadow-lg rounded-xl p-4 w-80 max-h-[500px] min-h-[250px] ">
-    <button @click="cancel" class="absolute top-[10px] left-[15px] text-gray-500 hover:text-red-600" >
+  <div  v-if="featureInfo" class="absolute bottom-[10px] right-[350px] bg-zinc-900 shadow-lg rounded-xl p-4 w-80 max-h-[500px] min-h-[250px] ">
+    <button @click="cancel" class="absolute top-[10px] left-[15px] text-zinc-400 hover:text-red-600" >
       ✖
     </button>
-    <button @click="clearSelection" class="absolute top-[10px] left-[40px] text-gray-500 hover:text-green-600" >
+    <button @click="clearSelection" class="absolute top-[10px] left-[40px] text-zinc-400 hover:text-green-600" >
       <i class="fas fa-check" />
     </button>
     <div class="flex mb-2 ">
       <button
           class="px-2 py-1 text-sm rounded"
-          :class="activeTab === 'info' ? 'bg-accent text-white' : 'bg-white border'"
+          :class="activeTab === 'info' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
           @click="activeTab = 'info'" >
         مشخصات
       </button>
       <button
           class="px-2 py-1 text-sm rounded"
-          :class="activeTab === 'edit' ? 'bg-accent text-white' : 'bg-white border'"
+          :class="activeTab === 'edit' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
           @click="activeTab = 'edit'" >
          استایل
       </button>
@@ -31,7 +31,7 @@
     <div v-if="activeTab === 'info'">
       <div class="flex flex-col gap-2 items-center justify-between mt-0 mb-2">
 
-        <input type="text" v-model="shapeName" class="w-full h-8 text-sm cursor-pointer px-2 border border-gray-400 rounded"  />
+        <input type="text" v-model="shapeName" class="w-full h-8 text-sm cursor-pointer px-2 border border-zinc-800 rounded"  />
 
         <ul class="space-y-1 text-sm w-full">
           <li v-if="featureInfo.description" class="max-h-[300px] w-full overflow-y-auto">
@@ -63,7 +63,7 @@
       <div class="h-4"/>
       <div  v-if="showBgColor" class="flex items-center justify-between mt-1 mb-2">
         <span class="text-sm"> رنگ زمینه :</span>
-        <label class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer" title="انتخاب رنگ">
+        <label class="w-8 h-8 flex items-center justify-center bg-zinc-800 rounded shadow-md cursor-pointer" title="انتخاب رنگ">
           <span class="w-5 h-5 " :style="{ backgroundColor: color }"></span>
           <input type="color" v-model="bgColor" @change="SelectBgColor" class="w-40 h-8 cursor-pointer" />
         </label>
@@ -78,7 +78,7 @@
 
       <div   v-if="showBorderColor" class="flex items-center justify-between mt-1 mb-2">
         <span class="text-sm"> رنگ حاشیه :</span>
-        <label class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded shadow-md cursor-pointer" title="انتخاب رنگ">
+        <label class="w-8 h-8 flex items-center justify-center bg-zinc-800 rounded shadow-md cursor-pointer" title="انتخاب رنگ">
           <span class="w-5 h-5 " :style="{ backgroundColor: color }"></span>
           <input type="color" v-model="borderColor"  @change="SelectBorderColor"  class="w-40 h-8 cursor-pointer" />
         </label>
@@ -86,7 +86,7 @@
 
       <div   v-if="showWidth" class="flex items-center justify-between mt-1 mb-2">
         <span class="text-sm"> رنگ حاشیه :</span>
-        <input type="number"  v-model="widthh"   class="w-40 h-8 cursor-pointer px-3 border border-gray-400 rounded" />
+        <input type="number"  v-model="widthh"   class="w-40 h-8 cursor-pointer px-3 border border-zinc-800 rounded" />
       </div>
     </div>
   </div>

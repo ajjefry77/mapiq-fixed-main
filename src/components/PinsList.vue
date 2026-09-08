@@ -19,19 +19,19 @@
   <div class="flex mb-2 ">
 <!--    <button-->
 <!--        class="px-2 py-1 text-sm rounded"-->
-<!--        :class="activeTab === 'my' ? 'bg-accent text-white' : 'bg-white border'"-->
+<!--        :class="activeTab === 'my' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"-->
 <!--        @click="activeTab = 'my'" >-->
 <!--      میز کار-->
 <!--    </button>-->
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'my2' ? 'bg-accent text-white' : 'bg-white border'"
+        :class="activeTab === 'my2' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
         @click="activeTab = 'my2'" >
       میز کار
     </button>
     <button
         class="relative px-2 py-1 text-sm rounded"
-        :class="activeTab === 'in' ? 'bg-accent text-white' : 'bg-white border'"
+        :class="activeTab === 'in' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
         @click="activeTab = 'in'" >
        ارجاع کار
       <span
@@ -41,7 +41,7 @@
     </button>
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'out' ? 'bg-accent text-white' : 'bg-white border'"
+        :class="activeTab === 'out' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
         @click="activeTab = 'out'" >
        بایگانی
     </button>
@@ -53,7 +53,7 @@
         <!--<button class="bg-[var(--primary-color)] text-white w-8 py-1 rounded" @click="allView" title="خاموش / روشن">
           <i :class="isShow ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
         </button>-->
-        <button class="text-gray-500 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
+        <button class="text-zinc-400 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
           <i class="fas fa-download"></i>
         </button>
         <!--<button class="bg-[var(--primary-color)] text-white w-8 py-1 rounded" @click="openSaveDialog" title="ذخیره فضای کاری ">
@@ -63,7 +63,7 @@
         <!--  <i class="fas fa-layer-group"></i>-->
         <!--  <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.zip"/>-->
         <!--</button>-->
-          <label class="text-gray-500  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
+          <label class="text-zinc-400  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
             <i class="fas fa-file-import"></i>
             <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.kmz"/>
           </label>
@@ -85,26 +85,26 @@
           class="flex items-center justify-between  px-2  border rounded">
 
         <div>
-          <input type="checkbox" @click="hide(pin)" v-model="pin.shape.show" class="ml-2 accent-green-600"/>
-          <span class="text-sm text-gray-800 truncate w-48">{{ pin.name }}</span>
+          <input type="checkbox" @click="hide(pin)" v-model="pin.shape.show" class="ml-2 accent-orange-500"/>
+          <span class="text-sm text-zinc-100 truncate w-48">{{ pin.name }}</span>
         </div>
 
         <div>
           <button class="text-green-600 hover:text-green-800 px-1"
               @click="deletePin(pin)" title="حذف بوک مارک">
-            <i class="fas fa-trash text-gray-700 text-sm" />
+            <i class="fas fa-trash text-zinc-400 text-sm" />
           </button>
 
 <!--          <button class="text-green-600 hover:text-green-800 px-1"-->
 <!--              @click="toggleView(index)"  title="روشن / خاموش">-->
-<!--            <i :class="pin.shape.show ? 'fas fa-power-off text-green-500' : 'fas fa-power-off text-gray-400'" />-->
+<!--            <i :class="pin.shape.show ? 'fas fa-power-off text-green-500' : 'fas fa-power-off text-zinc-500'" />-->
 <!--          </button>-->
 
             <button
                 class="text-green-600 hover:text-green-800"
                 @click="index_pin_id = index;OpenSend = true"
                 title="ارسال">
-                <i class="fas fa-share rev text-gray-700 text-sm" />
+                <i class="fas fa-share rev text-zinc-400 text-sm" />
             </button>
 
 
@@ -121,17 +121,17 @@
   <div v-if="activeTab === 'my2'" class="text-xs flex flex-col h-full min-h-0">
     <div class="flex items-center justify-between mt-0 mb-2">
       <div class="flex gap-1 text-sm">
-        <button class="text-gray-500 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
+        <button class="text-zinc-400 w-8 py-1 rounded" @click="exportDialog = true" title="خروجی kml">
           <i class="fas fa-download"></i>
         </button>
-        <label class="text-gray-500  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
+        <label class="text-zinc-400  w-8 py-1 rounded px-0 text-center cursor-pointer" title="باز کردن kml">
           <i class="fas fa-file-import"></i>
           <input type="file" class="hidden" @change="e => handleFileUpload(e, 'shapefile')"  accept=".kml,.kmz,.csv,.txt"/>
         </label>
-        <button class="text-gray-500 w-8 py-1 rounded" @click="createFolderDialog = true" title="ایجاد گروه">
+        <button class="text-zinc-400 w-8 py-1 rounded" @click="createFolderDialog = true" title="ایجاد گروه">
           <i class="fas fa-folder-tree"></i>
         </button>
-        <button class="text-gray-500 w-8 py-1 rounded" @click="ArchiveDesktop" title="بایگانی میز کار">
+        <button class="text-zinc-400 w-8 py-1 rounded" @click="ArchiveDesktop" title="بایگانی میز کار">
           <i class="fas fa-clock-rotate-left"></i>
         </button>
       </div>
@@ -145,20 +145,20 @@
     <div class="flex gap-1 mb-2">
       <button
           class="px-2 py-0.5 text-xs rounded"
-          :class="sharedSubTab === 'files' ? 'bg-orange-500 text-white' : 'bg-white border'"
+          :class="sharedSubTab === 'files' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
           @click="sharedSubTab = 'files'" >
         فایل‌ها (پوشه ورودی)
       </button>
       <button
           class="px-2 py-0.5 text-xs rounded"
-          :class="sharedSubTab === 'groups' ? 'bg-orange-500 text-white' : 'bg-white border'"
+          :class="sharedSubTab === 'groups' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
           @click="sharedSubTab = 'groups'" >
         گروه‌ها
       </button>
     </div>
     <div v-if="sharedSubTab === 'files'">
       <div class="flex items-center justify-between mt-0 mb-2">
-        <p class="text-sm text-gray-600">پوشه ورودی:</p>
+        <p class="text-sm text-zinc-400">پوشه ورودی:</p>
       </div>
       <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
 
@@ -167,11 +167,11 @@
           <li
               v-for="(file, index) in inboxFiles"
               :key="index"
-              class="flex items-center justify-between bg-white px-2  border rounded">
+              class="flex items-center justify-between bg-zinc-900 px-2  border rounded">
             <item-box v-if="viewer && inboxFiles" :viewer="viewer" :name ="getTitle(file)" :id="file.id" :idx="index"
                       :loadedFiles="inboxFiles" @drawInbox="drawInbox" :unread="file.opened"/>
           </li>
-          <li v-if="!inboxFiles.length" class="text-center text-gray-400 py-4">
+          <li v-if="!inboxFiles.length" class="text-center text-zinc-500 py-4">
             پوشه ورودی خالی است
           </li>
         </ul>
@@ -180,7 +180,7 @@
 
     <div v-else-if="sharedSubTab === 'groups'" class="flex flex-col h-full min-h-0">
       <div class="flex items-center justify-between mt-0 mb-2">
-        <p class="text-sm text-gray-600">گروه‌های من:</p>
+        <p class="text-sm text-zinc-400">گروه‌های من:</p>
       </div>
       <hr style="border-top: 1px solid #aaa; margin-bottom: 5px"/>
 
@@ -189,16 +189,16 @@
           <li
               v-for="(group, index) in userGroups"
               :key="index"
-              class="flex items-center justify-between bg-white px-2 py-1 border rounded">
+              class="flex items-center justify-between bg-zinc-900 px-2 py-1 border rounded">
             <div class="flex items-center gap-2">
-              <i class="fas fa-users text-gray-600"></i>
-              <span class="text-sm text-gray-800 truncate w-48">{{ group.name }}</span>
+              <i class="fas fa-users text-zinc-400"></i>
+              <span class="text-sm text-zinc-100 truncate w-48">{{ group.name }}</span>
             </div>
-            <span v-if="authStore.isAdmin" class="text-xs text-gray-500">
+            <span v-if="authStore.isAdmin" class="text-xs text-zinc-400">
               {{ group.member_count ?? 0 }} عضو
             </span>
           </li>
-          <li v-if="!userGroups.length" class="text-center text-gray-400 py-4">
+          <li v-if="!userGroups.length" class="text-center text-zinc-500 py-4">
             شما در هیچ گروهی عضو نیستید
           </li>
         </ul>

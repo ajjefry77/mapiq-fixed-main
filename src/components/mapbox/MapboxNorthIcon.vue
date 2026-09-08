@@ -5,7 +5,7 @@
       :style="{transform: `rotate(${rotation}deg)`, 'transform-origin': '50% 120%'}">
       <path d="M12 2l6 12H6l6-12z" />
     </svg>
-    <span class="font-bold text-gray-700 z-10" style="margin-top:8px">N</span>
+    <span class="font-bold text-zinc-400 z-10" style="margin-top:8px">N</span>
   </button>
 </template>
 <script setup>

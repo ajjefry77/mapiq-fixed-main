@@ -2,7 +2,7 @@
   <ul class="list-none m-0 p-0">
     <li
       v-for="(item,idx) in items"  :key="item.id"
-      class="border-t border-gray-300" >
+      class="border-t border-zinc-800" >
 
       <!-- 🔹 گروه
       <div  v-if="item.type === 'group'"  class="flex items-center gap-1 cursor-pointer"  @click="item.expanded = !item.expanded"
@@ -13,20 +13,20 @@
 
       <div v-if="item.type === 'group'" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
         :style="{ ['paddingRight']: `${depth * 8}px` }" @click.stop="handleSelectGroup(item, idx)"
-        :class="{ 'bg-accent/15': selectedGroup === item }"  @dragover.prevent  @drop="onDrop($event, item)">
+        :class="{ 'bg-orange-500/15': selectedGroup === item }"  @dragover.prevent  @drop="onDrop($event, item)">
 
 
 <!--        :class="item.expanded ? 'fas fa-folder-open text-yellow-600' : 'fas fa-folder text-yellow-600'"></i>-->
         <div>
           <i  @click.stop="toggleGroup(item)" class="text-sm"
-            :class="item.expanded ? 'fas fa-caret-down text-black' : 'fas fa-caret-left text-black'"></i>
+            :class="item.expanded ? 'fas fa-caret-down text-zinc-100' : 'fas fa-caret-left text-zinc-100'"></i>
           <span class="font-semibold text-xs leading-8 mr-1">
             {{ item.name }}
           </span>
         </div>
 
         <div class="flex ml-0.5">
-          <input v-if="!item.history" type="checkbox" @click="selectedItems(item)" v-model="item.show" class="ml-2 accent-green-600"/>
+          <input v-if="!item.history" type="checkbox" @click="selectedItems(item)" v-model="item.show" class="ml-2 accent-orange-500"/>
           <button v-if="item.history" class="text-amber-500 hover:text-amber-700 w-6 h-6 flex items-center justify-center"
                   @click.stop="onRenameArchive?.(item.id, item.name)" title="تغییر نام پوشه‌ی بایگانی">
             <i class="fas fa-pen w-3 h-3"></i>

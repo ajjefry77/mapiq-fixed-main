@@ -3,8 +3,8 @@
     <!-- دکمه باز کردن پنل جستجو -->
 <!--    <button-->
 <!--        @click="togglePanel"-->
-<!--        class="fixed bottom-16 left-4 z-50 bg-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-accent"-->
-<!--        :class="{ 'bg-accent text-white': isOpen }"-->
+<!--        class="fixed bottom-16 left-4 z-50 bg-zinc-900 p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-500"-->
+<!--        :class="{ 'bg-orange-500 text-white': isOpen }"-->
 <!--    >-->
 <!--      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">-->
 <!--        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>-->
@@ -13,7 +13,7 @@
 
     <button
         @click="togglePanel"
-        class= 'absolute top-[calc(var(--top)+124px)] left-[12px] w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md'
+        class= 'absolute top-[calc(var(--top)+124px)] left-[12px] w-8 h-8 bg-zinc-800 rounded flex items-center justify-center shadow-md'
         title="جستجوی آدرس">
       <i class="fas fa-search m-1"></i>
     </button>
@@ -30,20 +30,20 @@
 
       <div v-if="isOpen" class="fixed top-0 left-0 w-full h-full z-[1000]" @click="closePanel">
         <div
-            class="fixed top-0 right-0 w-[340px] h-full bg-white shadow-2xl z-50 overflow-y-auto"
+            class="fixed top-0 right-0 w-[340px] h-full bg-zinc-900 shadow-2xl z-50 overflow-y-auto"
             dir="rtl"
             @click.stop>
 
           <div class="p-6">
             <!-- هدر -->
             <div class="flex justify-between items-center mb-6 pb-4 border-b">
-              <h2 class="text-lg font-bold text-gray-500 flex items-center gap-2">
+              <h2 class="text-lg font-bold text-zinc-400 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
                 جستجوی آدرس
               </h2>
-              <button @click="closePanel" class="text-gray-700 hover:text-gray-700">
+              <button @click="closePanel" class="text-zinc-400 hover:text-zinc-100">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -59,11 +59,11 @@
                       v-model="searchText"
                       @keyup.enter="performSearch"
                       placeholder="متن جستجو را وارد کنید..."
-                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                      class="w-full px-4 py-2 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       :disabled="loading"
                   />
                   <div v-if="searchText && !loading" class="absolute left-2 top-2.5">
-                    <button @click="clearSearch" class="text-gray-400 hover:text-gray-600">
+                    <button @click="clearSearch" class="text-zinc-500 hover:text-zinc-400">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                       </svg>
@@ -72,7 +72,7 @@
                 </div>
                 <button
                     @click="performSearch" :disabled="loading"
-                    class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
 
                   <svg v-if="loading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -87,20 +87,20 @@
 
             <!-- فیلترها -->
             <details class="mb-4">
-              <summary class="cursor-pointer text-accent hover:text-accent text-sm font-medium">
+              <summary class="cursor-pointer text-orange-500 hover:text-orange-500 text-sm font-medium">
                 فیلترهای پیشرفته
               </summary>
 
-              <div class="mt-3 space-y-3 bg-gray-50 p-3 rounded-lg">
+              <div class="mt-3 space-y-3 bg-neutral-950 p-3 rounded-lg">
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">فیلتر شهر:</label>
+                  <label class="block text-xs font-medium text-zinc-400 mb-1">فیلتر شهر:</label>
                   <input v-model="filters.city" placeholder="مثال: تهران"
-                      class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent" />
+                      class="w-full px-2 py-1 text-sm border border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
                 </div>
 
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">نوع جستجو:</label>
-                  <select v-model="filters.select" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent">
+                  <label class="block text-xs font-medium text-zinc-400 mb-1">نوع جستجو:</label>
+                  <select v-model="filters.select" class="w-full px-2 py-1 text-sm border border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                     <option value="">همه موارد</option>
                     <option value="roads">جاده‌ها</option>
                     <option value="poi">نقاط دیدنی</option>
@@ -109,8 +109,8 @@
                 </div>
 
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">تعداد نتایج:</label>
-                  <select v-model="filters.top" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent">
+                  <label class="block text-xs font-medium text-zinc-400 mb-1">تعداد نتایج:</label>
+                  <select v-model="filters.top" class="w-full px-2 py-1 text-sm border border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                     <option :value="10">۱۰ نتیجه</option>
                     <option :value="20">۲۰ نتیجه</option>
                     <option :value="50">۵۰ نتیجه</option>
@@ -133,7 +133,7 @@
             <!-- نتایج -->
             <div v-if="results.length > 0" class="mt-4">
               <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-semibold text-gray-800">نتایج ({{ results.length }})</h3>
+                <h3 class="text-sm font-semibold text-zinc-100">نتایج ({{ results.length }})</h3>
                 <button @click="clearResults" class="text-xs text-red-600 hover:text-red-700" >
                   پاک کردن
                 </button>
@@ -144,32 +144,32 @@
                     v-for="(item, index) in results"
                     :key="index"
                     @click="flyToLocation(item)"
-                    class="p-3 bg-gray-50 rounded-lg hover:bg-accent/15 transition-colors cursor-pointer border border-gray-200 hover:border-accent-soft"
+                    class="p-3 bg-neutral-950 rounded-lg hover:bg-orange-500/15 transition-colors cursor-pointer border border-zinc-800 hover:border-orange-400"
                 >
                   <div class="flex items-start gap-2">
                     <div class="flex-shrink-0 mt-1">
-                      <div class="w-6 h-6 bg-accent/15 rounded-full flex items-center justify-center">
-                        <svg class="w-3 h-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div class="w-6 h-6 bg-orange-500/15 rounded-full flex items-center justify-center">
+                        <svg class="w-3 h-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                       </div>
                     </div>
                     <div class="flex-1">
-                      <h4 class="font-medium text-gray-900 text-sm">{{ item.title || item.name || 'بدون عنوان' }}</h4>
-                      <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ item.address || item.formatted_address || 'بدون آدرس' }}</p>
+                      <h4 class="font-medium text-zinc-100 text-sm">{{ item.title || item.name || 'بدون عنوان' }}</h4>
+                      <p class="text-xs text-zinc-400 mt-1 line-clamp-2">{{ item.address || item.formatted_address || 'بدون آدرس' }}</p>
 
                       <div v-if="item.geom" class="mt-2 flex flex-wrap gap-3 text-xs">
-                        <span class="text-gray-500">
+                        <span class="text-zinc-400">
                           Lat: {{ formatCoordinate(item.geom.coordinates[0]) }}
                         </span>
-                        <span class="text-gray-500">
+                        <span class="text-zinc-400">
                           Lng: {{ formatCoordinate(item.geom.coordinates[1]) }}
                         </span>
                       </div>
 
                       <div v-if="item.type" class="mt-1">
-                        <span class="inline-block px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
+                        <span class="inline-block px-1.5 py-0.5 text-xs bg-zinc-800 text-zinc-400 rounded">
                           {{ item.type }}
                         </span>
                       </div>
@@ -181,16 +181,16 @@
 
             <!-- وضعیت لودینگ -->
             <div v-if="loading" class="flex flex-col items-center justify-center py-8">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
-              <p class="mt-2 text-sm text-gray-600">در حال جستجو...</p>
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              <p class="mt-2 text-sm text-zinc-400">در حال جستجو...</p>
             </div>
 
             <!-- بدون نتیجه -->
             <div v-if="!loading && !error && searched && results.length === 0" class="text-center py-8">
-              <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-12 h-12 mx-auto text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-              <p class="mt-2 text-sm text-gray-500">نتیجه‌ای یافت نشد</p>
+              <p class="mt-2 text-sm text-zinc-400">نتیجه‌ای یافت نشد</p>
             </div>
           </div>
         </div>

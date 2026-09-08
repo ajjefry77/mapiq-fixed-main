@@ -1,15 +1,15 @@
 <template>
   <div ref="root" class="relative w-full">
     <input  v-model="search"  @focus="handleFocus" type="text" ref="inputRef"
-            class="input w-full h-9 border border-gray-300 rounded px-2 text-sm"  :placeholder="placeholder" />
+            class="input w-full h-9 border border-zinc-800 rounded px-2 text-sm"  :placeholder="placeholder" />
 
-    <div  v-if="open" class="absolute z-[1000] w-full bg-white border rounded mt-1 max-h-80 overflow-auto" >
+    <div  v-if="open" class="absolute z-[1000] w-full bg-zinc-900 border rounded mt-1 max-h-80 overflow-auto" >
       <div v-for="c in filtered"  :key="c.imei"
-           @click="select(c)" class="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm" >
+           @click="select(c)" class="px-3 py-2 cursor-pointer hover:bg-zinc-700 text-sm" >
         {{ c.name }} - {{ c.phone }}
       </div>
 
-      <div  v-if="filtered.length === 0" class="px-3 py-2 text-gray-400" >
+      <div  v-if="filtered.length === 0" class="px-3 py-2 text-zinc-500" >
         نتیجه‌ای پیدا نشد
       </div>
     </div>

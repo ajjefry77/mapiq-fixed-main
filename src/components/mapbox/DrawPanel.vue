@@ -2,7 +2,7 @@
   <div
     ref="panelEl"
     v-show="panelReady"
-    class="fixed bg-white rounded-lg shadow-2xl w-80 max-w-[calc(100vw-16px)] overflow-hidden pointer-events-auto z-50"
+    class="fixed bg-zinc-900 rounded-lg shadow-2xl w-80 max-w-[calc(100vw-16px)] overflow-hidden pointer-events-auto z-50"
     :class="{ invisible: !panelPositioned }"
     :style="{
       left: panelTranslate.x + 'px',
@@ -19,7 +19,7 @@
       <h3 class="font-bold text-sm">{{ title }}</h3>
     </div>
 
-    <div class="flex border-b bg-gray-50">
+    <div class="flex border-b bg-neutral-950">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -27,8 +27,8 @@
         :class="[
           'flex-1 py-1.5 text-xs transition-colors',
           activeTab === tab.key
-            ? 'border-b-2 border-orange-500 text-orange-600 bg-white font-medium'
-            : 'text-gray-500 hover:text-gray-700',
+            ? 'border-b-2 border-orange-500 text-orange-600 bg-zinc-900 font-medium'
+            : 'text-zinc-400 hover:text-zinc-100',
         ]"
       >
         {{ tab.label }}
@@ -37,9 +37,9 @@
 
     <div class="p-3 max-h-72 overflow-y-auto text-sm">
       <div v-if="activeTab === 'measurements'" class="space-y-3">
-        <div class="border border-gray-200 rounded p-2 space-y-2">
+        <div class="border border-zinc-800 rounded p-2 space-y-2">
           <div>
-            <label class="block text-xs mb-1 text-gray-600">نام ترسیم</label>
+            <label class="block text-xs mb-1 text-zinc-400">نام ترسیم</label>
             <input
               :value="formData.name"
               @input="
@@ -59,7 +59,7 @@
             </p>
           </div>
           <div>
-            <label class="block text-xs mb-1 text-gray-600">توضیحات</label>
+            <label class="block text-xs mb-1 text-zinc-400">توضیحات</label>
             <textarea
               :value="formData.description"
               @input="
@@ -74,7 +74,7 @@
             ></textarea>
           </div>
           <div v-if="drawMode === 'circle' || shape?.type === 'circle'">
-            <label class="block text-xs mb-1 text-gray-600">فایل ضمیمه</label>
+            <label class="block text-xs mb-1 text-zinc-400">فایل ضمیمه</label>
             <input
               type="file"
               @change="$emit('fileChange', $event)"
@@ -86,16 +86,16 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between bg-gray-50 rounded p-2">
-          <span class="text-xs text-gray-600">سیستم مختصات:</span>
+        <div class="flex items-center justify-between bg-neutral-950 rounded p-2">
+          <span class="text-xs text-zinc-400">سیستم مختصات:</span>
           <div class="flex gap-1">
             <button
               @click="$emit('update:coordinateSystem', 'latlon')"
               :class="[
                 'px-2 py-0.5 text-xs rounded transition',
                 coordinateSystem === 'latlon'
-                  ? 'bg-accent text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700',
               ]"
             >
               Lat/Long
@@ -105,8 +105,8 @@
               :class="[
                 'px-2 py-0.5 text-xs rounded transition',
                 coordinateSystem === 'utm'
-                  ? 'bg-accent text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700',
               ]"
             >
               UTM
@@ -116,7 +116,7 @@
 
         <div class="bg-gray-900 rounded p-2 text-xs space-y-1.5">
           <div class="flex justify-between items-center">
-            <span class="text-gray-400">تعداد نقاط:</span>
+            <span class="text-zinc-500">تعداد نقاط:</span>
             <span class="font-bold text-orange-400">{{ livePointCount }}</span>
           </div>
           <div
@@ -128,28 +128,28 @@
             "
             class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
-            <span class="text-gray-400">طول کل:</span>
+            <span class="text-zinc-500">طول کل:</span>
             <span class="font-bold text-orange-400">{{ liveTotalLength }}</span>
           </div>
           <div
             v-if="drawMode === 'polygon' || shape?.type === 'polygon'"
             class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
-            <span class="text-gray-400">مساحت:</span>
+            <span class="text-zinc-500">مساحت:</span>
             <span class="font-bold text-green-400">{{ liveArea }}</span>
           </div>
           <div
             v-if="drawMode === 'circle' || shape?.type === 'circle'"
             class="flex justify-between items-center border-t border-gray-700 pt-1.5"
           >
-            <span class="text-gray-400">شعاع:</span>
-            <span class="font-bold text-accent">{{ liveRadius }}</span>
+            <span class="text-zinc-500">شعاع:</span>
+            <span class="font-bold text-orange-500">{{ liveRadius }}</span>
           </div>
           <div
             v-if="liveCenter && centerText"
             class="flex justify-between items-center border-t border-gray-700 pt-1.5 gap-2"
           >
-            <span class="text-gray-400 shrink-0">مرکز:</span>
+            <span class="text-zinc-500 shrink-0">مرکز:</span>
             <span class="font-mono text-[10px] text-blue-300 text-left break-all" dir="ltr">
               {{ centerText }}
             </span>
@@ -158,7 +158,7 @@
 
         <!-- بخش جدول مختصات -->
         <div>
-          <h4 class="text-xs font-medium mb-2 text-gray-700">
+          <h4 class="text-xs font-medium mb-2 text-zinc-400">
             {{
               drawMode === "multi_point" || shape?.type === "multi_point"
                 ? "نقاط"
@@ -169,7 +169,7 @@
           </h4>
           <div class="max-h-40 overflow-y-auto border rounded">
             <table class="w-full text-xs">
-              <thead class="bg-gray-100 text-gray-600 sticky top-0">
+              <thead class="bg-zinc-800 text-zinc-400 sticky top-0">
                 <tr>
                   <th class="p-1.5 border-b text-center font-medium">id</th>
                   <th class="p-1.5 border-b text-center font-medium">
@@ -193,7 +193,7 @@
                   :key="index"
                   class="hover:bg-orange-50 transition group border-b last:border-b-0"
                 >
-                  <td class="p-1.5 text-center text-gray-600">
+                  <td class="p-1.5 text-center text-zinc-400">
                     {{ point.id || index + 1 }}
                   </td>
 
@@ -226,7 +226,7 @@
                   <td class="p-1.5 text-center">
                     <button
                       @click="$emit('copyCoordinates', point)"
-                      class="text-gray-400 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition"
+                      class="text-zinc-500 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition"
                       title="کپی مختصات"
                     >
                       <i class="fas fa-copy text-xs"></i>
@@ -238,7 +238,7 @@
           </div>
           <div
             v-if="displayPoints.length === 0"
-            class="text-center py-4 text-gray-400 text-xs border rounded"
+            class="text-center py-4 text-zinc-500 text-xs border rounded"
           >
             <p>در حال ترسیم روی نقشه کلیک کنید</p>
           </div>
@@ -247,11 +247,11 @@
 
       <!-- تب مختصات دستی UTM -->
       <div v-if="activeTab === 'manual'" class="space-y-3">
-        <p class="text-xs text-gray-600 leading-relaxed">
+        <p class="text-xs text-zinc-400 leading-relaxed">
           مختصات UTM نقاط را وارد کنید. پس از تکمیل، شکل روی نقشه ترسیم می‌شود.
         </p>
         <div class="flex items-center gap-2 text-xs">
-          <label class="text-gray-600 shrink-0">Zone پیش‌فرض:</label>
+          <label class="text-zinc-400 shrink-0">Zone پیش‌فرض:</label>
           <input
             v-model.number="manualDefaultZone"
             type="number"
@@ -262,7 +262,7 @@
         </div>
         <div class="border rounded overflow-hidden">
           <table class="w-full text-xs">
-            <thead class="bg-gray-100 text-gray-600">
+            <thead class="bg-zinc-800 text-zinc-400">
               <tr>
                 <th class="p-1.5 border-b text-center w-8">#</th>
                 <th class="p-1.5 border-b text-center">Easting (X)</th>
@@ -277,7 +277,7 @@
                 :key="idx"
                 class="border-b last:border-b-0"
               >
-                <td class="p-1 text-center text-gray-500">{{ idx + 1 }}</td>
+                <td class="p-1 text-center text-zinc-400">{{ idx + 1 }}</td>
                 <td class="p-1">
                   <input
                     v-model="row.easting"
@@ -312,7 +312,7 @@
                   <button
                     type="button"
                     @click="removeManualRow(idx)"
-                    class="text-gray-400 hover:text-red-500"
+                    class="text-zinc-500 hover:text-red-500"
                     title="حذف ردیف"
                   >
                     ✕
@@ -326,7 +326,7 @@
           <button
             type="button"
             @click="addManualRow"
-            class="flex-1 px-2 py-1.5 text-xs border rounded hover:bg-gray-50 transition"
+            class="flex-1 px-2 py-1.5 text-xs border rounded hover:bg-neutral-950 transition"
           >
             + افزودن نقطه
           </button>
@@ -338,13 +338,13 @@
               'flex-1 px-2 py-1.5 text-xs rounded transition shadow',
               canApplyManual
                 ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+                : 'bg-zinc-700 text-zinc-400 cursor-not-allowed',
             ]"
           >
             اعمال و ترسیم
           </button>
         </div>
-        <p class="text-[10px] text-gray-400">
+        <p class="text-[10px] text-zinc-500">
           حداقل نقاط:
           {{
             drawMode === 'polygon'
@@ -358,7 +358,7 @@
 
       <div v-if="activeTab === 'style'" class="space-y-3">
         <div v-if="shape">
-          <label class="block text-xs mb-1 text-gray-600">رنگ</label>
+          <label class="block text-xs mb-1 text-zinc-400">رنگ</label>
           <div class="flex gap-1 items-center">
             <input
               type="color"
@@ -375,7 +375,7 @@
           </div>
         </div>
         <div v-if="shape && shape.type === 'polyline'">
-          <label class="block text-xs mb-1 text-gray-600">نوع خط</label>
+          <label class="block text-xs mb-1 text-zinc-400">نوع خط</label>
           <div class="grid grid-cols-4 gap-1">
             <button
               v-for="opt in lineStyleOptions"
@@ -387,7 +387,7 @@
                 'h-9 flex items-center justify-center border rounded transition px-1',
                 (shape.dash || 'solid') === opt.id
                   ? 'ring-2 ring-orange-400 border-orange-400 bg-orange-50'
-                  : 'hover:bg-gray-50',
+                  : 'hover:bg-neutral-950',
               ]"
             >
               <span class="block w-full" :style="miniLineStyle(opt.id)"></span>
@@ -395,7 +395,7 @@
           </div>
         </div>
         <div v-if="shape && shape.type === 'multi_point'">
-          <label class="block text-xs mb-1 text-gray-600">شکل نقطه</label>
+          <label class="block text-xs mb-1 text-zinc-400">شکل نقطه</label>
           <div class="grid grid-cols-6 gap-1">
             <button
               v-for="sym in pointSymbolOptions"
@@ -404,10 +404,10 @@
               @click="$emit('update:pointSymbol', sym.id)"
               :title="sym.label"
               :class="[
-                'h-8 flex items-center justify-center border rounded transition text-gray-700',
+                'h-8 flex items-center justify-center border rounded transition text-zinc-400',
                 (shape.symbol || 'circle') === sym.id
                   ? 'ring-2 ring-orange-400 border-orange-400 bg-orange-50 text-orange-500'
-                  : 'hover:bg-gray-50',
+                  : 'hover:bg-neutral-950',
               ]"
             >
               <svg
@@ -421,7 +421,7 @@
           </div>
         </div>
         <div v-if="shape">
-          <label class="block text-xs mb-1 text-gray-600">
+          <label class="block text-xs mb-1 text-zinc-400">
             شفافیت: {{ Math.round(shape.opacity * 100) }}%
           </label>
           <input
@@ -441,7 +441,7 @@
             shape && shape.type !== 'circle' && shape.type !== 'multi_point'
           "
         >
-          <label class="block text-xs mb-1 text-gray-600">ضخامت خط</label>
+          <label class="block text-xs mb-1 text-zinc-400">ضخامت خط</label>
           <input
             type="number"
             :value="shape.width"
@@ -461,18 +461,18 @@
         >
           <span :style="{ color: shape.color }">پیش‌نمایش رنگ</span>
         </div>
-        <div v-if="!shape" class="text-center py-4 text-gray-400 text-xs">
+        <div v-if="!shape" class="text-center py-4 text-zinc-500 text-xs">
           <p>پس از اتمام ترسیم، استایل قابل تغییر است</p>
         </div>
       </div>
     </div>
 
     <div
-      class="px-3 py-2 bg-gray-50 border-t flex justify-between items-center gap-2"
+      class="px-3 py-2 bg-neutral-950 border-t flex justify-between items-center gap-2"
     >
       <button
         @click="$emit('cancel')"
-        class="px-3 py-1.5 text-gray-600 hover:text-red-600 text-xs transition"
+        class="px-3 py-1.5 text-zinc-400 hover:text-red-600 text-xs transition"
       >
         انصراف
       </button>
@@ -493,7 +493,7 @@
             'px-4 py-1.5 rounded text-xs transition shadow',
             isSaveEnabled
               ? 'bg-orange-500 text-white hover:bg-orange-600'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+              : 'bg-zinc-700 text-zinc-400 cursor-not-allowed',
           ]"
         >
           ذخیره ترسیم

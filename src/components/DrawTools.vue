@@ -59,17 +59,17 @@
       </label>
 
       <!-- erase
-      <button @click="clearSelectedOrAll" class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md" title="پاک کن">
+      <button @click="clearSelectedOrAll" class="w-8 h-8 bg-zinc-800 rounded flex items-center justify-center shadow-md" title="پاک کن">
         <i class="fas fa-trash text-red-500"></i>
       </button>-->
 
       <!-- save
-      <button @click="openSaveDialog" class="w-8 h-8 bg-gray-200 text-green-600 rounded flex items-center justify-center shadow-md" title="ذخیره">
+      <button @click="openSaveDialog" class="w-8 h-8 bg-zinc-800 text-green-600 rounded flex items-center justify-center shadow-md" title="ذخیره">
         <i class="fas fa-save"></i>
       </button>-->
 
       <!-- close
-      <button @click="expanded = false" class="text-gray-500 hover:text-black text-lg" title="بستن">
+      <button @click="expanded = false" class="text-zinc-400 hover:text-zinc-100 text-lg" title="بستن">
         <i class="fas fa-times"></i>
       </button> -->
     </div>
@@ -87,19 +87,19 @@
         <!-- تب‌ها -->
         <div class="flex border-b mb-3">
           <button type="button" @click="activeFormTab = 'info'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'info' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'info' ? 'border-b-2 border-orange-500 text-orange-500 font-semibold' : 'text-zinc-400']">
             توضیحات
           </button>
           <button type="button" @click="activeFormTab = 'style'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'style' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'style' ? 'border-b-2 border-orange-500 text-orange-500 font-semibold' : 'text-zinc-400']">
             استایل
           </button>
           <button type="button" @click="activeFormTab = 'image'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'image' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'image' ? 'border-b-2 border-orange-500 text-orange-500 font-semibold' : 'text-zinc-400']">
             تصویر
           </button>
           <button type="button" @click="activeFormTab = 'measure'"
-                  :class="['px-3 py-1 text-sm', activeFormTab === 'measure' ? 'border-b-2 border-accent text-accent font-semibold' : 'text-gray-500']">
+                  :class="['px-3 py-1 text-sm', activeFormTab === 'measure' ? 'border-b-2 border-orange-500 text-orange-500 font-semibold' : 'text-zinc-400']">
             اندازه‌ها
           </button>
         </div>
@@ -157,7 +157,7 @@
 
             <div class="max-h-48 overflow-y-auto border rounded-lg">
               <table class="w-full text-xs">
-                <thead class="sticky top-0 bg-gray-100">
+                <thead class="sticky top-0 bg-zinc-800">
                 <tr>
                   <th class="p-1 border">ردیف</th>
                   <th class="p-1 border">طول جغرافیایی</th>
@@ -178,8 +178,8 @@
         </form>
 
         <div class="flex justify-end gap-2 mt-4 pt-3 border-t">
-          <button type="button" @click="cancelForm" class="px-4 py-2 bg-gray-300 rounded-lg">لغو</button>
-          <button type="button" @click="savePin" class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dim">ذخیره</button>
+          <button type="button" @click="cancelForm" class="px-4 py-2 bg-zinc-700 rounded-lg">لغو</button>
+          <button type="button" @click="savePin" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-800">ذخیره</button>
         </div>
       </div>
     </div>

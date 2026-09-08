@@ -11,8 +11,8 @@
         class="w-8 h-8 rounded flex items-center justify-center shadow-md"
         :class="
           drawMode === 'measure'
-            ? 'text-white bg-accent'
-            : 'text-black bg-gray-200'
+            ? 'text-white bg-orange-500'
+            : 'text-zinc-100 bg-zinc-800'
         "
       >
         <i class="fas fa-ruler m-1"></i>
@@ -23,7 +23,7 @@
         @click="$emit('togglePointPick')"
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
-          pickForForm ? 'text-white bg-accent' : 'text-black bg-gray-200',
+          pickForForm ? 'text-white bg-orange-500' : 'text-zinc-100 bg-zinc-800',
         ]"
         title="نقطه (انتخاب برای فرم)"
       >
@@ -36,8 +36,8 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'multi_point'
-            ? 'text-white bg-accent'
-            : 'text-black bg-gray-200',
+            ? 'text-white bg-orange-500'
+            : 'text-zinc-100 bg-zinc-800',
         ]"
         title="چند نقطه"
       >
@@ -50,8 +50,8 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'polyline'
-            ? 'text-white bg-accent'
-            : 'text-black bg-gray-200',
+            ? 'text-white bg-orange-500'
+            : 'text-zinc-100 bg-zinc-800',
         ]"
         title="خط"
       >
@@ -80,8 +80,8 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'polygon'
-            ? 'text-white bg-accent'
-            : 'text-black bg-gray-200',
+            ? 'text-white bg-orange-500'
+            : 'text-zinc-100 bg-zinc-800',
         ]"
         title="پلی‌گان"
       >
@@ -94,8 +94,8 @@
         :class="[
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'circle'
-            ? 'text-white bg-accent'
-            : 'text-black bg-gray-200',
+            ? 'text-white bg-orange-500'
+            : 'text-zinc-100 bg-zinc-800',
         ]"
         title="دایره"
       >
@@ -109,7 +109,7 @@
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'cut'
             ? 'text-white bg-red-500'
-            : 'text-black bg-gray-200',
+            : 'text-zinc-100 bg-zinc-800',
         ]"
         title="برش پلی‌گان یا خط"
       >
@@ -124,7 +124,7 @@
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           drawMode === 'intersect' || intersectPanelOpen
             ? 'text-white bg-orange-500'
-            : 'text-black bg-gray-200',
+            : 'text-zinc-100 bg-zinc-800',
         ]"
         title="همپوشانی (Intersect)"
       >
@@ -162,7 +162,7 @@
       <!-- === دکمه جدید: کروکی (چاپ) === -->
       <button
         @click="$emit('openKroki')"
-        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200"
+        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-zinc-100 bg-zinc-800"
         title="کروکی"
       >
         <i class="fas fa-print"></i>
@@ -176,7 +176,7 @@
           'w-8 h-8 rounded flex items-center justify-center shadow-md',
           fishnetPanelOpen
             ? 'text-white bg-orange-500'
-            : 'text-black bg-gray-200 hover:bg-orange-100',
+            : 'text-zinc-100 bg-zinc-800 hover:bg-orange-100',
         ]"
         title="شبکه‌بندی پلیگان (Fishnet)"
       >
@@ -189,7 +189,7 @@
           @click.stop="expanded = !expanded"
           :class="[
             'w-8 h-8 rounded flex items-center justify-center shadow-md',
-            expanded ? 'text-white bg-accent' : 'text-black bg-gray-200',
+            expanded ? 'text-white bg-orange-500' : 'text-zinc-100 bg-zinc-800',
           ]"
           title="نقشه پایه"
         >
@@ -198,7 +198,7 @@
         <div
           v-show="expanded"
           @click.stop
-          class="absolute top-0 left-full ml-2 w-[260px] max-w-[calc(100vw-24px)] p-2 bg-white border border-gray-300 rounded shadow-md z-50"
+          class="absolute top-0 left-full ml-2 w-[260px] max-w-[calc(100vw-24px)] p-2 bg-zinc-900 border border-zinc-800 rounded shadow-md z-50"
         >
           <div class="flex gap-2 flex-wrap max-h-[180px] overflow-y-auto">
             <div
@@ -227,14 +227,14 @@
       <!-- زوم -->
       <button
         @click="map?.zoomIn({ duration: 200 })"
-        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200 font-bold"
+        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-zinc-100 bg-zinc-800 font-bold"
         title="بزرگنمایی"
       >
         <i class="fas fa-plus text-sm"></i>
       </button>
       <button
         @click="map?.zoomOut({ duration: 200 })"
-        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-black bg-gray-200 font-bold"
+        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-zinc-100 bg-zinc-800 font-bold"
         title="کوچکنمایی"
       >
         <i class="fas fa-minus text-sm"></i>

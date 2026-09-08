@@ -2,7 +2,7 @@
   <div>
     <button
         @click="togglePanel"
-        class= 'absolute top-[calc(var(--top)+115px)] left-[12px] w-8 h-8 bg-gray-200 rounded flex items-center justify-center shadow-md'
+        class= 'absolute top-[calc(var(--top)+115px)] left-[12px] w-8 h-8 bg-zinc-800 rounded flex items-center justify-center shadow-md'
         title="جستجوی آدرس">
       <i class="fas fa-search m-1"></i>
     </button>
@@ -17,33 +17,33 @@
 
       <div v-if="isOpen" class="fixed top-0 left-0 w-full h-full z-[1000]" @click="closePanel">
         <div
-            class="fixed top-0 right-0 w-[340px] h-full bg-white shadow-2xl z-50 overflow-y-auto"
+            class="fixed top-0 right-0 w-[340px] h-full bg-zinc-900 shadow-2xl z-50 overflow-y-auto"
             dir="rtl"
             @click.stop>
 
           <div class="p-6">
             <div class="flex justify-between items-center mb-6 pb-4 border-b">
-              <h2 class="text-lg font-bold text-gray-500 flex items-center gap-2">
+              <h2 class="text-lg font-bold text-zinc-400 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
                 جستجو
               </h2>
-              <button @click="closePanel" class="text-gray-700 hover:text-gray-700">
+              <button @click="closePanel" class="text-zinc-400 hover:text-zinc-100">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             </div>
 
-            <div class="mb-4 flex gap-1 bg-gray-100 rounded-lg p-1">
+            <div class="mb-4 flex gap-1 bg-zinc-800 rounded-lg p-1">
               <button
                 @click="activeTab = 'address'"
                 :class="[
                   'flex-1 py-2 text-sm rounded-md transition',
                   activeTab === 'address'
-                    ? 'bg-white text-accent shadow-sm font-medium'
-                    : 'text-gray-500 hover:text-gray-700',
+                    ? 'bg-zinc-900 text-orange-500 shadow-sm font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100',
                 ]"
               >
                 آدرس
@@ -53,15 +53,15 @@
                 :class="[
                   'flex-1 py-2 text-sm rounded-md transition',
                   activeTab === 'coords'
-                    ? 'bg-white text-accent shadow-sm font-medium'
-                    : 'text-gray-500 hover:text-gray-700',
+                    ? 'bg-zinc-900 text-orange-500 shadow-sm font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100',
                 ]"
               >
                 مختصات
               </button>
               <button
                 disabled
-                class="flex-1 py-2 text-sm rounded-md bg-white/60 text-gray-400 opacity-60 cursor-not-allowed"
+                class="flex-1 py-2 text-sm rounded-md bg-white/60 text-zinc-500 opacity-60 cursor-not-allowed"
                 title="به‌زودی"
               >
                 کد نوسازی
@@ -74,10 +74,10 @@
                 <div class="flex-1 relative">
                   <input type="text" v-model="searchText" @keyup.enter="performSearch"
                     placeholder="متن جستجو را وارد کنید..."
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                    class="w-full px-4 py-2 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     :disabled="loading" />
                   <div v-if="searchText && !loading" class="absolute left-2 top-2.5">
-                    <button @click="clearSearch" class="text-gray-400 hover:text-gray-600">
+                    <button @click="clearSearch" class="text-zinc-500 hover:text-zinc-400">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                       </svg>
@@ -85,7 +85,7 @@
                   </div>
                 </div>
                 <button @click="performSearch" :disabled="loading"
-                    class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   <svg v-if="loading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -98,15 +98,15 @@
             </div>
 
             <details class="mb-4">
-              <summary class="cursor-pointer text-accent hover:text-accent text-sm font-medium">فیلترهای پیشرفته</summary>
-              <div class="mt-3 space-y-3 bg-gray-50 p-3 rounded-lg">
+              <summary class="cursor-pointer text-orange-500 hover:text-orange-500 text-sm font-medium">فیلترهای پیشرفته</summary>
+              <div class="mt-3 space-y-3 bg-neutral-950 p-3 rounded-lg">
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">فیلتر شهر:</label>
-                  <input v-model="filters.city" placeholder="مثال: تهران" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent" />
+                  <label class="block text-xs font-medium text-zinc-400 mb-1">فیلتر شهر:</label>
+                  <input v-model="filters.city" placeholder="مثال: تهران" class="w-full px-2 py-1 text-sm border border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">نوع جستجو:</label>
-                  <select v-model="filters.select" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent">
+                  <label class="block text-xs font-medium text-zinc-400 mb-1">نوع جستجو:</label>
+                  <select v-model="filters.select" class="w-full px-2 py-1 text-sm border border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                     <option value="">همه موارد</option>
                     <option value="roads">جاده‌ها</option>
                     <option value="poi">نقاط دیدنی</option>
@@ -114,8 +114,8 @@
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">تعداد نتایج:</label>
-                  <select v-model="filters.top" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent">
+                  <label class="block text-xs font-medium text-zinc-400 mb-1">تعداد نتایج:</label>
+                  <select v-model="filters.top" class="w-full px-2 py-1 text-sm border border-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                     <option :value="10">۱۰ نتیجه</option>
                     <option :value="20">۲۰ نتیجه</option>
                     <option :value="50">۵۰ نتیجه</option>
@@ -136,30 +136,30 @@
 
             <div v-if="results.length > 0" class="mt-4">
               <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-semibold text-gray-800">نتایج ({{ results.length }})</h3>
+                <h3 class="text-sm font-semibold text-zinc-100">نتایج ({{ results.length }})</h3>
                 <button @click="clearResults" class="text-xs text-red-600 hover:text-red-700">پاک کردن</button>
               </div>
               <div class="space-y-2 max-h-96 overflow-y-auto">
                 <div v-for="(item, index) in results" :key="index" @click="flyToLocation(item)"
-                    class="p-3 bg-gray-50 rounded-lg hover:bg-accent/15 transition-colors cursor-pointer border border-gray-200 hover:border-accent-soft">
+                    class="p-3 bg-neutral-950 rounded-lg hover:bg-orange-500/15 transition-colors cursor-pointer border border-zinc-800 hover:border-orange-400">
                   <div class="flex items-start gap-2">
                     <div class="flex-shrink-0 mt-1">
-                      <div class="w-6 h-6 bg-accent/15 rounded-full flex items-center justify-center">
-                        <svg class="w-3 h-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div class="w-6 h-6 bg-orange-500/15 rounded-full flex items-center justify-center">
+                        <svg class="w-3 h-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                       </div>
                     </div>
                     <div class="flex-1">
-                      <h4 class="font-medium text-gray-900 text-sm">{{ item.title || item.name || 'بدون عنوان' }}</h4>
-                      <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ item.address || item.formatted_address || 'بدون آدرس' }}</p>
+                      <h4 class="font-medium text-zinc-100 text-sm">{{ item.title || item.name || 'بدون عنوان' }}</h4>
+                      <p class="text-xs text-zinc-400 mt-1 line-clamp-2">{{ item.address || item.formatted_address || 'بدون آدرس' }}</p>
                       <div v-if="item.geom" class="mt-2 flex flex-wrap gap-3 text-xs">
-                        <span class="text-gray-500">Lat: {{ formatCoordinate(item.geom.coordinates[0]) }}</span>
-                        <span class="text-gray-500">Lng: {{ formatCoordinate(item.geom.coordinates[1]) }}</span>
+                        <span class="text-zinc-400">Lat: {{ formatCoordinate(item.geom.coordinates[0]) }}</span>
+                        <span class="text-zinc-400">Lng: {{ formatCoordinate(item.geom.coordinates[1]) }}</span>
                       </div>
                       <div v-if="item.type" class="mt-1">
-                        <span class="inline-block px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">{{ item.type }}</span>
+                        <span class="inline-block px-1.5 py-0.5 text-xs bg-zinc-800 text-zinc-400 rounded">{{ item.type }}</span>
                       </div>
                     </div>
                   </div>
@@ -168,20 +168,20 @@
             </div>
 
             <div v-if="loading" class="flex flex-col items-center justify-center py-8">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
-              <p class="mt-2 text-sm text-gray-600">در حال جستجو...</p>
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              <p class="mt-2 text-sm text-zinc-400">در حال جستجو...</p>
             </div>
 
             <div v-if="!loading && !error && searched && results.length === 0" class="text-center py-8">
-              <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-12 h-12 mx-auto text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-              <p class="mt-2 text-sm text-gray-500">نتیجه‌ای یافت نشد</p>
+              <p class="mt-2 text-sm text-zinc-400">نتیجه‌ای یافت نشد</p>
             </div>
             </div>
 
             <div v-else-if="activeTab === 'coords'" class="space-y-3">
-              <p class="text-[11px] text-gray-500 leading-relaxed">
+              <p class="text-[11px] text-zinc-400 leading-relaxed">
                 مختصات جغرافیایی را وارد کنید تا آدرس (شهر، خیابان و …) نمایش داده شود.
               </p>
 
@@ -189,13 +189,13 @@
                 <button
                   type="button"
                   @click="coordSystem = 'latlon'"
-                  :class="coordSystem === 'latlon' ? 'bg-gray-800 text-white' : 'bg-gray-100'"
+                  :class="coordSystem === 'latlon' ? 'bg-gray-800 text-white' : 'bg-zinc-800'"
                   class="px-2 py-0.5 rounded"
                 >Lat/Lon</button>
                 <button
                   type="button"
                   @click="coordSystem = 'utm'"
-                  :class="coordSystem === 'utm' ? 'bg-gray-800 text-white' : 'bg-gray-100'"
+                  :class="coordSystem === 'utm' ? 'bg-gray-800 text-white' : 'bg-zinc-800'"
                   class="px-2 py-0.5 rounded"
                 >UTM</button>
               </div>
@@ -203,11 +203,11 @@
               <template v-if="coordSystem === 'latlon'">
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="block text-[10px] text-gray-500 mb-1">عرض جغرافیایی (lat)</label>
+                    <label class="block text-[10px] text-zinc-400 mb-1">عرض جغرافیایی (lat)</label>
                     <input v-model="manual.lat" type="text" dir="ltr" class="w-full border rounded px-2 py-1 text-xs font-mono" placeholder="35.6892" />
                   </div>
                   <div>
-                    <label class="block text-[10px] text-gray-500 mb-1">طول جغرافیایی (lon)</label>
+                    <label class="block text-[10px] text-zinc-400 mb-1">طول جغرافیایی (lon)</label>
                     <input v-model="manual.lon" type="text" dir="ltr" class="w-full border rounded px-2 py-1 text-xs font-mono" placeholder="51.3890" />
                   </div>
                 </div>
@@ -215,15 +215,15 @@
               <template v-else>
                 <div class="grid grid-cols-3 gap-2">
                   <div>
-                    <label class="block text-[10px] text-gray-500 mb-1">Easting</label>
+                    <label class="block text-[10px] text-zinc-400 mb-1">Easting</label>
                     <input v-model="manual.easting" type="text" dir="ltr" class="w-full border rounded px-1 py-1 text-xs font-mono" />
                   </div>
                   <div>
-                    <label class="block text-[10px] text-gray-500 mb-1">Northing</label>
+                    <label class="block text-[10px] text-zinc-400 mb-1">Northing</label>
                     <input v-model="manual.northing" type="text" dir="ltr" class="w-full border rounded px-1 py-1 text-xs font-mono" />
                   </div>
                   <div>
-                    <label class="block text-[10px] text-gray-500 mb-1">Zone</label>
+                    <label class="block text-[10px] text-zinc-400 mb-1">Zone</label>
                     <input v-model.number="manual.zone" type="number" min="1" max="60" dir="ltr" class="w-full border rounded px-1 py-1 text-xs font-mono" />
                   </div>
                 </div>
@@ -233,7 +233,7 @@
                 type="button"
                 @click="performCoordSearch"
                 :disabled="loading"
-                class="w-full py-2 bg-accent text-white rounded-lg hover:bg-accent-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                class="w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {{ loading ? 'در حال دریافت…' : 'یافتن آدرس' }}
               </button>
@@ -247,9 +247,9 @@
                 </div>
               </div>
 
-              <div v-if="coordAddress" class="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1.5 text-[11px]">
-                <div class="font-medium text-gray-800">{{ coordAddress.display || 'آدرس یافت شد' }}</div>
-                <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-gray-600">
+              <div v-if="coordAddress" class="bg-neutral-950 border border-zinc-800 rounded-lg p-3 space-y-1.5 text-[11px]">
+                <div class="font-medium text-zinc-100">{{ coordAddress.display || 'آدرس یافت شد' }}</div>
+                <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-zinc-400">
                   <span v-if="coordAddress.country"><b>کشور:</b> {{ coordAddress.country }}</span>
                   <span v-if="coordAddress.province"><b>استان:</b> {{ coordAddress.province }}</span>
                   <span v-if="coordAddress.city"><b>شهر:</b> {{ coordAddress.city }}</span>
@@ -259,7 +259,7 @@
                   <span v-if="coordAddress.house_number"><b>پلاک:</b> {{ coordAddress.house_number }}</span>
                   <span v-if="coordAddress.postcode"><b>کدپستی:</b> {{ coordAddress.postcode }}</span>
                 </div>
-                <div v-if="lastCoord" class="text-gray-400 font-mono pt-1 border-t" dir="ltr">
+                <div v-if="lastCoord" class="text-zinc-500 font-mono pt-1 border-t" dir="ltr">
                   {{ lastCoord.lat.toFixed(6) }}, {{ lastCoord.lon.toFixed(6) }}
                 </div>
               </div>

@@ -2,7 +2,7 @@
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="show" draggable="false" class="fixed inset-0 flex items-center justify-center z-50" >
-        <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
+        <div class="bg-zinc-900 rounded-2xl shadow-lg w-full max-w-md p-6 relative">
           <h2 class="text-xl font-semibold mb-4 text-center">
             ارسال
           </h2>
@@ -30,7 +30,7 @@
           </div>
 
           <!-- دکمه بستن -->
-          <button @click="onCancel" class="absolute top-2 right-3 text-gray-500 hover:text-gray-700 text-xl">
+          <button @click="onCancel" class="absolute top-2 right-3 text-zinc-400 hover:text-zinc-100 text-xl">
             <i class="fas fa-times"></i>
           </button>
         </div>

@@ -1,7 +1,7 @@
 <template>
   <div class="w-[80%]">
-    <input type="checkbox" @click="callDraw(idx)" v-model="isActive" class="inline-block ml-2 accent-green-600"/>
-    <span class="inline-block text-sm text-gray-800 truncate cursor-pointer w-[90%]" @click="zoomOnPin(idx)" :class="{ 'font-bold': !unread?? false }">{{ name }}</span>
+    <input type="checkbox" @click="callDraw(idx)" v-model="isActive" class="inline-block ml-2 accent-orange-500"/>
+    <span class="inline-block text-sm text-zinc-100 truncate cursor-pointer w-[90%]" @click="zoomOnPin(idx)" :class="{ 'font-bold': !unread?? false }">{{ name }}</span>
   </div>
 
   <button
@@ -26,16 +26,16 @@
       class="text-green-600 hover:text-green-800"
       @click="remove(idx)"
       title="حذف">
-    <i class="fas fa-trash text-gray-700  text-sm" />
+    <i class="fas fa-trash text-zinc-400  text-sm" />
   </button>
 
   <SendDialog  :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
   <Loading :active="loading" />
 
-  <div  v-if="featureInfo" class="absolute top-[10px] right-[350px] bg-white shadow-lg rounded-xl p-4 w-80 max-h-[400px] overflow-auto">
+  <div  v-if="featureInfo" class="absolute top-[10px] right-[350px] bg-zinc-900 shadow-lg rounded-xl p-4 w-80 max-h-[400px] overflow-auto">
     <h3 class="text-sm font-bold mb-2">توضیحات ارسالی : </h3>
 
-    <button @click="featureInfo = false;" class="absolute top-[10px] left-[15px] text-gray-500 hover:text-red-600" >
+    <button @click="featureInfo = false;" class="absolute top-[10px] left-[15px] text-zinc-400 hover:text-red-600" >
       ✖
     </button>
 

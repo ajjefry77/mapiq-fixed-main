@@ -1,18 +1,18 @@
 <template>
   <Transition name="modal">
     <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-2/4 max-h-[80vh] flex flex-col">
+      <div class="bg-zinc-900 rounded-lg shadow-xl w-11/12 md:w-2/4 max-h-[80vh] flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b">
         <h2 class="text-lg font-semibold">لیست ذخیره شده ها</h2>
-        <button @click="close" class="text-gray-600 hover:text-red-500 text-xl font-bold"><i class="fas fa-times"></i></button>
+        <button @click="close" class="text-zinc-400 hover:text-red-500 text-xl font-bold"><i class="fas fa-times"></i></button>
       </div>
 
       <!-- Scrollable List (table-like rows: folder | title | date | description) -->
       <div class="overflow-y-auto p-4 space-y-2 text-sm">
         <div class="overflow-y-auto p-4">
           <table class="w-full text-right border-collapse">
-            <thead class="bg-gray-100">
+            <thead class="bg-zinc-800">
             <tr>
               <th class="p-2 border">عنوان</th>
               <th class="p-2 border">تاریخ</th>
@@ -21,7 +21,7 @@
             </tr>
             </thead>
             <tbody>
-            <tr v-for="(item, index) in items" :key="item.id || item._id || index" class="hover:bg-gray-50">
+            <tr v-for="(item, index) in items" :key="item.id || item._id || index" class="hover:bg-neutral-950">
               <td class="p-2 border">{{ item.name }}</td>
               <td class="p-2 border">{{ item.updatedAt }}</td>
               <td class="p-2 border">{{ item.description }}</td>
@@ -39,15 +39,15 @@
 
   <transition name="fade">
     <div v-if="selectedPin" class="absolute inset-0 bg-black/50 flex items-center justify-center">
-      <div class="bg-white rounded-2xl p-6 w-96 shadow-xl relative">
-        <button @click="selectedPin = null" class="absolute top-4 left-4 text-gray-500 hover:text-black"><i class="fas fa-times"></i></button>
+      <div class="bg-zinc-900 rounded-2xl p-6 w-96 shadow-xl relative">
+        <button @click="selectedPin = null" class="absolute top-4 left-4 text-zinc-400 hover:text-zinc-100"><i class="fas fa-times"></i></button>
 
         <h2 class="text-xl font-semibold mb-2">{{ selectedPin.name }}</h2>
-        <p v-if="selectedPin.description" class="text-gray-700 text-sm mb-3 border border-gray-200 p-2">{{ selectedPin.description }}</p>
+        <p v-if="selectedPin.description" class="text-zinc-400 text-sm mb-3 border border-zinc-800 p-2">{{ selectedPin.description }}</p>
         <div v-if="selectedPin.file" class="text-sm text-white bg-green-600 p-1 ">
 
           <div v-if="isImage(selectedPin.file)" class="border rounded-lg overflow-hidden">
-            <img  :src="SERVER + '/uploads/pins/' + selectedPin.file"  class="w-full bg-white h-84 object-cover cursor-pointer"
+            <img  :src="SERVER + '/uploads/pins/' + selectedPin.file"  class="w-full bg-zinc-900 h-84 object-cover cursor-pointer"
               @click="openNewWindow( SERVER + '/uploads/pins/' + selectedPin.file)" >
           </div>
           

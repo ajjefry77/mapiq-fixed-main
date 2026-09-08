@@ -1,35 +1,35 @@
 <template>
-  <div class="mapbox-legend border border-[var(--border)] bg-white rounded-lg shadow-lg">
+  <div class="mapbox-legend border border-[var(--border)] bg-zinc-900 rounded-lg shadow-lg">
     <div
-      class="legend-header flex items-center justify-between px-3 py-2 cursor-pointer select-none rounded-t-lg hover:bg-gray-50"
+      class="legend-header flex items-center justify-between px-3 py-2 cursor-pointer select-none rounded-t-lg hover:bg-neutral-950"
       @click="expanded = !expanded"
     >
-      <span class="text-xs font-semibold flex items-center gap-1.5 text-gray-800">
-        <i class="fas fa-layer-group text-accent"></i>
+      <span class="text-xs font-semibold flex items-center gap-1.5 text-zinc-100">
+        <i class="fas fa-layer-group text-orange-500"></i>
         راهنمای نقشه
-        <span class="text-[10px] font-normal text-gray-500">({{ activeLayers.length }})</span>
+        <span class="text-[10px] font-normal text-zinc-400">({{ activeLayers.length }})</span>
       </span>
       <i
-        class="fas text-xs text-gray-400 transition-transform"
+        class="fas text-xs text-zinc-500 transition-transform"
         :class="expanded ? 'fa-chevron-down' : 'fa-chevron-left'"
       ></i>
     </div>
 
     <div v-if="expanded" class="legend-body max-h-64 overflow-y-auto px-2 pb-2 pt-1 space-y-0.5">
-      <p v-if="!activeLayers.length" class="text-[11px] text-gray-400 text-center py-2">
+      <p v-if="!activeLayers.length" class="text-[11px] text-zinc-500 text-center py-2">
         لایه فعالی وجود ندارد
       </p>
       <div
         v-for="layer in activeLayers"
         :key="layer.pin.id"
-        class="flex items-center justify-between gap-2 rounded px-1.5 py-1 hover:bg-gray-100"
+        class="flex items-center justify-between gap-2 rounded px-1.5 py-1 hover:bg-zinc-700"
       >
         <div class="flex items-center gap-2 min-w-0 flex-1">
           <span
-            class="shrink-0 inline-block w-3.5 h-3.5 rounded-full border border-gray-300 shadow-sm"
+            class="shrink-0 inline-block w-3.5 h-3.5 rounded-full border border-zinc-800 shadow-sm"
             :style="{ background: layer.color }"
           ></span>
-          <span class="text-xs text-gray-800 truncate">{{ layer.pin.name || 'بدون نام' }}</span>
+          <span class="text-xs text-zinc-100 truncate">{{ layer.pin.name || 'بدون نام' }}</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <input

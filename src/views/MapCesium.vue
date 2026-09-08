@@ -1,5 +1,5 @@
 ﻿<template xmlns="http://www.w3.org/1999/html">
-  <div class="flex h-[calc(100vh-60px)] bg-gray-50">
+  <div class="flex h-[calc(100vh-60px)] bg-neutral-950">
 
     <div class="flex-1 h-full overflow-hidden">
 
@@ -21,7 +21,7 @@
         <div v-if="isOpen" class="absolute inset-0 bg-black/40 md:hidden" @click="isOpen = false"></div>
 
         <!-- پنل اصلی (میز کار و ...) -->
-        <div class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col
+        <div class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col
                     md:h-[70vh]
                     max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto">
           <button @click="isOpen = false" class="absolute top-2 left-4 text-xl z-10"><i class="fas fa-times"></i></button>
@@ -29,12 +29,12 @@
                      @clearPins="clearPins" :close="isOpen"/>
 
           <!-- بخش لایه های سرور فقط در موبایل داخل همین پنل -->
-          <div class="md:hidden mt-3 pt-3 border-t border-gray-200">
+          <div class="md:hidden mt-3 pt-3 border-t border-zinc-800">
             <h3 class="mb-2 text-sm">لایه های سرور : </h3>
             <hr class="border-[var(--border)] mb-2"/>
-            <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-gray-800 truncate" >
-              <input type="checkbox" class="ms-2 accent-green-600 min-h-[20px] min-w-[20px]" @change="ShowTile" aria-label="عکس هوایی طرقبه 1340"/>
-              <i class="text-accent"/>
+            <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-zinc-100 truncate" >
+              <input type="checkbox" class="ms-2 accent-orange-500 min-h-[20px] min-w-[20px]" @change="ShowTile" aria-label="عکس هوایی طرقبه 1340"/>
+              <i class="text-orange-500"/>
               عکس هوایی طرقبه 1340
             </span>
           </div>
@@ -42,14 +42,14 @@
 
         <!-- پنل لایه های سرور (فقط دسکتاپ) -->
         <div id="layer-panel"
-             class="absolute top-[70.5%] right-1 w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden">
+             class="absolute top-[70.5%] right-1 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden">
           <div class=" overflow-y-auto h-[95%]">
               <h3 class="mb-2 text-sm">لایه های سرور : </h3>
               <hr class="border-[var(--border)] mb-2"/>
 
-            <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-gray-800 truncate" >
-              <input type="checkbox" class="ml-2 accent-green-600" @change="ShowTile"/>
-              <i class="text-accent"/>
+            <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-zinc-100 truncate" >
+              <input type="checkbox" class="ml-2 accent-orange-500" @change="ShowTile"/>
+              <i class="text-orange-500"/>
               عکس هوایی طرقبه 1340
             </span>
           </div>
@@ -66,7 +66,7 @@
           <div v-if="!authStore.user && ShowForLogin" class="absolute top-3 right-1 md:right-[350px] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
             <svg class="w-4 h-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>برای دسترسی به امکانات کامل، <a class="text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2" href="/login">وارد شوید</a></span>
-            <button @click="ShowForLogin = false" class="text-xl leading-none text-gray-400 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
+            <button @click="ShowForLogin = false" class="text-xl leading-none text-zinc-500 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
           </div>
 
 
@@ -127,7 +127,7 @@
 
         <DataView  v-if="openDataView" :workspace="workspaceView"  :layer="layerView"  :geoserverUrl= 'GEOSERVER + "/geoserver"' :pageSize="20">
           <template #close>
-            <button @click="openDataView = false" class="text-gray-700 font-bold text-lg px-2 py-1 rounded hover:bg-gray-200">
+            <button @click="openDataView = false" class="text-zinc-400 font-bold text-lg px-2 py-1 rounded hover:bg-zinc-700">
               ✖
             </button>
           </template>
@@ -147,29 +147,29 @@
   <Loading :active="loading" />
   <button v-if="isMobileUA"
       @click="getLocation" style="z-index: 9999"
-      class= 'absolute bottom-16 right-[10px] min-h-[44px] min-w-[44px] w-11 h-11 bg-gray-200 rounded-full flex items-center justify-center shadow-md'
+      class= 'absolute bottom-16 right-[10px] min-h-[44px] min-w-[44px] w-11 h-11 bg-zinc-800 rounded-full flex items-center justify-center shadow-md'
       title="جستجوی آدرس" aria-label="موقعیت فعلی">
     <i class="fas fa-location m-1"></i>
   </button>
 
 
   <!-- منوی راست کلیک -->
-  <div v-if="contextMenu.visible"  class="absolute bg-white border rounded shadow-lg py-2 z-50 text-xs px-2 "
+  <div v-if="contextMenu.visible"  class="absolute bg-zinc-900 border rounded shadow-lg py-2 z-50 text-xs px-2 "
       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" >
-    <span class=" block border-b-2 border-gray-400 font-bold mt-1 pb-2 px-2"> ترتیب نمایش لایه ها در نقشه</span>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200 mt-2"
+    <span class=" block border-b-2 border-zinc-800 font-bold mt-1 pb-2 px-2"> ترتیب نمایش لایه ها در نقشه</span>
+    <button class="block px-4 py-1 w-full hover:bg-zinc-700 text-right border-b border-zinc-800 mt-2"
              @click="changeOrder(contextMenu.item,'lower');">
       یک لایه به پایین
     </button>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200"
+    <button class="block px-4 py-1 w-full hover:bg-zinc-700 text-right border-b border-zinc-800"
             @click="changeOrder(contextMenu.item ,'raise');">
       یک لایه به بالا
     </button>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right border-b border-gray-200"
+    <button class="block px-4 py-1 w-full hover:bg-zinc-700 text-right border-b border-zinc-800"
             @click="changeOrder(contextMenu.item,'raiseToTop');">
       بعنوان بالاترین لایه
     </button>
-    <button class="block px-4 py-1 w-full hover:bg-gray-100 text-right"
+    <button class="block px-4 py-1 w-full hover:bg-zinc-700 text-right"
             @click="changeOrder(contextMenu.item,'lowerToBottom');">
       بعنوان پایین ترین لایه
     </button>

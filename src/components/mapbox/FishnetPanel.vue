@@ -2,7 +2,7 @@
   <div
     v-if="panelOpen"
     dir="rtl"
-    class="absolute top-[calc(var(--top)+150px)] left-14 z-[60] w-[360px] max-w-[calc(100vw-24px)] bg-white rounded-lg shadow-xl p-0 text-sm overflow-hidden"
+    class="absolute top-[calc(var(--top)+150px)] left-14 z-[60] w-[360px] max-w-[calc(100vw-24px)] bg-zinc-900 rounded-lg shadow-xl p-0 text-sm overflow-hidden"
     @click.stop
     @contextmenu.stop
   >
@@ -17,17 +17,17 @@
     </div>
 
     <div class="p-3 space-y-3">
-      <p class="text-gray-500 text-xs leading-relaxed bg-orange-50 border border-orange-100 rounded p-2">
+      <p class="text-zinc-400 text-xs leading-relaxed bg-orange-50 border border-orange-100 rounded p-2">
         یک پلیگان را انتخاب کنید و اندازه سلول را وارد کنید (متر یا کیلومتر).
         شبکه دقیق متری در UTM، هم‌جهت شکل و قفل روی مرکز و گوشه‌ها ساخته و با مرز پلیگان برش می‌خورد.
       </p>
 
       <div>
-        <label class="block text-xs font-semibold mb-1 text-gray-700">پلیگان منبع</label>
+        <label class="block text-xs font-semibold mb-1 text-zinc-400">پلیگان منبع</label>
         <select
           :value="selectedPinId"
           @change="$emit('update:selectedPinId', $event.target.value)"
-          class="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:border-orange-500 focus:ring-1 focus:ring-orange-400 outline-none bg-white"
+          class="w-full border border-zinc-800 rounded-lg px-2 py-2 text-xs focus:border-orange-500 focus:ring-1 focus:ring-orange-400 outline-none bg-zinc-900"
         >
           <option value="">— انتخاب کنید —</option>
           <option v-for="opt in polygonOptions" :key="opt.id" :value="opt.id">
@@ -38,7 +38,7 @@
 
       <div class="flex gap-2">
         <div class="flex-1">
-          <label class="block text-xs font-semibold mb-1 text-gray-700">اندازه سلول</label>
+          <label class="block text-xs font-semibold mb-1 text-zinc-400">اندازه سلول</label>
           <input
             :value="cellSize"
             @input="$emit('update:cellSize', Number($event.target.value))"
@@ -46,16 +46,16 @@
             min="0.1"
             step="any"
             placeholder="مثلا 100"
-            class="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs font-mono focus:border-orange-500 focus:ring-1 focus:ring-orange-400 outline-none"
+            class="w-full border border-zinc-800 rounded-lg px-2 py-2 text-xs font-mono focus:border-orange-500 focus:ring-1 focus:ring-orange-400 outline-none"
             dir="ltr"
           />
         </div>
         <div class="w-28">
-          <label class="block text-xs font-semibold mb-1 text-gray-700">واحد</label>
+          <label class="block text-xs font-semibold mb-1 text-zinc-400">واحد</label>
           <select
             :value="cellUnit"
             @change="$emit('update:cellUnit', $event.target.value)"
-            class="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:border-orange-500 focus:ring-1 focus:ring-orange-400 outline-none bg-white"
+            class="w-full border border-zinc-800 rounded-lg px-2 py-2 text-xs focus:border-orange-500 focus:ring-1 focus:ring-orange-400 outline-none bg-zinc-900"
           >
             <option value="m">متر</option>
             <option value="km">کیلومتر</option>
@@ -63,12 +63,12 @@
         </div>
       </div>
 
-      <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+      <label class="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
         <input
           type="checkbox"
           :checked="clipToPolygon"
           @change="$emit('update:clipToPolygon', $event.target.checked)"
-          class="rounded border-gray-300 text-orange-500 focus:ring-orange-400 w-4 h-4"
+          class="rounded border-zinc-800 text-orange-500 focus:ring-orange-400 w-4 h-4"
         />
         برش سلول‌ها با مرز پلیگان
       </label>
@@ -97,7 +97,7 @@
         </button>
         <button
           @click="$emit('exportCSV')"
-          class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg px-2 py-2 text-xs flex items-center justify-center gap-1 transition"
+          class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded-lg px-2 py-2 text-xs flex items-center justify-center gap-1 transition"
         >
           <i class="fas fa-file-csv"></i> CSV
         </button>

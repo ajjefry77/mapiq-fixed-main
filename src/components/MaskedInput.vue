@@ -4,9 +4,9 @@
       <template v-for="(len, index) in maskPattern" :key="index">
         <input ref="inputs" type="text" v-model="parts[index]" :maxlength="len" @input="onInput(index)"
           @keydown.backspace="onBackspace(index, $event)" :style="{ width: `${len * 0.5 + 1.5}rem` }"
-          class="text-center font-mono text-lg border border-gray-300 py-2 rounded-none" />
+          class="text-center font-mono text-lg border border-zinc-800 py-2 rounded-none" />
       </template>
-      <label class="text-gray-700 text-xs px-1"> : کد نوسازی </label>
+      <label class="text-zinc-400 text-xs px-1"> : کد نوسازی </label>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-[calc(100vh-60px)] bg-gray-50">
+  <div class="flex h-[calc(100vh-60px)] bg-neutral-950">
     <div class="flex-1 h-full overflow-hidden">
       <div class="relative">
         <button
@@ -25,7 +25,7 @@
         ></div>
 
         <div
-          class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-white border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col md:h-[calc(100vh-70px)] max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto"
+          class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col md:h-[calc(100vh-70px)] max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto"
         >
           <button
             @click="isOpen = false"
@@ -95,7 +95,7 @@
           >
           <button
             @click="ShowForLogin = false"
-            class="text-xl leading-none text-gray-400 hover:text-white transition-colors"
+            class="text-xl leading-none text-zinc-500 hover:text-white transition-colors"
           >
             <i class="fas fa-times"></i>
           </button>
@@ -160,7 +160,7 @@
     v-if="isMobileUA"
     @click="getLocation"
     style="z-index: 9999"
-    class="absolute bottom-16 right-[10px] w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md"
+    class="absolute bottom-16 right-[10px] w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center shadow-md"
     title="جستجوی آدرس"
   >
     <i class="fas fa-location m-1"></i>

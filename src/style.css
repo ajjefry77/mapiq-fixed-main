@@ -962,87 +962,10 @@ tbody tr:hover {
 
 @layer utilities {
 
-/* ============ Utility overrides for dark theme ============ */
-/* These keep Tailwind light-theme utilities consistent with the dark design */
-
-.bg-gray-50 { background-color: var(--bg) !important; }
-.bg-gray-100 { background-color: var(--surface2) !important; }
-.bg-gray-200 { background-color: var(--surface2) !important; }
-.bg-gray-300 { background-color: var(--surface3) !important; }
-.bg-white { background-color: var(--surface) !important; }
-.bg-black { background-color: #000 !important; }
-
-.hover\:bg-gray-50:hover,
-.hover\:bg-gray-100:hover,
-.hover\:bg-gray-200:hover,
-.hover\:bg-gray-300:hover { background-color: var(--surface3) !important; }
-
-.text-gray-900,
-.text-gray-800 { color: var(--text) !important; }
-.text-gray-700,
-.text-gray-600,
-.text-gray-500 { color: var(--text-muted) !important; }
-.text-gray-400 { color: var(--text-faint) !important; }
-.text-black { color: var(--text) !important; }
-
-.hover\:text-gray-700:hover,
-.hover\:text-gray-800:hover,
-.hover\:text-black:hover { color: var(--text) !important; }
-
-.border-gray-200,
-.border-gray-300,
-.border-gray-400 { border-color: var(--border) !important; }
-.border-gray-100 { border-color: var(--border) !important; }
-
-.divide-gray-200 > * + *,
-.divide-gray-100 > * + * { border-color: var(--border) !important; }
-
-.shadow-sm { box-shadow: var(--shadow-sm) !important; }
-.shadow,
-.shadow-md,
-.shadow-lg,
-.shadow-xl,
-.shadow-2xl { box-shadow: var(--shadow-md) !important; }
-
-/* Blue/purple/indigo → accent overrides have been removed: the templates
-   now use real bg-accent / text-accent / accent-soft / accent-dim
-   Tailwind utility classes directly (defined via theme.extend.colors in
-   tailwind.config.cjs), so there is nothing left to override and no
-   conflict with Tailwind. */
-
-.text-red-600 { color: var(--danger) !important; }
-.hover\:text-red-800:hover { color: var(--danger) !important; filter: brightness(1.1); }
-.bg-red-500,
-.hover\:bg-red-500:hover { background: var(--danger) !important; }
-.hover\:bg-red-600:hover { background: var(--danger) !important; filter: brightness(1.08); }
-.bg-red-100 { background: var(--danger-glow) !important; }
-
-.text-green-600 { color: var(--success) !important; }
-.bg-green-100 { background: var(--success-glow) !important; }
-.bg-green-500,
-.hover\:bg-green-500:hover { background: var(--success) !important; }
-.hover\:bg-green-700:hover { background: var(--success) !important; filter: brightness(1.08); }
-
-.text-yellow-800,
-.text-amber-800 { color: var(--warning) !important; }
-.bg-yellow-100 { background: var(--warning-glow) !important; }
-.text-orange-400,
-.text-orange-300 { color: var(--accent-soft) !important; }
-.hover\:text-orange-200:hover,
-.hover\:text-orange-300:hover { color: var(--accent-soft) !important; }
-
-.accent-green-600 { accent-color: var(--accent) !important; }
-
-.border-red-400 { border-color: var(--danger) !important; }
-.text-red-700 { color: var(--danger) !important; }
-.bg-red-50 { background: var(--danger-glow) !important; }
-.text-green-800 { color: var(--success) !important; }
-
-/* Neutral Tailwind utilities that should NOT be overridden */
-.font-medium { font-weight: 500; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }
-.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Stock Tailwind defaults are used as-is (no remapping).
+   Dark surfaces are expressed with explicit default utilities
+   in the templates (bg-zinc-900, bg-neutral-950, text-zinc-400,
+   border-zinc-800, bg-orange-500, ...). */
 
 } /* end @layer utilities */
 

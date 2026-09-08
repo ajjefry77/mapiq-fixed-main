@@ -20,7 +20,7 @@
 <!--    </button>-->
 <!--  </div>-->
 
-  <div class="absolute bg-[var(--primary-color)] top-[10px] right-96 flex z-10 border border-gray-300 rounded-lg">
+  <div class="absolute bg-[var(--primary-color)] top-[10px] right-96 flex z-10 border border-zinc-800 rounded-lg">
 
      <button
         @click="togglePoints()"
@@ -53,7 +53,7 @@
         v-if="showList"
         class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
     >
-    <div class="bg-white w-[700px] max-h-[80vh] overflow-y-auto rounded-xl shadow-lg p-5">
+    <div class="bg-zinc-900 w-[700px] max-h-[80vh] overflow-y-auto rounded-xl shadow-lg p-5">
 
       <h2 class="text-xl font-bold mb-4 text-right">لیست نقاط</h2>
 
@@ -67,7 +67,7 @@
 
       <!-- جدول اطلاعات -->
       <table class="w-full border text-right">
-        <thead class="bg-gray-100">
+        <thead class="bg-zinc-800">
         <tr>
           <th class="border p-2">عنوان</th>
           <th class="border p-2">عرض (Lat)</th>
@@ -80,7 +80,7 @@
         <tr
             v-for="p in filteredPoints"
             :key="p.id"
-            class="hover:bg-gray-100 cursor-pointer"
+            class="hover:bg-zinc-700 cursor-pointer"
             @click="selectFromTable(p)"
         >
           <td class="border p-2">{{ p.title }}</td>
@@ -116,12 +116,12 @@
        =========================== -->
   <div
       v-if="selectedPoint"
-      class="fixed bottom-5 right-5 bg-white shadow-xl border rounded-lg p-4 w-80 z-50"
+      class="fixed bottom-5 right-5 bg-zinc-900 shadow-xl border rounded-lg p-4 w-80 z-50"
   >
     <h3 class="font-bold text-lg mb-2 text-right">{{ selectedPoint.title }}</h3>
-    <p class="text-gray-700 mb-2 text-right">{{ selectedPoint.desc }}</p>
+    <p class="text-zinc-400 mb-2 text-right">{{ selectedPoint.desc }}</p>
 
-    <p class="text-xs text-gray-500 text-right mb-3">
+    <p class="text-xs text-zinc-400 text-right mb-3">
       lat: {{ selectedPoint.lat }} — lng: {{ selectedPoint.lng }}
     </p>
 

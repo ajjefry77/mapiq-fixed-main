@@ -3,7 +3,7 @@
     <li
       v-for="(item, idx) in items"
       :key="item.id"
-      class="border-t border-gray-300"
+      class="border-t border-zinc-800"
       draggable="true"
       @dragstart.stop="onItemDragStart($event, item)"
       @dragover.prevent="onItemDragOver($event, idx)"
@@ -18,16 +18,16 @@
     >
       <div v-if="isContainer(item)" class="flex items-center gap-1 cursor-pointer p-0.5 rounded justify-between"
            :style="{ ['paddingRight']: `${depth * 8}px` }" @click.stop="handleSelectGroup(item, idx)"
-           :class="{ 'bg-accent/15': selectedGroup === item }" @dragover.prevent.stop @drop.stop="onDrop($event, item)">
+           :class="{ 'bg-orange-500/15': selectedGroup === item }" @dragover.prevent.stop @drop.stop="onDrop($event, item)">
         <div class="flex items-center gap-1 min-w-0">
           <i @click.stop="toggleGroup(item)" class="text-sm shrink-0"
-             :class="item.expanded ? 'fas fa-caret-down text-black' : 'fas fa-caret-left text-black'"></i>
+             :class="item.expanded ? 'fas fa-caret-down text-zinc-100' : 'fas fa-caret-left text-zinc-100'"></i>
           <i class="text-sm shrink-0"
              :class="(item.type === 'group' && item.group_id) ? 'fas fa-users text-blue-600' : 'fas fa-folder text-amber-500'"></i>
-          <span class="font-semibold text-xs leading-8 truncate text-gray-900">{{ item.name }}</span>
+          <span class="font-semibold text-xs leading-8 truncate text-zinc-100">{{ item.name }}</span>
         </div>
         <div class="flex ml-0.5">
-          <input v-if="!item.history" type="checkbox" @click="selectedItems(item)" v-model="item.show" class="ml-2 accent-green-600"/>
+          <input v-if="!item.history" type="checkbox" @click="selectedItems(item)" v-model="item.show" class="ml-2 accent-orange-500"/>
           <button class="text-red-500 hover:text-red-700 w-6 h-6 flex items-center justify-center"
                   @click="remove(item, idx)" title="حذف پوشه">
             <i class="fas fa-trash-alt"></i>

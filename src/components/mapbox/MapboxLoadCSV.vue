@@ -2,10 +2,10 @@
   <div>
     <Transition name="modal">
       <div v-if="dialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+      <div class="bg-zinc-900 rounded-lg shadow-lg w-full max-w-2xl p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">انتخاب ستون‌ها</h2>
-          <button @click="dialog = false" class="text-gray-500 hover:text-gray-700">✕</button>
+          <button @click="dialog = false" class="text-zinc-400 hover:text-zinc-100">✕</button>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
@@ -24,7 +24,7 @@
         </div>
 
         <span class="block mt-8 text-sm">
-          <input type="checkbox" v-model="validate" class="ml-2 accent-green-600"/>
+          <input type="checkbox" v-model="validate" class="ml-2 accent-orange-500"/>
           اعتبار سنجی نقاط از دستگاه GPS
         </span>
         <hr/>
@@ -64,8 +64,8 @@
               <option v-for="col in columns" :key="col" :value="col">{{ col }}</option>
             </select>
           </div>
-          <div class="block w-full h-3 bg-gray-200 rounded-full overflow-hidden" style="margin-top: 50px">
-            <div class="h-full bg-accent" :style="{ width: `${progress}%` }"/>
+          <div class="block w-full h-3 bg-zinc-800 rounded-full overflow-hidden" style="margin-top: 50px">
+            <div class="h-full bg-orange-500" :style="{ width: `${progress}%` }"/>
           </div>
         </div>
 

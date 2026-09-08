@@ -1,7 +1,7 @@
 <template>
   <Transition name="modal">
     <div v-if="visible" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div class="bg-white rounded-2xl p-6 w-96 shadow-xl">
+      <div class="bg-zinc-900 rounded-2xl p-6 w-96 shadow-xl">
         <h2 class="text-lg font-bold mb-3">یک نام برای ذخیره را وارد کنید</h2>
 
         <input

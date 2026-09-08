@@ -24,8 +24,8 @@
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'my2'
-            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
-            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
+            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
         "
         @click="activeTab = 'my2'"
       >
@@ -36,8 +36,8 @@
         class="relative px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'in'
-            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
-            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
+            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
         "
         @click="activeTab = 'in'"
       >
@@ -53,8 +53,8 @@
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'out'
-            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
-            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
+            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
         "
         @click="activeTab = 'out'"
       >
@@ -64,8 +64,8 @@
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'layers'
-            ? 'bg-accent text-white hover:bg-accent/90 shadow-sm'
-            : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
+            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
         "
         @click="activeTab = 'layers'"
       >
@@ -80,7 +80,7 @@
       <div class="flex items-center justify-between mt-0 mb-2">
         <div class="flex gap-1 text-sm">
           <button
-            class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
+            class="text-zinc-400 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-zinc-700 hover:text-zinc-100 hover:scale-110 cursor-pointer"
             @click="exportDialog = true"
             title="خروجی (KML / CSV / DXF)"
           >
@@ -98,7 +98,7 @@
             </svg>
           </button>
           <label
-            class="text-gray-500 w-8 py-1 rounded px-0 text-center cursor-pointer transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110"
+            class="text-zinc-400 w-8 py-1 rounded px-0 text-center cursor-pointer transition-all duration-200 ease-out hover:bg-zinc-700 hover:text-zinc-100 hover:scale-110"
             title="باز کردن KML / CSV / DXF / DWG / Shapefile"
           >
             <svg
@@ -122,14 +122,14 @@
             />
           </label>
           <button
-            class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
+            class="text-zinc-400 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-zinc-700 hover:text-zinc-100 hover:scale-110 cursor-pointer"
             @click="createFolderDialog = true"
             title="ایجاد پوشه"
           >
             <i class="fas fa-folder-tree"></i>
           </button>
           <button
-            class="text-gray-500 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-gray-100 hover:text-gray-800 hover:scale-110 cursor-pointer"
+            class="text-zinc-400 w-8 py-1 rounded transition-all duration-200 ease-out hover:bg-zinc-700 hover:text-zinc-100 hover:scale-110 cursor-pointer"
             @click="ArchiveDesktop"
             title="بایگانی میز کار"
           >
@@ -159,7 +159,7 @@
           :class="
             sharedSubTab === 'files'
               ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
-              : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
           "
           @click="sharedSubTab = 'files'"
         >
@@ -170,7 +170,7 @@
           :class="
             sharedSubTab === 'groups'
               ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
-              : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
           "
           @click="sharedSubTab = 'groups'"
         >
@@ -183,7 +183,7 @@
             <li
               v-for="(file, index) in inboxFiles"
               :key="index"
-              class="flex items-center justify-between bg-white px-2 rounded transition-all duration-150 ease-out hover:bg-gray-50 hover:shadow-sm group"
+              class="flex items-center justify-between bg-zinc-900 px-2 rounded transition-all duration-150 ease-out hover:bg-neutral-950 hover:shadow-sm group"
             >
               <div
                 class="flex items-center gap-1 cursor-pointer flex-1 min-w-0"
@@ -192,8 +192,8 @@
                 <i
                   :class="
                     file.opened
-                      ? 'fas fa-envelope-open text-gray-400'
-                      : 'fas fa-envelope text-accent'
+                      ? 'fas fa-envelope-open text-zinc-500'
+                      : 'fas fa-envelope text-orange-500'
                   "
                   class="transition-transform duration-200 group-hover:scale-110"
                 ></i>
@@ -202,7 +202,7 @@
               <div class="flex items-center gap-1">
                 <button
                   @click.stop="addInboxToDesktop(index)"
-                  class="text-accent px-1 rounded transition-all duration-200 ease-out hover:bg-accent hover:text-white hover:scale-110 cursor-pointer"
+                  class="text-orange-500 px-1 rounded transition-all duration-200 ease-out hover:bg-orange-500 hover:text-white hover:scale-110 cursor-pointer"
                   title="افزودن به میز کار"
                 >
                   <i class="fas fa-plus text-sm"></i>
@@ -211,7 +211,7 @@
             </li>
             <li
               v-if="!inboxFiles.length"
-              class="text-center text-gray-400 py-4"
+              class="text-center text-zinc-500 py-4"
             >
               پوشه ورودی خالی است
             </li>
@@ -223,29 +223,29 @@
         class="flex flex-col h-full min-h-0"
       >
         <div class="flex items-center justify-between mt-0 mb-2">
-          <p class="text-sm text-gray-600">گروه‌های من:</p>
+          <p class="text-sm text-zinc-400">گروه‌های من:</p>
         </div>
         <div class="overflow-y-auto">
           <ul class="space-y-1">
             <li
               v-for="(group, index) in userGroups"
               :key="group.id || index"
-              class="bg-white border rounded overflow-hidden"
+              class="bg-zinc-900 border rounded overflow-hidden"
             >
               <div
-                class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-gray-50"
+                class="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-neutral-950"
                 @click="toggleGroupExpand(group)"
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <i
-                    class="fas text-xs text-gray-500"
+                    class="fas text-xs text-zinc-400"
                     :class="expandedGroups[group.id] ? 'fa-chevron-down' : 'fa-chevron-left'"
                   ></i>
-                  <i class="fas fa-users text-gray-600"></i>
+                  <i class="fas fa-users text-zinc-400"></i>
                   <span class="text-sm truncate">{{ group.name }}</span>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
-                  <span v-if="authStore.isAdmin || group.member_count != null" class="text-xs text-gray-500">
+                  <span v-if="authStore.isAdmin || group.member_count != null" class="text-xs text-zinc-400">
                     {{ group.member_count ?? 0 }} عضو
                   </span>
                   <button
@@ -264,8 +264,8 @@
                   </button>
                 </div>
               </div>
-              <div v-if="expandedGroups[group.id]" class="border-t bg-gray-50 px-2 py-1">
-                <div v-if="loadingGroupProjects[group.id]" class="text-center text-gray-400 py-2 text-xs">
+              <div v-if="expandedGroups[group.id]" class="border-t bg-neutral-950 px-2 py-1">
+                <div v-if="loadingGroupProjects[group.id]" class="text-center text-zinc-500 py-2 text-xs">
                   در حال بارگذاری...
                 </div>
                 <ul v-else-if="(groupProjects[group.id] || []).length" class="space-y-0.5">
@@ -283,7 +283,7 @@
                     </div>
                     <div class="flex items-center gap-0.5 shrink-0">
                       <button
-                        class="text-gray-600 hover:text-accent p-1"
+                        class="text-zinc-400 hover:text-orange-500 p-1"
                         title="نمایش روی نقشه"
                         @click.stop="loadGroupProject(proj, group)"
                       >
@@ -300,12 +300,12 @@
                     </div>
                   </li>
                 </ul>
-                <div v-else class="text-center text-gray-400 py-2 text-xs">
+                <div v-else class="text-center text-zinc-500 py-2 text-xs">
                   هنوز پروژه‌ای در این گروه نیست
                 </div>
               </div>
             </li>
-            <li v-if="!userGroups.length" class="text-center text-gray-400 py-4">
+            <li v-if="!userGroups.length" class="text-center text-zinc-500 py-4">
               شما در هیچ گروهی عضو نیستید
             </li>
           </ul>
@@ -317,23 +317,23 @@
     <SaveDialog v-model="createGroupProjectDialog" @confirm="createGroupProject" />
     <Transition name="modal">
       <div v-if="showImportDialog" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50" @click.self="showImportDialog = false">
-        <div class="bg-white rounded-2xl p-5 w-96 max-h-[70vh] shadow-xl flex flex-col">
+        <div class="bg-zinc-900 rounded-2xl p-5 w-96 max-h-[70vh] shadow-xl flex flex-col">
           <h2 class="text-base font-bold mb-3">وارد کردن از میز کار به «{{ importTargetGroup?.name }}»</h2>
           <div class="overflow-y-auto flex-1 border rounded p-2 mb-3">
             <label
               v-for="(item, idx) in desktopItemsForImport"
               :key="item.save || idx"
-              class="flex items-center gap-2 py-1.5 px-1 hover:bg-gray-50 rounded cursor-pointer"
+              class="flex items-center gap-2 py-1.5 px-1 hover:bg-neutral-950 rounded cursor-pointer"
             >
-              <input type="checkbox" v-model="selectedImportIds" :value="item.save" class="accent-accent" />
+              <input type="checkbox" v-model="selectedImportIds" :value="item.save" class="accent-orange-500" />
               <span class="text-sm truncate">{{ item.name }}</span>
             </label>
-            <div v-if="!desktopItemsForImport.length" class="text-center text-gray-400 py-4 text-xs">آیتمی در میز کار نیست</div>
+            <div v-if="!desktopItemsForImport.length" class="text-center text-zinc-500 py-4 text-xs">آیتمی در میز کار نیست</div>
           </div>
           <div class="flex justify-end gap-2">
-            <button class="px-3 py-1.5 bg-gray-200 rounded-md text-sm" @click="showImportDialog = false">انصراف</button>
+            <button class="px-3 py-1.5 bg-zinc-800 rounded-md text-sm" @click="showImportDialog = false">انصراف</button>
             <button
-              class="px-3 py-1.5 bg-accent text-white rounded-md text-sm disabled:opacity-50"
+              class="px-3 py-1.5 bg-orange-500 text-white rounded-md text-sm disabled:opacity-50"
               :disabled="!selectedImportIds.length || importing"
               @click="importSelectedToGroup"
             >
@@ -378,13 +378,13 @@
         >
           <input
             type="checkbox"
-            class="accent-green-600"
+            class="accent-orange-500"
             @change="emit('show-tile', $event)"
           />
-          <i class="text-accent" />
+          <i class="text-orange-500" />
           عکس هوایی طرقبه 1340
         </span>
-        <p v-else class="text-center text-gray-400 py-4">
+        <p v-else class="text-center text-zinc-500 py-4">
           لایه‌ای برای نمایش وجود ندارد
         </p>
       </div>

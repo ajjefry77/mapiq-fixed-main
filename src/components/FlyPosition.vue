@@ -2,10 +2,10 @@
   <div class="absolute top-[calc(var(--top)+103px)] left-[12px] z-50 flex items-center ">
     <!-- آیکن کوچک مشکی و مربع -->
 
-<!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-gray-300 rounded px-2 py-1 shadow transition hover:bg-accent-soft items-center"-->
+<!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-zinc-800 rounded px-2 py-1 shadow transition hover:bg-accent-soft items-center"-->
     <button
         @click="expanded = !expanded"
-        class= 'min-h-[44px] min-w-[44px] w-11 h-11 bg-gray-200 rounded flex items-center justify-center shadow-md' dir="ltr"
+        class= 'min-h-[44px] min-w-[44px] w-11 h-11 bg-zinc-800 rounded flex items-center justify-center shadow-md' dir="ltr"
         title="رفتن به موقعیت" aria-label="رفتن به موقعیت" :aria-expanded="expanded">
       <i class="fas fa-location m-1"></i>
     </button>
@@ -13,13 +13,13 @@
     <!-- فیلد باز شونده کنار آیکن -->
     <div
         v-show="expanded"
-        class="absolute top-0 left-full ms-2 w-80 max-w-[calc(100vw-16px)] flex items-center bg-white border border-gray-300 rounded shadow-md overflow-hidden min-h-[40px]"
+        class="absolute top-0 left-full ms-2 w-80 max-w-[calc(100vw-16px)] flex items-center bg-zinc-900 border border-zinc-800 rounded shadow-md overflow-hidden min-h-[40px]"
         @click.stop>
 
       <button
           @click="goToLocation"
           title="رفتن به موقعیت" aria-label="برو"
-          class="bg-[var(--primary-color)] text-white px-3 self-stretch hover:bg-accent-dim transition flex-shrink-0 min-w-[44px]">
+          class="bg-[var(--primary-color)] text-white px-3 self-stretch hover:bg-orange-800 transition flex-shrink-0 min-w-[44px]">
         <i class="fas fa-arrow-left" />
       </button>
 

@@ -1037,6 +1037,11 @@ onMounted(() => {
   justify-content: center;
   font-size: 16px;
   margin-bottom: 3px;
+  transition: transform 0.25s var(--ease-spring-out), box-shadow 0.25s var(--ease-out);
+}
+.quick:hover .quick-ic {
+  transform: scale(1.12) rotate(-5deg);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 .quick-ic--accent {
   background: var(--accent-glow);
@@ -1086,6 +1091,8 @@ onMounted(() => {
 .row-item:hover {
   background: var(--surface2);
   border-color: var(--border);
+  transform: translateX(-3px);
+  box-shadow: var(--shadow-sm);
 }
 .row-item--cta:hover {
   border-color: var(--accent-dim);

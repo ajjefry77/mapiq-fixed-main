@@ -2,7 +2,7 @@
   <div
     ref="panelEl"
     v-show="panelReady"
-    class="fixed bg-zinc-900 rounded-lg shadow-2xl w-80 max-w-[calc(100vw-16px)] overflow-hidden pointer-events-auto z-50"
+    class="fixed panel animate-pop-in w-80 max-w-[calc(100vw-16px)] pointer-events-auto z-50"
     :class="{ invisible: !panelPositioned }"
     :style="{
       left: panelTranslate.x + 'px',
@@ -10,13 +10,13 @@
     }"
   >
     <div
-      class="bg-black text-white px-4 py-2 flex justify-between items-center cursor-move"
+      class="panel-head cursor-move"
       @mousedown="$emit('startDrag', $event)"
     >
-      <button @click="$emit('cancel')" class="hover:text-gray-200 text-lg">
+      <button @click="$emit('cancel')" class="panel-close text-lg">
         ✕
       </button>
-      <h3 class="font-bold text-sm">{{ title }}</h3>
+      <h3 class="panel-title">{{ title }}</h3>
     </div>
 
     <div class="flex border-b bg-neutral-950">

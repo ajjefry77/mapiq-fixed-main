@@ -3,15 +3,25 @@
     ref="toolbarEl"
     class="absolute top-[calc(var(--top)+150px)] left-1 z-50"
   >
-    <div @click.stop class="flex flex-col rounded shadow-md p-2 gap-2">
+    <div @click.stop class="map-toolbar">
+      <!-- جستجو -->
+      <button
+        @click="$emit('toggleSearch')"
+        title="جستجوی آدرس"
+        class="map-toolbar-btn"
+        :class="searchOpen ? 'map-toolbar-btn--active' : ''"
+      >
+        <i class="fas fa-search m-1"></i>
+      </button>
+
       <!-- اندازه‌گیری -->
       <button
         @click="$emit('toggleMeasure')"
         title="اندازه‌گیری"
-        class="w-8 h-8 rounded flex items-center justify-center shadow-md"
+        class="map-toolbar-btn"
         :class="
           drawMode === 'measure'
-            ? 'text-white bg-orange-500'
+            ? 'map-toolbar-btn--active'
             : 'text-zinc-100 bg-zinc-800'
         "
       >
@@ -22,8 +32,8 @@
       <button
         @click="$emit('togglePointPick')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
-          pickForForm ? 'text-white bg-orange-500' : 'text-zinc-100 bg-zinc-800',
+          'map-toolbar-btn',
+          pickForForm ? 'map-toolbar-btn--active' : '',
         ]"
         title="نقطه (انتخاب برای فرم)"
       >
@@ -34,10 +44,10 @@
       <button
         @click="$emit('setDrawMode', 'multi_point')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          'map-toolbar-btn',
           drawMode === 'multi_point'
-            ? 'text-white bg-orange-500'
-            : 'text-zinc-100 bg-zinc-800',
+            ? 'map-toolbar-btn--active'
+            : '',
         ]"
         title="چند نقطه"
       >
@@ -48,10 +58,10 @@
       <button
         @click="$emit('setDrawMode', 'polyline')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          'map-toolbar-btn',
           drawMode === 'polyline'
-            ? 'text-white bg-orange-500'
-            : 'text-zinc-100 bg-zinc-800',
+            ? 'map-toolbar-btn--active'
+            : '',
         ]"
         title="خط"
       >
@@ -78,10 +88,10 @@
       <button
         @click="$emit('setDrawMode', 'polygon')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          'map-toolbar-btn',
           drawMode === 'polygon'
-            ? 'text-white bg-orange-500'
-            : 'text-zinc-100 bg-zinc-800',
+            ? 'map-toolbar-btn--active'
+            : '',
         ]"
         title="پلی‌گان"
       >
@@ -92,10 +102,10 @@
       <button
         @click="$emit('setDrawMode', 'circle')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          'map-toolbar-btn',
           drawMode === 'circle'
-            ? 'text-white bg-orange-500'
-            : 'text-zinc-100 bg-zinc-800',
+            ? 'map-toolbar-btn--active'
+            : '',
         ]"
         title="دایره"
       >
@@ -106,10 +116,10 @@
       <button
         @click="$emit('startCutMode')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          'map-toolbar-btn',
           drawMode === 'cut'
-            ? 'text-white bg-red-500'
-            : 'text-zinc-100 bg-zinc-800',
+            ? 'map-toolbar-btn--danger-active'
+            : '',
         ]"
         title="برش پلی‌گان یا خط"
       >
@@ -121,10 +131,10 @@
       <button
         @click="$emit('openIntersectPanel')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          'map-toolbar-btn',
           drawMode === 'intersect' || intersectPanelOpen
-            ? 'text-white bg-orange-500'
-            : 'text-zinc-100 bg-zinc-800',
+            ? 'map-toolbar-btn--active'
+            : '',
         ]"
         title="همپوشانی (Intersect)"
       >
@@ -162,7 +172,7 @@
       <!-- === دکمه جدید: کروکی (چاپ) === -->
       <button
         @click="$emit('openKroki')"
-        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-zinc-100 bg-zinc-800"
+        class="map-toolbar-btn"
         title="کروکی"
       >
         <i class="fas fa-print"></i>
@@ -173,14 +183,14 @@
       <button
         @click="$emit('openFishnet')"
         :class="[
-          'w-8 h-8 rounded flex items-center justify-center shadow-md',
+          'map-toolbar-btn',
           fishnetPanelOpen
-            ? 'text-white bg-orange-500'
-            : 'text-zinc-100 bg-zinc-800 hover:bg-orange-100',
+            ? 'map-toolbar-btn--active'
+            : '',
         ]"
-        title="شبکه‌بندی پلیگان (Fishnet)"
+        title="مثلث‌بندی پلیگان (Triangulation)"
       >
-        <i class="fas fa-th"></i>
+        <i class="fas fa-project-diagram"></i>
       </button>
       <!-- ================================= -->
 
@@ -188,8 +198,8 @@
         <button
           @click.stop="expanded = !expanded"
           :class="[
-            'w-8 h-8 rounded flex items-center justify-center shadow-md',
-            expanded ? 'text-white bg-orange-500' : 'text-zinc-100 bg-zinc-800',
+            'map-toolbar-btn',
+            expanded ? 'map-toolbar-btn--active' : '',
           ]"
           title="نقشه پایه"
         >
@@ -198,7 +208,7 @@
         <div
           v-show="expanded"
           @click.stop
-          class="absolute top-0 left-full ml-2 w-[260px] max-w-[calc(100vw-24px)] p-2 bg-zinc-900 border border-zinc-800 rounded shadow-md z-50"
+          class="absolute top-0 left-full ml-2 w-[260px] max-w-[calc(100vw-24px)] map-toolbar-pop p-2 z-50"
         >
           <div class="flex gap-2 flex-wrap max-h-[180px] overflow-y-auto">
             <div
@@ -208,7 +218,7 @@
                 $emit('setBaseLayer', basemap);
                 expanded = false;
               "
-              class="w-20 h-20 rounded border cursor-pointer overflow-hidden shadow hover:shadow-lg relative shrink-0"
+              class="w-20 h-20 rounded-lg border border-zinc-800 cursor-pointer overflow-hidden shadow hover:shadow-lg hover:border-orange-500 relative shrink-0 transition"
               :title="basemap.name"
             >
               <img
@@ -227,14 +237,14 @@
       <!-- زوم -->
       <button
         @click="map?.zoomIn({ duration: 200 })"
-        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-zinc-100 bg-zinc-800 font-bold"
+        class="map-toolbar-btn font-bold"
         title="بزرگنمایی"
       >
         <i class="fas fa-plus text-sm"></i>
       </button>
       <button
         @click="map?.zoomOut({ duration: 200 })"
-        class="w-8 h-8 rounded flex items-center justify-center shadow-md text-zinc-100 bg-zinc-800 font-bold"
+        class="map-toolbar-btn font-bold"
         title="کوچکنمایی"
       >
         <i class="fas fa-minus text-sm"></i>
@@ -256,10 +266,12 @@ defineProps({
   baseMaps: { type: Array, default: () => [] },
   intersectPanelOpen: { type: Boolean, default: false }, // جدید
   fishnetPanelOpen: { type: Boolean, default: false },
+  searchOpen: { type: Boolean, default: false },
 });
 
 // اضافه کردن startCutMode به لیست emitها
 defineEmits([
+  "toggleSearch",
   "toggleMeasure",
   "togglePointPick",
   "setDrawMode",

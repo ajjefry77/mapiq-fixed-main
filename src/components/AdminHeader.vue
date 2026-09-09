@@ -275,8 +275,9 @@ onUnmounted(() => {
 
 <style scoped>
 .admin-topbar {
-  background: rgba(26, 29, 39, 0.85);
-  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(30, 33, 46, 0.92), rgba(19, 21, 30, 0.88));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   padding: 0 24px;
   height: 60px;
   display: flex;
@@ -314,8 +315,9 @@ onUnmounted(() => {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #d4a24a);
-  box-shadow: 0 0 12px var(--accent-glow);
+  background: linear-gradient(135deg, var(--brand-2), #d4a24a);
+  box-shadow: 0 0 12px var(--brand-glow);
+  animation: pulse-dot 2.4s ease-in-out infinite;
 }
 
 .hamburger {
@@ -380,9 +382,9 @@ onUnmounted(() => {
 }
 
 .nav-link--active {
-  color: var(--accent);
-  background: var(--accent-glow);
-  box-shadow: inset 0 0 0 1px var(--accent-glow-strong);
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+  box-shadow: 0 2px 12px var(--brand-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .gear-btn {

@@ -2085,11 +2085,15 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     clipToPolygon,
     selectedPinId,
     fishnetAngle,
+    triangStats,
+    triangPoints,
     openFishnetPanel: rawOpenFishnetPanel,
     clearFishnet,
     generateFishnet,
     saveFishnet,
     exportFishnetCSV,
+    exportTriangPointsCSV,
+    exportTriangPointsKML,
   } = createFishnetHandler(fishnetCtx);
   // --- رفتار انحصاری ابزارها: با فعال شدن یک ابزار، پنل fishnet بسته می‌شود ---
   function closeFishnetSilent() {
@@ -2209,7 +2213,7 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     clearIntersect,
     generateIntersectReport,
     exportIntersectReportCSV,
-    // --- Fishnet ---
+    // --- Fishnet (Triangulation) ---
     fishnetPanelOpen,
     fishnetCells,
     fishnetSourceLabel,
@@ -2219,10 +2223,14 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     clipToPolygon,
     selectedPinId,
     fishnetAngle,
+    triangStats,
+    triangPoints,
     openFishnetPanel: openFishnetPanelExclusive,
     clearFishnet,
     generateFishnet,
     saveFishnet,
     exportFishnetCSV,
+    exportTriangPointsCSV,
+    exportTriangPointsKML,
   };
 }

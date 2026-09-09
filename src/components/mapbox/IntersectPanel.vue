@@ -1,15 +1,15 @@
 <template>
   <div
     v-if="panelOpen || drawMode === 'intersect'"
-    class="absolute top-[calc(var(--top)+150px)] left-14 z-[60] w-[360px] max-w-[calc(100vw-24px)] bg-zinc-900 rounded shadow-md p-3 text-sm"
+    class="absolute top-[calc(var(--top)+150px)] left-14 z-[60] w-[360px] max-w-[calc(100vw-24px)] panel animate-pop-in p-3 text-sm"
     @click.stop
     @contextmenu.stop
   >
-    <div class="flex items-center justify-between mb-2">
-      <h3 class="font-bold text-zinc-100">همپوشانی (Intersect)</h3>
+    <div class="panel-head rounded-lg mb-2">
+      <h3 class="panel-title">همپوشانی (Intersect)</h3>
       <button
         @click="$emit('clearIntersect')"
-        class="text-zinc-500 hover:text-red-500"
+        class="panel-close"
         title="بستن و پاک‌کردن"
       >
         <i class="fas fa-times"></i>
@@ -19,7 +19,7 @@
     <!-- حالت ۱: در حال رسم دستی روی نقشه -->
     <div
       v-if="drawMode === 'intersect'"
-      class="text-orange-600 bg-orange-50 rounded p-2"
+      class="panel-note"
     >
       روی نقشه کلیک کنید تا رأس‌های پلیگان همپوشانی اضافه شود. برای پایان،
       دابل‌کلیک کنید (Esc برای لغو).
@@ -38,35 +38,35 @@
 
       <!-- خلاصه کلی -->
       <div class="grid grid-cols-2 gap-2 mb-2">
-        <div class="bg-neutral-950 rounded p-2 text-center">
-          <div class="text-lg font-bold text-orange-600">
+        <div class="stat-card text-center">
+          <div class="stat-num">
             {{ intersectSummary.pointCount }}
           </div>
-          <div class="text-xs text-zinc-400">نقطه</div>
+          <div class="stat-label">نقطه</div>
         </div>
-        <div class="bg-neutral-950 rounded p-2 text-center">
-          <div class="text-lg font-bold text-orange-600">
+        <div class="stat-card text-center">
+          <div class="stat-num">
             {{ intersectSummary.lineCount }}
           </div>
-          <div class="text-xs text-zinc-400">خط</div>
+          <div class="stat-label">خط</div>
         </div>
         <div
-          class="bg-neutral-950 rounded p-2 text-center col-span-2"
+          class="stat-card text-center col-span-2"
           v-if="intersectSummary.lineCount"
         >
-          <div class="text-xs text-zinc-400">مجموع طول داخل محدوده</div>
-          <div class="font-bold text-orange-600">
+          <div class="stat-label">مجموع طول داخل محدوده</div>
+          <div class="stat-num">
             {{ formatDistance(intersectSummary.totalLineLength) }}
           </div>
         </div>
         <div
-          class="bg-neutral-950 rounded p-2 text-center col-span-2"
+          class="stat-card text-center col-span-2"
           v-if="intersectSummary.polygonCount"
         >
-          <div class="text-xs text-zinc-400">
+          <div class="stat-label">
             تعداد نواحی هم‌پوشان ({{ intersectSummary.polygonCount }})
           </div>
-          <div class="font-bold text-orange-600">
+          <div class="stat-num">
             {{ formatArea(intersectSummary.totalPolygonArea) }}
           </div>
         </div>
@@ -75,7 +75,7 @@
       <!-- لیست گروه‌بندی‌شده به‌ازای هر لایه -->
       <div
         v-if="layerOverlapGroups.length"
-        class="max-h-64 overflow-y-auto border border-zinc-800 rounded divide-y divide-zinc-800 mb-2 bg-zinc-900"
+        class="table-wrap max-h-64 overflow-y-auto divide-y divide-zinc-800 mb-2"
         dir="rtl"
       >
         <div
@@ -109,7 +109,7 @@
       <!-- نتایج عادی (نقطه/خط یا وقتی گروه‌بندی لایه نداریم) -->
       <div
         v-else
-        class="max-h-56 overflow-y-auto border border-zinc-800 rounded divide-y divide-zinc-800 bg-zinc-900"
+        class="table-wrap max-h-56 overflow-y-auto divide-y divide-zinc-800"
         dir="rtl"
       >
         <div
@@ -153,13 +153,13 @@
       <div class="flex gap-2 mt-3">
         <button
           @click="$emit('generateReport')"
-          class="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded px-2 py-1.5 flex items-center justify-center gap-1"
+          class="btn btn-primary btn-sm flex-1"
         >
           <i class="fas fa-print"></i> تولید گزارش
         </button>
         <button
           @click="$emit('exportCSV')"
-          class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded px-2 py-1.5 flex items-center justify-center gap-1"
+          class="btn btn-ghost btn-sm flex-1"
         >
           <i class="fas fa-file-csv"></i> CSV
         </button>
@@ -175,13 +175,13 @@
       <div class="flex flex-col gap-2">
         <button
           @click="$emit('startIntersectMode')"
-          class="bg-orange-500 hover:bg-orange-600 text-white rounded px-3 py-2 flex items-center justify-center gap-2"
+          class="btn btn-primary w-full"
         >
           <i class="fas fa-draw-polygon"></i> ترسیم دستی محدوده
         </button>
         <button
           @click="$refs.kmlInput.click()"
-          class="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded px-3 py-2 flex items-center justify-center gap-2"
+          class="btn btn-ghost w-full"
         >
           <i class="fas fa-file-upload"></i> آپلود فایل KML
         </button>
@@ -194,7 +194,7 @@
         />
 
         <!-- انتخاب از لایه‌های Pinlist -->
-        <div class="border rounded p-2 mt-1">
+        <div class="border border-zinc-800 rounded-xl p-2 mt-1">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs font-semibold text-zinc-400">
               از لایه‌های Pinlist
@@ -234,16 +234,16 @@
           </div>
           <div
             v-else
-            class="max-h-44 overflow-y-auto border rounded divide-y mb-2"
+            class="table-wrap max-h-44 overflow-y-auto divide-y divide-zinc-800 mb-2"
           >
             <label
               v-for="opt in polygonPinOptions"
               :key="String(opt.id)"
-              class="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer hover:bg-orange-50 select-none"
+              class="menu-item text-xs select-none"
             >
               <input
                 type="checkbox"
-                class="rounded border-zinc-800 text-orange-500 focus:ring-orange-400 shrink-0"
+                class="rounded border-zinc-800 accent-orange-500 shrink-0"
                 :checked="isSelected(opt.id)"
                 @change="togglePin(opt.id, $event.target.checked)"
               />
@@ -259,7 +259,7 @@
             type="button"
             :disabled="selectedPinIds.length < 1"
             @click="onUseSelectedPins"
-            class="w-full rounded px-3 py-2 flex items-center justify-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed bg-emerald-500 hover:bg-emerald-600 text-white"
+            class="btn btn-success w-full disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <i class="fas fa-layer-group"></i>
             محاسبه همپوشانی ({{ selectedPinIds.length }} لایه)

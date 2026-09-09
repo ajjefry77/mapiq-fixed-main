@@ -19,19 +19,19 @@
   <div class="flex mb-2 ">
 <!--    <button-->
 <!--        class="px-2 py-1 text-sm rounded"-->
-<!--        :class="activeTab === 'my' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"-->
+<!--        :class="activeTab === 'my' ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'"-->
 <!--        @click="activeTab = 'my'" >-->
 <!--      میز کار-->
 <!--    </button>-->
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'my2' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
+        :class="activeTab === 'my2' ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'"
         @click="activeTab = 'my2'" >
       میز کار
     </button>
     <button
         class="relative px-2 py-1 text-sm rounded"
-        :class="activeTab === 'in' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
+        :class="activeTab === 'in' ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'"
         @click="activeTab = 'in'" >
        ارجاع کار
       <span
@@ -41,7 +41,7 @@
     </button>
     <button
         class="px-2 py-1 text-sm rounded"
-        :class="activeTab === 'out' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
+        :class="activeTab === 'out' ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'"
         @click="activeTab = 'out'" >
        بایگانی
     </button>
@@ -145,13 +145,13 @@
     <div class="flex gap-1 mb-2">
       <button
           class="px-2 py-0.5 text-xs rounded"
-          :class="sharedSubTab === 'files' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
+          :class="sharedSubTab === 'files' ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'"
           @click="sharedSubTab = 'files'" >
         فایل‌ها (پوشه ورودی)
       </button>
       <button
           class="px-2 py-0.5 text-xs rounded"
-          :class="sharedSubTab === 'groups' ? 'bg-orange-500 text-white' : 'bg-zinc-900 border'"
+          :class="sharedSubTab === 'groups' ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'"
           @click="sharedSubTab = 'groups'" >
         گروه‌ها
       </button>

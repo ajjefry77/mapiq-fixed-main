@@ -132,7 +132,6 @@
         />
       </div>
 
-      <MapboxSearchAddress v-if="mapReady" :map="map" />
       <MapboxNorthIcon v-if="mapReady" :map="map" />
       <MapboxDrawTools
         ref="drawing"
@@ -195,7 +194,6 @@ import { logger } from "@/logger";
 import MapboxNorthIcon from "../components/mapbox/MapboxNorthIcon.vue";
 import MapboxDrawTools from "../components/mapbox/MapboxDrawTools.vue";
 import MapboxPinsList from "../components/mapbox/MapboxPinsList.vue";
-import MapboxSearchAddress from "../components/mapbox/MapboxSearchAddress.vue";
 import MapboxLegend from "../components/mapbox/MapboxLegend.vue";
 
 import Loading from "../components/Loading.vue";

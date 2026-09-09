@@ -1,12 +1,5 @@
 <template>
   <div>
-    <button
-        @click="togglePanel"
-        class= 'absolute top-[calc(var(--top)+115px)] left-[12px] w-8 h-8 bg-zinc-800 rounded flex items-center justify-center shadow-md'
-        title="جستجوی آدرس">
-      <i class="fas fa-search m-1"></i>
-    </button>
-
     <transition
         enter-active-class="transition-transform duration-300 ease-out"
         enter-from-class="transform translate-x-full"
@@ -272,17 +265,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive, computed, onUnmounted } from 'vue'
 import mapboxgl from 'mapbox-gl';
 import proj4 from 'proj4';
 
 const props = defineProps({
-  map: { type: Object, required: true }
+  map: { type: Object, required: true },
+  open: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['location-selected'])
+const emit = defineEmits(['location-selected', 'update:open'])
 
-const isOpen = ref(false)
+const isOpen = computed({
+  get: () => props.open,
+  set: (v) => emit('update:open', v)
+})
 const searchText = ref('')
 const loading = ref(false)
 const results = ref([])

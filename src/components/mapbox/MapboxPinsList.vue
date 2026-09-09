@@ -24,8 +24,8 @@
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'my2'
-            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
-            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
+            ? 'btn btn-primary btn-xs'
+            : 'btn btn-ghost btn-xs'
         "
         @click="activeTab = 'my2'"
       >
@@ -36,8 +36,8 @@
         class="relative px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'in'
-            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
-            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
+            ? 'btn btn-primary btn-xs'
+            : 'btn btn-ghost btn-xs'
         "
         @click="activeTab = 'in'"
       >
@@ -53,8 +53,8 @@
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'out'
-            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
-            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
+            ? 'btn btn-primary btn-xs'
+            : 'btn btn-ghost btn-xs'
         "
         @click="activeTab = 'out'"
       >
@@ -64,8 +64,8 @@
         class="px-2 py-1 text-sm rounded transition-all duration-200 ease-out cursor-pointer"
         :class="
           activeTab === 'layers'
-            ? 'bg-orange-500 text-white hover:bg-orange-500/90 shadow-sm'
-            : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
+            ? 'btn btn-primary btn-xs'
+            : 'btn btn-ghost btn-xs'
         "
         @click="activeTab = 'layers'"
       >
@@ -159,7 +159,7 @@
           :class="
             sharedSubTab === 'files'
               ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
-              : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
+              : 'btn btn-ghost btn-xs'
           "
           @click="sharedSubTab = 'files'"
         >
@@ -170,7 +170,7 @@
           :class="
             sharedSubTab === 'groups'
               ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
-              : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100'
+              : 'btn btn-ghost btn-xs'
           "
           @click="sharedSubTab = 'groups'"
         >
@@ -331,9 +331,9 @@
             <div v-if="!desktopItemsForImport.length" class="text-center text-zinc-500 py-4 text-xs">آیتمی در میز کار نیست</div>
           </div>
           <div class="flex justify-end gap-2">
-            <button class="px-3 py-1.5 bg-zinc-800 rounded-md text-sm" @click="showImportDialog = false">انصراف</button>
+            <button class="btn btn-ghost btn-sm" @click="showImportDialog = false">انصراف</button>
             <button
-              class="px-3 py-1.5 bg-orange-500 text-white rounded-md text-sm disabled:opacity-50"
+              class="btn btn-primary btn-sm disabled:opacity-50"
               :disabled="!selectedImportIds.length || importing"
               @click="importSelectedToGroup"
             >

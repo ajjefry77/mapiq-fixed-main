@@ -7,6 +7,8 @@
     :baseMaps="baseMaps"
     :intersectPanelOpen="intersectPanelOpen"
     :fishnetPanelOpen="fishnetPanelOpen"
+    :searchOpen="searchOpen"
+    @toggleSearch="searchOpen = !searchOpen"
     @toggleMeasure="toggleMeasure"
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
@@ -67,6 +69,8 @@
     </div>
   </Transition>
 
+  <MapboxSearchAddress :map="map" v-model:open="searchOpen" />
+
   <IntersectPanel
     :panelOpen="intersectPanelOpen"
     :drawMode="drawMode"
@@ -94,6 +98,7 @@
     :cells="fishnetCells"
     :sourceLabel="fishnetSourceLabel"
     :angle="fishnetAngle"
+    :stats="triangStats"
     @update:selectedPinId="selectedPinId = $event"
     @update:cellSize="cellSize = $event"
     @update:cellUnit="cellUnit = $event"
@@ -101,6 +106,8 @@
     @generate="onFishnetGenerate"
     @save="onFishnetSave"
     @exportCSV="exportFishnetCSV"
+    @exportPointsCSV="exportTriangPointsCSV"
+    @exportPointsKML="exportTriangPointsKML"
     @clearFishnet="clearFishnet"
   />
 
@@ -117,6 +124,7 @@ import { useDrawing } from "../../composables/useDrawing";
 import { useDragPanel } from "../../composables/useDragPanel";
 import IntersectPanel from "./IntersectPanel.vue";
 import FishnetPanel from "./FishnetPanel.vue";
+import MapboxSearchAddress from "./MapboxSearchAddress.vue";
 import {
   getDashArray,
   pointIcon,
@@ -137,6 +145,7 @@ const SelectGroup = inject("SelectGroup", null);
 const toolbarComponent = ref(null);
 const panelComponent = ref(null);
 const krokiDialogRef = ref(null);
+const searchOpen = ref(false);
 
 function openKroki() {
   krokiDialogRef.value?.open();
@@ -198,11 +207,14 @@ const {
   clipToPolygon,
   selectedPinId,
   fishnetAngle,
+  triangStats,
   openFishnetPanel,
   clearFishnet,
   generateFishnet,
   saveFishnet,
   exportFishnetCSV,
+  exportTriangPointsCSV,
+  exportTriangPointsKML,
 } = useDrawing(props.map, props.pins, emit, SelectGroup);
 
 function onFishnetGenerate() {

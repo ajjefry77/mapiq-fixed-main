@@ -95,6 +95,9 @@
     :cellUnit="cellUnit"
     :clipToPolygon="clipToPolygon"
     :generating="fishnetGenerating"
+    :stage="fishnetStage"
+    :progress="fishnetProgress"
+    :stages="FISHNET_STAGES"
     :cells="fishnetCells"
     :sourceLabel="fishnetSourceLabel"
     :angle="fishnetAngle"
@@ -202,6 +205,9 @@ const {
   fishnetCells,
   fishnetSourceLabel,
   fishnetGenerating,
+  fishnetStage,
+  fishnetProgress,
+  FISHNET_STAGES,
   cellSize,
   cellUnit,
   clipToPolygon,
@@ -217,8 +223,8 @@ const {
   exportTriangPointsKML,
 } = useDrawing(props.map, props.pins, emit, SelectGroup);
 
-function onFishnetGenerate() {
-  generateFishnet(selectedPinId.value, cellSize.value, cellUnit.value, clipToPolygon.value);
+async function onFishnetGenerate() {
+  await generateFishnet(selectedPinId.value, cellSize.value, cellUnit.value, clipToPolygon.value);
 }
 
 async function onFishnetSave() {

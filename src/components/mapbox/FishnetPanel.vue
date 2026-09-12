@@ -82,6 +82,31 @@
         {{ generating ? "در حال مثلث‌بندی..." : "ساخت پیش‌نمایش مثلث‌بندی" }}
       </button>
 
+      <div v-if="generating" class="fishnet-loader" role="status" aria-live="polite">
+        <div class="fishnet-loader-top">
+          <span class="fishnet-loader-title">{{ currentStageLabel }}</span>
+          <span class="fishnet-loader-pct">{{ Math.round(progress || 0) }}٪</span>
+        </div>
+        <div class="fishnet-bar" aria-hidden="true">
+          <div class="fishnet-bar-fill" :style="{ width: Math.min(100, Math.max(0, progress || 0)) + '%' }"></div>
+        </div>
+        <ol class="fishnet-steps">
+          <li
+            v-for="(s, i) in stageLabels"
+            :key="i"
+            class="fishnet-step"
+            :class="{ 'is-done': stageIndex(i) < activeStage, 'is-active': stageIndex(i) === activeStage }"
+          >
+            <span class="fishnet-step-dot">
+              <i v-if="stageIndex(i) < activeStage" class="fas fa-check"></i>
+              <span v-else-if="stageIndex(i) === activeStage" class="fishnet-step-pulse"></span>
+              <span v-else>{{ (i + 1).toLocaleString('fa-IR') }}</span>
+            </span>
+            <span>{{ s }}</span>
+          </li>
+        </ol>
+      </div>
+
       <div v-if="cells.length" class="rounded-lg border border-orange-500/25 bg-orange-500/10 p-2.5 text-xs space-y-1">
         <div class="font-bold text-orange-300">{{ cells.length }} مثلث برای «{{ sourceLabel }}» ساخته شد.</div>
         <div v-if="estSize" class="text-orange-200/80">طول ضلع هدف: {{ estSize }}</div>
@@ -149,6 +174,9 @@ const props = defineProps({
   cellUnit: { type: String, default: "m" },
   clipToPolygon: { type: Boolean, default: true },
   generating: { type: Boolean, default: false },
+  stage: { type: Number, default: 0 },
+  progress: { type: Number, default: 0 },
+  stages: { type: Array, default: () => ["ارسال به سرور", "پردازش شبکه‌بندی", "بررسی نتایج"] },
   cells: { type: Array, default: () => [] },
   sourceLabel: { type: String, default: "" },
   angle: { type: Number, default: 0 },
@@ -211,4 +239,99 @@ const estSize = computed(() => {
   if (!isFinite(v) || v <= 0) return "";
   return props.cellUnit === "km" ? `${v} km (${(v * 1000).toLocaleString("fa-IR")} m)` : `${v} m`;
 });
+
+// لودینگ ۳ مرحله‌ای: stage از ۱ تا ۳ می‌آید (۰ = خاموش)
+const stageLabels = computed(() =>
+  Array.isArray(props.stages) && props.stages.length ? props.stages : ["ارسال به سرور", "پردازش شبکه‌بندی", "بررسی نتایج"]
+);
+const activeStage = computed(() => Math.min(3, Math.max(1, Number(props.stage) || 1)));
+function stageIndex(i) { return i + 1; }
+const currentStageLabel = computed(() => stageLabels.value[Math.min(stageLabels.value.length - 1, activeStage.value - 1)] || "");
+
 </script>
+
+<style scoped>
+.fishnet-loader {
+  border-radius: 12px;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.07);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fishnet-loader-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text, #e8eaf0);
+}
+.fishnet-loader-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-3, #fb923c);
+}
+.fishnet-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.fishnet-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand-1, #ea580c), var(--brand-2, #f97316), var(--brand-3, #fb923c));
+  box-shadow: 0 0 12px var(--brand-glow, rgba(249, 115, 22, 0.45));
+  transition: width 0.25s ease-out;
+}
+.fishnet-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.fishnet-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-faint, #767da0);
+}
+.fishnet-step.is-done { color: var(--success, #3ecf8e); }
+.fishnet-step.is-active { color: var(--text, #e8eaf0); font-weight: 700; }
+.fishnet-step-dot {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border, #2e3348);
+}
+.fishnet-step.is-done .fishnet-step-dot {
+  background: var(--success-glow, rgba(62, 207, 142, 0.12));
+  border-color: rgba(62, 207, 142, 0.4);
+}
+.fishnet-step.is-active .fishnet-step-dot {
+  border-color: var(--accent, #e8843c);
+  box-shadow: 0 0 0 3px var(--accent-glow, rgba(232, 132, 60, 0.08));
+}
+.fishnet-step-pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent, #e8843c);
+  animation: fishnetPulse 1s ease-in-out infinite;
+}
+@keyframes fishnetPulse {
+  0%, 100% { transform: scale(0.7); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+</style>

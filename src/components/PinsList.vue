@@ -218,13 +218,13 @@
 
   <SendDialog  :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
   <LoadCSV :rows="csvRows" :viewer="viewer" ref="csvRef" :pins="props.pins"/>
-  <Loading :active="loading" />
+  <Loading :active="loading" :message="loadingMessage" :sub="loadingSub" :progress="loadingProgress" />
  </div>
 </template>
 
 <script setup>
 
-import {ref, toRaw, onMounted, onUnmounted, watch, provide, inject} from "vue";
+import {ref, toRaw, nextTick, onMounted, onUnmounted, watch, provide, inject} from "vue";
 import { useRoute } from 'vue-router'
 import axios from "axios";
 import moment from 'moment-jalaali'
@@ -261,6 +261,21 @@ const openDialog = ref(false)
 const OpenSend = ref(false)
 const isShow = ref(true)
 const loading = ref(false)
+const loadingMessage = ref("")
+const loadingSub = ref("")
+const loadingProgress = ref(null)
+function beginFileLoading(file) {
+  loadingMessage.value = "در حال باز کردن فایل روی نقشه..."
+  loadingSub.value = file?.name || ""
+  loadingProgress.value = 10
+  loading.value = true
+}
+function endFileLoading() {
+  endFileLoading()
+  loadingMessage.value = ""
+  loadingSub.value = ""
+  loadingProgress.value = null
+}
 const isActive = ref(false)
 const activeTab = ref("my2")
 const sharedSubTab = ref("files")
@@ -379,7 +394,7 @@ async function getData(token) {
   } catch (err) {
     logger.error("data.load.failed", { resource: "pins" }, err)
   } finally {
-    loading.value = false
+    endFileLoading()
   }}
 
 onUnmounted(() => {
@@ -552,7 +567,7 @@ const loadWorks = async () => {
     } catch (err) {
       logger.error("data.load.failed", { resource: "pins" }, err)
     } finally {
-      loading.value = false
+      endFileLoading()
     }
   }
 }
@@ -1307,7 +1322,9 @@ const handleFileUpload = async (event) => {
 
   const fileName = file.name.toLowerCase()
   let DataSource;
-  loading.value = true;
+  beginFileLoading(file);
+  await nextTick();
+  await new Promise((r) => setTimeout(r, 120));
   let pin;
   if (fileName.endsWith(".csv") || fileName.endsWith(".txt")) {
 
@@ -1318,7 +1335,7 @@ const handleFileUpload = async (event) => {
         logger.warn("file.parse.failed", { resource: "csv" }, error)
       }
     })
-    loading.value = false;
+    endFileLoading();
     csvRef.value?.open(fileName);
     return
   }
@@ -1330,6 +1347,8 @@ const handleFileUpload = async (event) => {
 
     const loadFile = async (file) => {
       try {
+        loadingMessage.value = "در حال پردازش هندسه فایل..."
+        loadingProgress.value = 60
         // Cesium به صورت خودکار هم KML و هم KMZ را پشتیبانی می‌کند
         DataSource = await Cesium.KmlDataSource.load(file, {
           camera: viewer.scene.camera,
@@ -1347,7 +1366,7 @@ const handleFileUpload = async (event) => {
           )
         });
 
-        loading.value = false;
+        endFileLoading();
         let savedCameraView = {
           position: viewer.camera.position.clone(),
           heading: viewer.camera.heading,
@@ -1379,7 +1398,7 @@ const handleFileUpload = async (event) => {
 
       } catch (error) {
         logger.error("file.load.failed", { resource: "kml" }, error);
-        loading.value = false;
+        endFileLoading();
       }
     };
 
@@ -1394,6 +1413,8 @@ const handleFileUpload = async (event) => {
     const reader = new FileReader()
     reader.onload = async (e) => {
       try {
+        loadingMessage.value = "در حال پردازش شیپ‌فایل..."
+        loadingProgress.value = 60
         const arrayBuffer = e.target.result
         const geojson = await shp(arrayBuffer)
         DataSource = await Cesium.GeoJsonDataSource.load(geojson)
@@ -1406,7 +1427,7 @@ const handleFileUpload = async (event) => {
               0                           // range (فاصله - 0 یعنی محاسبه خودکار)
           )
         }).then(() => {
-          loading.value = false;
+          endFileLoading();
           let savedCameraView = {
             position: viewer.camera.position.clone(),
             heading: viewer.camera.heading,
@@ -1442,13 +1463,13 @@ const handleFileUpload = async (event) => {
 
       } catch (error) {
         logger.error("file.load.failed", { resource: "shapefile" }, error)
-        loading.value = false;
+        endFileLoading();
       }
     }
     reader.readAsArrayBuffer(file)
   } else {
     alert("فقط فایل‌های KML و kmz پشتیبانی می‌شوند.")
-    loading.value = false;
+    endFileLoading();
   }
   pin.file = file;
   await saveOneWorks(pin);

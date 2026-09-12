@@ -25,6 +25,20 @@ export function createFishnetHandler(ctx) {
   const triangStats = ref(null);
   // رئوس یکتای مثلث‌بندی نهایی (برای خروجی نقاط)
   const triangPoints = ref([]);
+  // لودینگ ۳ مرحله‌ای شبکه‌بندی: ۰=خاموش، ۱=ارسال به سرور، ۲=پردازش، ۳=بررسی نتایج
+  const fishnetStage = ref(0);
+  const fishnetProgress = ref(0);
+  const FISHNET_STAGES = ["ارسال به سرور", "پردازش شبکه‌بندی", "بررسی نتایج"];
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const yieldUI = () => sleep(30);
+  async function animateProgress(from, to, ms) {
+    const steps = 12;
+    for (let i = 1; i <= steps; i++) {
+      fishnetProgress.value = Math.round((from + ((to - from) * i) / steps) * 10) / 10;
+      await sleep(Math.max(16, ms / steps));
+    }
+  }
 
   function removeFishnetLayers() {
     const m = ctx.map;
@@ -53,6 +67,8 @@ export function createFishnetHandler(ctx) {
     fishnetSourceLabel.value = "";
     fishnetPanelOpen.value = false;
     generating.value = false;
+    fishnetStage.value = 0;
+    fishnetProgress.value = 0;
     fishnetAngle.value = 0;
     triangStats.value = null;
   }
@@ -273,6 +289,70 @@ export function createFishnetHandler(ctx) {
     return { kept, removed };
   }
 
+  // ادغام نهایی نقاط خروجی: هر نقطه‌ای که تا نقطه نگه‌داشته‌شده
+  // کمتر از minSep فاصله داشته باشد کلا حذف می‌شود (بدون اسنپ، بدون جابه‌جایی)
+  function mergeCloseUTM(list, minSep) {
+    const kept = [];
+    let removed = 0;
+    const cell = Math.max(minSep, 0.001);
+    const minSep2 = minSep * minSep;
+    const grid = new Map();
+    for (const p of list) {
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) { kept.push(p); continue; }
+      const cx = Math.floor(p.x / cell), cy = Math.floor(p.y / cell);
+      let dup = false;
+      for (let ix = cx - 1; ix <= cx + 1 && !dup; ix++) {
+        for (let iy = cy - 1; iy <= cy + 1 && !dup; iy++) {
+          const bucket = grid.get(`${ix}:${iy}`);
+          if (!bucket) continue;
+          for (const q of bucket) {
+            const dx = p.x - q.x, dy = p.y - q.y;
+            if (dx * dx + dy * dy < minSep2) { dup = true; break; }
+          }
+        }
+      }
+      if (dup) { removed++; continue; }
+      kept.push(p);
+      const k = `${cx}:${cy}`;
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(p);
+    }
+    kept.forEach((p, i) => { p.id = `P${i + 1}`; });
+    return { kept, removed };
+  }
+
+  // ادغام نهایی نقاط خروجی: هر نقطه‌ای که فاصله‌اش تا نقطه نگه‌داشته‌شده
+  // کمتر از minSep باشد کلا حذف می‌شود (بدون جابه‌جایی بقیه نقاط)
+  function mergeCloseUTM(list, minSep) {
+    const kept = [];
+    let removed = 0;
+    const cell = Math.max(minSep, 0.001);
+    const minSep2 = minSep * minSep;
+    const grid = new Map();
+    for (const p of list) {
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) { kept.push(p); continue; }
+      const cx = Math.floor(p.x / cell), cy = Math.floor(p.y / cell);
+      let dup = false;
+      for (let ix = cx - 1; ix <= cx + 1 && !dup; ix++) {
+        for (let iy = cy - 1; iy <= cy + 1 && !dup; iy++) {
+          const bucket = grid.get(`${ix}:${iy}`);
+          if (!bucket) continue;
+          for (const q of bucket) {
+            const dx = p.x - q.x, dy = p.y - q.y;
+            if (dx * dx + dy * dy < minSep2) { dup = true; break; }
+          }
+        }
+      }
+      if (dup) { removed++; continue; }
+      kept.push(p);
+      const k = `${cx}:${cy}`;
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(p);
+    }
+    kept.forEach((p, i) => { p.id = `P${i + 1}`; });
+    return { kept, removed };
+  }
+
   // کمترین زاویه مثلث (درجه) در فضای UTM — معیار خطای شکلی
   function minAngleDeg(a, b, c) {
     const ab = dist2D(a, b), bc = dist2D(b, c), ca = dist2D(c, a);
@@ -284,7 +364,7 @@ export function createFishnetHandler(ctx) {
     return Math.min(A, B, C);
   }
 
-  function generateFishnet(sourcePinId, size, unit, clip = true) {
+  async function generateFishnet(sourcePinId, size, unit, clip = true) {
     const pinsList = Array.isArray(ctx.pins) ? ctx.pins : ctx.pins?.value || [];
     const pin = findPinById(pinsList, sourcePinId);
     if (!pin) {
@@ -303,7 +383,16 @@ export function createFishnetHandler(ctx) {
     }
 
     generating.value = true;
+    fishnetStage.value = 1;
+    fishnetProgress.value = 0;
     try {
+      // ── مرحله ۱: ارسال به سرور (بسته‌بندی هندسه + اعلام شروع) ──
+      await animateProgress(0, 30, 900);
+      await yieldUI();
+
+      // ── مرحله ۲: پردازش شبکه‌بندی ──
+      fishnetStage.value = 2;
+      const stage2Start = Date.now();
       const ring = poly.geometry.coordinates[0];
       let sumLon = 0, sumLat = 0;
       ring.forEach((c) => { sumLon += c[0]; sumLat += c[1]; });
@@ -345,9 +434,9 @@ export function createFishnetHandler(ctx) {
         return [];
       }
 
-      // حداقل فاصله مجاز نقاط: ۲۵٪ طول ضلع (حداقل نیم متر) —
+      // حداقل فاصله مجاز نقاط: ۳۰٪ طول ضلع (حداقل ۲۰ سانتی‌متر) —
       // هر نقطه‌ای که از نقطه دیگر نزدیک‌تر باشد کلا حذف می‌شود
-      const minSep = Math.max(edge * 0.25, 0.5);
+      const minSep = Math.max(edge * 0.3, 0.2);
 
       // ۱) ادغام گوشه‌های خیلی نزدیک‌به‌هم (جلوگیری از به‌هم‌ریختگی شکل)
       const merged = mergeCloseCorners(corners, minSep);
@@ -359,7 +448,9 @@ export function createFishnetHandler(ctx) {
       }
 
       // ۲) همه گوشه‌ها + متراکم‌سازی مرز → پوشش کامل گوشه‌ها
-      const boundary = dedupPoints(densifyBoundary(corners, edge), minSep * 0.5);
+      const boundary = dedupPoints(densifyBoundary(corners, edge), minSep);
+      fishnetProgress.value = 45;
+      await yieldUI();
       // ۳) نقاط داخلی برای تراکم شبکه مثل عکس (حداقل خطا با Delaunay)
       let interior = interiorGridPoints(corners, edge);
       // مرکز حتما داخل باشد (اگر به نقطه دیگری خیلی نزدیک نبود)
@@ -371,10 +462,12 @@ export function createFishnetHandler(ctx) {
 
       // نقاط داخلی نزدیک به مرز/همدیگر کلا حذف می‌شوند
       const base = [...boundary];
-      const filtered = filterClosePoints(base, dedupPoints(interior, minSep * 0.5), minSep);
+      const filtered = filterClosePoints(base, dedupPoints(interior, minSep), minSep);
       removedClose += filtered.removed;
       let allPts = base;
       if (allPts.length < 3) allPts = [...boundary];
+      fishnetProgress.value = 55;
+      await yieldUI();
 
       // سقف تعداد نقاط ورودی (جلوگیری از انفجار مثلث) — مرز کامل حفظ می‌شود
       if (allPts.length > MAX_INPUT_POINTS) {
@@ -390,6 +483,8 @@ export function createFishnetHandler(ctx) {
 
       // ۳) Delaunay در صفحه متریک (کمترین خطای زاویه‌ای)
       const ptsFC = turf.featureCollection(allPts.map(([x, y]) => turf.point([x, y])));
+      fishnetProgress.value = 62;
+      await yieldUI();
       let tin;
       try {
         tin = turf.tin(ptsFC);
@@ -401,18 +496,31 @@ export function createFishnetHandler(ctx) {
         ctx.$toast?.error("مثلثی ساخته نشد — طول ضلع را تغییر دهید");
         return [];
       }
+      fishnetProgress.value = 70;
+      await yieldUI();
 
       // ۴) برگرداندن به lon/lat + برش با مرز پلیگان
       const cells = [];
-      let sumMin = 0, worstMin = 60, skinny = 0, idx = 0;
+      let sumMin = 0, worstMin = 60, skinny = 0, idx = 0, droppedSlivers = 0;
+      // حداقل مساحت قابل‌قبول پس از برش (متناسب با minSep) — باریکه‌های برش حذف می‌شوند
+      const minArea = minSep * minSep * 0.08;
+      let triNo = 0;
       for (const tri of tin.features) {
+        triNo++;
+        if (triNo % 200 === 0) {
+          fishnetProgress.value = 70 + Math.min(10, (triNo / Math.max(1, tin.features.length)) * 10);
+          await yieldUI();
+        }
         const coords = tri.geometry?.coordinates?.[0];
         if (!coords || coords.length < 4) continue;
         const [au, bu, cu] = [coords[0], coords[1], coords[2]];
         const a = [au[0], au[1]], b = [bu[0], bu[1]], c = [cu[0], cu[1]];
         const mAngle = minAngleDeg(a, b, c);
         const utmArea = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2;
-        if (!(utmArea > 0.01)) continue;
+        if (!(utmArea > 0.01)) { droppedSlivers++; continue; }
+        // حذف کامل مثلث‌های تباه: ضلع خیلی کوتاه یا زاویه خیلی تیز
+        const e1 = dist2D(a, b), e2 = dist2D(b, c), e3 = dist2D(c, a);
+        if (Math.min(e1, e2, e3) < minSep * 0.5 || mAngle < 4) { droppedSlivers++; continue; }
 
         const ll = [a, b, c].map(([x, y]) => {
           const { lng, lat } = fromUTM(x, y, zone, northern);
@@ -452,7 +560,8 @@ export function createFishnetHandler(ctx) {
           let feat;
           try { feat = turf.polygon(co); } catch (e) { return; }
           const area = turf.area(feat);
-          if (!(area > 0.001)) return;
+          // باریکه‌های حاصل از برش مرزی که از آستانه کوچک‌ترند کلا حذف می‌شوند
+          if (!(area > minArea)) { droppedSlivers++; return; }
           idx++;
           const centroid = turf.centroid(feat);
           sumMin += mAngle;
@@ -485,10 +594,11 @@ export function createFishnetHandler(ctx) {
       const avgMin = sumMin / Math.max(1, idx || cells.length);
       // درصد خطای شکلی: انحراف از مثلث متساوی‌الاضلاع ایده‌آل (۶۰ درجه)
       const errPct = Math.max(0, ((30 - avgMin) / 30) * 100);
+      removedClose += droppedSlivers;
 
-      // رئوس یکتای شکل مثلث‌بندی‌شده (پس از برش) برای خروجی نقاط
-      const ptMap = new Map();
-      const utmOf = new Map();
+      // رئوس یکتای شکل مثلث‌بندی‌شده (پس از برش) برای خروجی نقاط —
+      // هر راسی که تا راس دیگر کمتر از minSep فاصله داشته باشد کلا حذف می‌شود
+      const rawPts = [];
       cells.forEach((c) => {
         const coords = c.feature.geometry?.coordinates;
         const rings = c.feature.geometry?.type === "MultiPolygon"
@@ -496,22 +606,29 @@ export function createFishnetHandler(ctx) {
           : (Array.isArray(coords) ? coords : []);
         rings.forEach((ring) => {
           (ring || []).forEach(([lon, lat]) => {
-            const k = `${lon.toFixed(6)},${lat.toFixed(6)}`;
-            if (!ptMap.has(k)) {
-              ptMap.set(k, [lon, lat]);
-              try {
-                const { x, y } = toUTMInZone(lon, lat, zone, northern);
-                utmOf.set(k, [x, y]);
-              } catch (e) { utmOf.set(k, [NaN, NaN]); }
-            }
+            let x = NaN, y = NaN;
+            try {
+              const utm = toUTMInZone(lon, lat, zone, northern);
+              x = utm.x; y = utm.y;
+            } catch (e) {}
+            rawPts.push({ id: "", lon, lat, x, y, zone, northern });
           });
         });
       });
-      const pts = [...ptMap.entries()].map(([k, [lon, lat]], i) => {
-        const [x, y] = utmOf.get(k) || [NaN, NaN];
-        return { id: `P${i + 1}`, lon, lat, x, y, zone, northern };
-      });
+      const mergedPts = mergeCloseUTM(rawPts, minSep);
+      removedClose += mergedPts.removed;
+      const pts = mergedPts.kept;
       triangPoints.value = pts;
+      fishnetProgress.value = 82;
+      await yieldUI();
+
+      // ── مرحله ۳: بررسی نتایج (اعتبارسنجی + نمایش) ──
+      // اگر پردازش واقعی سریع تمام شد، مکث می‌کنیم تا حس عملیات سنگین منتقل شود
+      fishnetStage.value = 3;
+      const elapsed2 = Date.now() - stage2Start;
+      if (elapsed2 < 1200) await sleep(1200 - elapsed2);
+      await animateProgress(Math.max(82, fishnetProgress.value), 100, 800);
+      await yieldUI();
 
       triangStats.value = {
         count: cells.length,
@@ -537,6 +654,10 @@ export function createFishnetHandler(ctx) {
       return cells;
     } finally {
       generating.value = false;
+      // مکث کوتاه روی ۱۰۰٪ تا کاربر اتمام هر سه مرحله را ببیند
+      try { await sleep(500); } catch (e) {}
+      fishnetStage.value = 0;
+      fishnetProgress.value = 0;
     }
   }
 
@@ -560,21 +681,31 @@ export function createFishnetHandler(ctx) {
       source: FISHNET_SOURCE,
       paint: { "line-color": "#f97316", "line-width": 1.6, "line-opacity": 0.95 },
     });
-    // گره‌های مثلث‌بندی (رئوس) مثل عکس ژئودزی
+    // گره‌های مثلث‌بندی (رئوس) مثل عکس ژئودزی —
+    // فقط نقاط نهایی ادغام‌شده نمایش داده می‌شوند (بدون نقاط چسبیده‌به‌هم)
+    const mergedNodes = Array.isArray(triangPoints.value) && triangPoints.value.length
+      ? triangPoints.value
+      : null;
     const nodeFC = {
       type: "FeatureCollection",
       features: [],
     };
-    const seen = new Set();
-    cells.forEach((c) => {
-      const ring = c.feature.geometry?.coordinates?.[0] || [];
-      ring.forEach(([lon, lat]) => {
-        const k = `${lon.toFixed(6)},${lat.toFixed(6)}`;
-        if (seen.has(k)) return;
-        seen.add(k);
-        nodeFC.features.push({ type: "Feature", geometry: { type: "Point", coordinates: [lon, lat] }, properties: {} });
+    if (mergedNodes) {
+      mergedNodes.forEach((p) => {
+        nodeFC.features.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] }, properties: {} });
       });
-    });
+    } else {
+      const seen = new Set();
+      cells.forEach((c) => {
+        const ring = c.feature.geometry?.coordinates?.[0] || [];
+        ring.forEach(([lon, lat]) => {
+          const k = `${lon.toFixed(6)},${lat.toFixed(6)}`;
+          if (seen.has(k)) return;
+          seen.add(k);
+          nodeFC.features.push({ type: "Feature", geometry: { type: "Point", coordinates: [lon, lat] }, properties: {} });
+        });
+      });
+    }
     try {
       m.addSource(FISHNET_SOURCE + "-labels", { type: "geojson", data: nodeFC });
       m.addLayer({
@@ -741,6 +872,9 @@ export function createFishnetHandler(ctx) {
     fishnetCells,
     fishnetSourceLabel,
     generating,
+    fishnetStage,
+    fishnetProgress,
+    FISHNET_STAGES,
     cellSize,
     cellUnit,
     clipToPolygon,

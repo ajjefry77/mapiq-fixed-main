@@ -400,7 +400,7 @@
       :pins="props.pins"
       @imported="onCsvImported"
     />
-    <Loading :active="loading" />
+    <Loading :active="loading" :message="loadingMessage" :sub="loadingSub" :progress="loadingProgress" />
   </div>
 </template>
 
@@ -408,6 +408,7 @@
 import {
   ref,
   toRaw,
+  nextTick,
   onMounted,
   onUnmounted,
   watch,
@@ -463,6 +464,47 @@ const createFolderDialog = ref(false);
 const OpenSend = ref(false);
 const sendTarget = ref(null);
 const loading = ref(false);
+const loadingMessage = ref("");
+const loadingSub = ref("");
+const loadingProgress = ref(null);
+
+// لودینگ باز کردن فایل روی نقشه: پیام مرحله + فرصت رندر اورلی قبل از پردازش سنگین
+function beginFileLoading(file) {
+  const size = file?.size > 0 ? ` — ${(file.size / 1024).toFixed(0)} کیلوبایت` : "";
+  loadingMessage.value = "در حال باز کردن فایل روی نقشه...";
+  loadingSub.value = (file?.name || "") + size;
+  loadingProgress.value = 5;
+  loading.value = true;
+}
+function setFileStage(msg, pct) {
+  loadingMessage.value = msg;
+  if (pct !== undefined) loadingProgress.value = pct;
+}
+async function paintLoadingFrame() {
+  await nextTick();
+  await new Promise((r) => setTimeout(r, 120));
+}
+function endFileLoading() {
+  loading.value = false;
+  loadingMessage.value = "";
+  loadingSub.value = "";
+  loadingProgress.value = null;
+}
+// خواندن فایل با گزارش درصد پیشرفت واقعی
+function readFileWithProgress(file, mode) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) {
+        loadingProgress.value = Math.round(5 + (e.loaded / e.total) * 40);
+      }
+    };
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(reader.error || new Error("read failed"));
+    if (mode === "buffer") reader.readAsArrayBuffer(file);
+    else reader.readAsText(file);
+  });
+}
 const activeTab = ref("my2");
 const sharedSubTab = ref("files");
 const inboxFiles = ref([]);
@@ -1653,18 +1695,22 @@ const handleFileUpload = async (event) => {
   const file = event.target?.files?.[0] || event.dataTransfer?.files?.[0];
   if (!file) return;
   const fileName = file.name.toLowerCase();
-  loading.value = true;
+  beginFileLoading(file);
   if (event.target) event.target.value = "";
+  await paintLoadingFrame();
 
   if (fileName.endsWith(".csv") || fileName.endsWith(".txt")) {
-    loading.value = false;
+    endFileLoading();
     importCsvRef.value?.open(file);
     return;
   }
 
   if (fileName.endsWith(".kml") || fileName.endsWith(".kmz")) {
     try {
+      setFileStage("در حال خواندن فایل...", 15);
       const text = await readKmlText(file, file.name);
+      setFileStage("در حال پردازش هندسه فایل...", 60);
+      await paintLoadingFrame();
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, "application/xml");
       const geojson = kmlToGeoJSON(doc);
@@ -1702,7 +1748,8 @@ const handleFileUpload = async (event) => {
       if (!bounds.isEmpty())
         props.map.fitBounds(bounds, { padding: 50, duration: 2000 });
 
-      loading.value = false;
+      setFileStage("در حال افزودن به نقشه...", 90);
+      endFileLoading();
       let pin = {
         id: crypto.randomUUID(),
         name: fileName,
@@ -1722,14 +1769,19 @@ const handleFileUpload = async (event) => {
       await saveOneWorks(pin);
     } catch (error) {
       logger.error("file.load.failed", { resource: "kml" }, error);
-      loading.value = false;
+      endFileLoading();
     }
   } else if (fileName.endsWith(".zip")) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const shp = (await import("shpjs")).default;
-        const geojson = await shp(e.target.result);
+    try {
+      setFileStage("در حال خواندن فایل فشرده...", 10);
+      await paintLoadingFrame();
+      const buf = await readFileWithProgress(file, "buffer");
+      setFileStage("در حال پردازش شیپ‌فایل...", 55);
+      await paintLoadingFrame();
+      const shp = (await import("shpjs")).default;
+      const geojson = await shp(buf);
+      setFileStage("در حال افزودن به نقشه...", 80);
+      await paintLoadingFrame();
         const sourceId = "shp-" + crypto.randomUUID();
         props.map.addSource(sourceId, { type: "geojson", data: geojson });
         props.map.addLayer({
@@ -1764,7 +1816,8 @@ const handleFileUpload = async (event) => {
         if (!bounds.isEmpty())
           props.map.fitBounds(bounds, { padding: 50, duration: 2000 });
 
-        loading.value = false;
+        setFileStage("در حال افزودن به نقشه...", 90);
+        endFileLoading();
         let pin = {
           id: crypto.randomUUID(),
           name: fileName,
@@ -1783,13 +1836,14 @@ const handleFileUpload = async (event) => {
         await saveOneWorks(pin);
       } catch (error) {
         logger.error("file.load.failed", { resource: "shapefile" }, error);
-        loading.value = false;
+        endFileLoading();
       }
-    };
-    reader.readAsArrayBuffer(file);
   } else if (fileName.endsWith(".dxf") || fileName.endsWith(".dwg")) {
     try {
+      setFileStage("در حال خواندن فایل...", 20);
       const textContent = await readDxfText(file, fileName);
+      setFileStage("در حال پردازش هندسه فایل...", 60);
+      await paintLoadingFrame();
       const geojson = dxfToGeoJSON(textContent);
       if (!geojson.features.length) {
         showMessage(
@@ -1798,9 +1852,10 @@ const handleFileUpload = async (event) => {
             : "هیچ هندسه‌ای در فایل DXF پیدا نشد",
           "error",
         );
-        loading.value = false;
+        endFileLoading();
         return;
       }
+      setFileStage("در حال افزودن به نقشه...", 80);
       await addGeoJsonFileToMap(geojson, fileName, file);
     } catch (error) {
       logger.error("file.load.failed", { resource: "dxf" }, error);
@@ -1810,13 +1865,13 @@ const handleFileUpload = async (event) => {
           : "خطا در خواندن فایل DXF",
         "error",
       );
-      loading.value = false;
+      endFileLoading();
     }
   } else {
     alert(
       "فقط فایل‌های KML/KMZ، SHP (ZIP)، CSV، DXF و DWG (ASCII) پشتیبانی می‌شوند.",
     );
-    loading.value = false;
+    endFileLoading();
   }
 };
 
@@ -1858,7 +1913,7 @@ async function addGeoJsonFileToMap(geojson, fileName, file) {
   if (!bounds.isEmpty())
     props.map.fitBounds(bounds, { padding: 50, duration: 2000 });
 
-  loading.value = false;
+  endFileLoading();
   let pin = {
     id: crypto.randomUUID(),
     name: fileName,

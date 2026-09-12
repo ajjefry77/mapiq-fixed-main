@@ -25,7 +25,9 @@ const FormSubmissions = () => import('../views/formbuilder/FormSubmissions.vue')
 const PermissionLayers = () => import('../views/PermissionLayers.vue');
 const WorksLayers = () => import('../views/WorksLayers.vue');
 const WalletCharge = () => import('../views/WalletCharge.vue');
+const NotFound = () => import('../views/NotFound.vue');
 
+const SITE_TITLE = 'Map IQ';
 const PUBLIC_ROUTES = ['/login', '/register', '/mapbox'];
 
 const routes = [
@@ -163,13 +165,16 @@ const routes = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/mapbox'
+    name: 'NotFound',
+    component: NotFound,
+    meta: { public: true, title: `۴۰۴ | ${SITE_TITLE}` }
   }
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior: () => ({ top: 0 })
 });
 
 let isInitialNavigation = true
@@ -205,6 +210,10 @@ router.beforeEach(async (to, _from, next) => {
 });
 
 router.afterEach((to, from) => {
+  try {
+    const title = to.meta?.title as string | undefined;
+    document.title = title ?? (to.name === 'NotFound' ? `۴۰۴ | ${SITE_TITLE}` : SITE_TITLE);
+  } catch { /* noop */ }
   logger.info(EV.ROUTE_ENTER, {
     to: to.fullPath,
     name: String(to.name ?? ''),

@@ -1,5 +1,30 @@
-# Vue 3 + TypeScript + Vite
+# Mapiq Fixed Main | سیستم مدیریت کاربران و اطلاعات مکانی
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+## 🇬🇧 English Description
+A comprehensive, enterprise-grade User Management and Geographic Information System (GIS) web application. Built with Vue 3, TypeScript, and Vite, it features advanced mapping capabilities (Mapbox, Cesium, Leaflet), spatial analysis (Turf.js), user authentication, and robust data import/export (Shapefile, CSV).
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## 🇮🇷 توضیحات فارسی
+یک وب‌اپلیکیشن سازمانی و جامع برای مدیریت کاربران و سیستم اطلاعات جغرافیایی (GIS). این پروژه با Vue 3، TypeScript و Vite توسعه داده شده و شامل قابلیت‌های پیشرفته نقشه‌برداری (Mapbox, Cesium, Leaflet)، تحلیل مکانی (Turf.js)، احراز هویت کاربران و ورودی/خروجی قدرتمند داده‌ها (Shapefile, CSV) است.
+
+## 🇬🇧 Features
+- 🔐 Secure JWT-based authentication and user management
+- 🗺️ Multi-engine mapping (Mapbox GL, Leaflet, Cesium 3D)
+- 📐 Advanced spatial drawing and analysis tools (Mapbox Draw, Turf.js)
+- 📥📤 Data import/export support (Shapefile, CSV, GeoJSON)
+- 🛡️ Backend security with Helmet, Rate Limiting, and Zod validation
+
+## 🇮🇷 ویژگی‌ها
+- 🔐 احراز هویت امن مبتنی بر JWT و مدیریت کاربران
+- 🗺️ نقشه‌برداری با موتورهای مختلف (Mapbox GL, Leaflet, Cesium سه‌بعدی)
+- 📐 ابزارهای پیشرفته ترسیم و تحلیل مکانی (Mapbox Draw, Turf.js)
+- 📥📤 پشتیبانی از ورودی/خروجی داده (Shapefile, CSV, GeoJSON)
+- 🛡️ امنیت بک‌اند با Helmet، محدودیت نرخ (Rate Limiting) و اعتبارسنجی Zod
+
+## 🛠️ Tech Stack
+- **Frontend:** Vue 3, TypeScript, Vite, Pinia, Vue Router
+- **Mapping:** Mapbox GL, Leaflet, Cesium, Turf.js, Proj4
+- **Backend:** Node.js, Express, PostgreSQL (pg)
+- **Utilities:** Axios, PapaParse, shpjs, Zod, moment-jalaali
+# Or run separately:
+# npm run server (Backend)
+# npm run client (Frontend)

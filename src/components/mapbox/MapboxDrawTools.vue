@@ -19,7 +19,7 @@
     @openFishnet="openFishnetPanel"
   />
 
-  <MapboxKrokiDialog ref="krokiDialogRef" :map="map" :pins="pins" />
+  <MapboxKrokiDialog v-if="authStore.isAdmin" ref="krokiDialogRef" :map="map" :pins="pins" />
 
   <Transition name="modal">
     <div
@@ -72,6 +72,7 @@
   <MapboxSearchAddress :map="map" v-model:open="searchOpen" />
 
   <IntersectPanel
+    v-if="authStore.isAdmin"
     :panelOpen="intersectPanelOpen"
     :drawMode="drawMode"
     :intersectResults="intersectResults"
@@ -88,6 +89,7 @@
   />
 
   <FishnetPanel
+    v-if="authStore.isAdmin"
     :panelOpen="fishnetPanelOpen"
     :pins="pins"
     :selectedPinId="selectedPinId"
@@ -134,6 +136,7 @@ import {
   ensurePointSymbolImages,
 } from "../../utils/drawStyle";
 import { logger } from "@/logger";
+import { useAuthStore } from "@/stores/auth";
 
 const props = defineProps({
   map: { type: Object, required: true },
@@ -143,6 +146,7 @@ const props = defineProps({
 
 const emit = defineEmits(["pickPoint", "setBaseLayer"]);
 
+const authStore = useAuthStore();
 const SelectGroup = inject("SelectGroup", null);
 
 const toolbarComponent = ref(null);

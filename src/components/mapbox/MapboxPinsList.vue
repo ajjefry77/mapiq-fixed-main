@@ -393,6 +393,7 @@
     <ExportDialog v-model="exportDialog" @confirm="Export" />
     <SaveDialog v-model="createFolderDialog" @confirm="createFolder" />
     <SendDialog :show="OpenSend" @submit="send" @cancel="OpenSend = false" />
+    <ConfirmDialog :show="showConfirmDialog" :message="confirmMessage" confirmText="بله" cancelText="خیر" @confirm="onConfirmDialogConfirm" @cancel="onConfirmDialogCancel"/>
     <MapboxLoadCSV ref="csvRef" :rows="csvRows" :map="map" :pins="props.pins" />
     <MapboxImportPointsDialog
       ref="importCsvRef"
@@ -424,6 +425,7 @@ import { useAuthStore } from "../../stores/auth";
 import SaveDialog from "../SaveDialog.vue";
 import ExportDialog from "../ExportDialog.vue";
 import SendDialog from "../SendDialog.vue";
+import ConfirmDialog from "../ConfirmDialog.vue";
 import MapboxImportPointsDialog from "./MapboxImportPointsDialog.vue";
 import Loading from "../Loading.vue";
 import MapboxLayerTree from "./MapboxLayerTree.vue";
@@ -531,6 +533,9 @@ const selectedGroup = ref(null);
 const SelectGroup = inject("SelectGroup", null);
 let intervalId = null;
 const index_pin_id = ref(-1);
+const showConfirmDialog = ref(false);
+const confirmMessage = ref("");
+let confirmCallback = null;
 
 const emit = defineEmits(["update:openDia", "clearPins", "close", "show-tile"]);
 const props = defineProps({
@@ -543,6 +548,26 @@ const props = defineProps({
 
 function selectGroup(group) {
   selectedGroup.value = group;
+}
+
+function showConfirm(msg) {
+  return new Promise((resolve) => {
+    confirmMessage.value = msg;
+    confirmCallback = resolve;
+    showConfirmDialog.value = true;
+  });
+}
+
+function onConfirmDialogConfirm() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(true);
+  confirmCallback = null;
+}
+
+function onConfirmDialogCancel() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(false);
+  confirmCallback = null;
 }
 
 const route = useRoute();
@@ -1597,7 +1622,7 @@ const renameArchive = async (dayKey, current) => {
 };
 
 const ArchiveDesktop = async () => {
-  const confirmed = window.confirm(
+  const confirmed = await showConfirm(
     "آیتم‌های فعال میز کار به بایگانی منتقل می‌شوند ، مطمئن هستید ؟",
   );
   if (!confirmed) return;

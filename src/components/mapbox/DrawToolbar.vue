@@ -129,6 +129,7 @@
 
       <!-- === دکمه جدید: همپوشانی (Intersect) === -->
       <button
+        v-if="authStore.isAdmin"
         @click="$emit('openIntersectPanel')"
         :class="[
           'map-toolbar-btn',
@@ -171,6 +172,7 @@
 
       <!-- === دکمه جدید: کروکی (چاپ) === -->
       <button
+        v-if="authStore.isAdmin"
         @click="$emit('openKroki')"
         class="map-toolbar-btn"
         title="کروکی"
@@ -181,6 +183,7 @@
 
       <!-- === دکمه جدید: شبکه‌بندی (Fishnet) === -->
       <button
+        v-if="authStore.isAdmin"
         @click="$emit('openFishnet')"
         :class="[
           'map-toolbar-btn',
@@ -255,7 +258,9 @@
 
 <script setup>
 import { ref } from "vue";
+import { useAuthStore } from "@/stores/auth";
 
+const authStore = useAuthStore();
 const toolbarEl = ref(null);
 const expanded = ref(false);
 

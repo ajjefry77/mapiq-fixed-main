@@ -30,6 +30,7 @@
   </button>
 
   <SendDialog  :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
+  <ConfirmDialog :show="showConfirmDialog" :message="confirmMessage" confirmText="بله" cancelText="خیر" @confirm="onConfirmDialogConfirm" @cancel="onConfirmDialogCancel"/>
   <Loading :active="loading" />
 
   <div  v-if="featureInfo" class="absolute top-[10px] right-[350px] bg-zinc-900 shadow-lg rounded-xl p-4 w-80 max-h-[400px] overflow-auto">
@@ -53,6 +54,7 @@ import axios from 'axios';
 import { useToast } from "vue-toast-notification";
 import Loading from '../components/Loading.vue'
 import SendDialog from '../components/SendDialog.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { logger } from "@/logger"
 
 const SERVER = import.meta.env.VITE_SERVER
@@ -64,6 +66,9 @@ const isActive=ref(false)
 const OpenSend=ref(false)
 const featureInfo=ref(false)
 const description=ref('')
+const showConfirmDialog = ref(false)
+const confirmMessage = ref('')
+let confirmCallback = null
 
 
 const props = defineProps({
@@ -77,6 +82,27 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['drawInbox'])
+
+function showConfirm(msg) {
+  return new Promise((resolve) => {
+    confirmMessage.value = msg;
+    confirmCallback = resolve;
+    showConfirmDialog.value = true;
+  });
+}
+
+function onConfirmDialogConfirm() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(true);
+  confirmCallback = null;
+}
+
+function onConfirmDialogCancel() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(false);
+  confirmCallback = null;
+}
+
 async function callDraw(idx) {
   const pin = props.loadedFiles[idx].MyWork
   if (pin.type == 'file') {
@@ -129,7 +155,7 @@ async function remove(idx) {
   const item = props.loadedFiles[idx];
 
   if (item) {
-    const confirmed = window.confirm("آیا مطمئن هستید که می‌خواهید این سند را حذف کنید؟");
+    const confirmed = await showConfirm("آیا مطمئن هستید که می‌خواهید این سند را حذف کنید؟");
     if (!confirmed) return;
 
     try {

@@ -29,6 +29,29 @@
     </div>
   </div>
   <SendDialog :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
+
+  <div v-if="showDeleteDialog" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60" @click.self="showDeleteDialog = false">
+    <div class="bg-zinc-800 rounded-lg p-5 shadow-xl max-w-sm w-full mx-4 border border-zinc-700">
+      <p class="text-zinc-200 text-sm mb-1">
+        تعداد لایه‌های انتخاب‌شده: <span class="font-bold text-orange-400">{{ checkedLayerCount }}</span>
+      </p>
+      <p class="text-zinc-400 text-xs mb-4">
+        آیا می‌خواهید تمام لایه‌های انتخاب‌شده را حذف کنید یا فقط همین لایه را؟
+      </p>
+      <div class="flex flex-col gap-2">
+        <button @click="deleteAllSelected" class="w-full px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition">
+          حذف تمام انتخاب‌شده ({{ checkedLayerCount }})
+        </button>
+        <button @click="deleteOnlyThis" class="w-full px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 transition">
+          حذف فقط این لایه
+        </button>
+        <button @click="showDeleteDialog = false" class="w-full px-3 py-2 bg-zinc-600 text-white rounded text-sm hover:bg-zinc-500 transition">
+          انصراف
+        </button>
+      </div>
+    </div>
+  </div>
+  <ConfirmDialog :show="showConfirmDialog" :message="confirmMessage" confirmText="بله" cancelText="خیر" @confirm="onConfirmDialogConfirm" @cancel="onConfirmDialogCancel"/>
 </template>
 
 <script setup>
@@ -38,6 +61,7 @@ import { useToast } from "vue-toast-notification";
 import axios from "axios";
 import { useAuthStore } from '../../stores/auth';
 import SendDialog from '../SendDialog.vue';
+import ConfirmDialog from '../ConfirmDialog.vue';
 import { useSharedArray } from '../../stores/app';
 
 const authStore = useAuthStore();
@@ -66,6 +90,37 @@ const map = inject("map");
 const OpenSend = ref(false);
 const Pin = ref(null);
 const isActiveLayer = computed(() => false);
+const showDeleteDialog = ref(false);
+const showConfirmDialog = ref(false);
+const confirmMessage = ref('');
+let confirmCallback = null;
+
+const checkedLayerCount = computed(() => {
+  return props.items.filter(item =>
+    item.type !== 'group' && item.type !== 'folder' &&
+    item.shape?.show !== false
+  ).length;
+});
+
+function showConfirm(msg) {
+  return new Promise((resolve) => {
+    confirmMessage.value = msg;
+    confirmCallback = resolve;
+    showConfirmDialog.value = true;
+  });
+}
+
+function onConfirmDialogConfirm() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(true);
+  confirmCallback = null;
+}
+
+function onConfirmDialogCancel() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(false);
+  confirmCallback = null;
+}
 
 const send = async (data) => {
   if (!Pin.value) return;
@@ -140,12 +195,37 @@ const zoomOnPin = () => {
 };
 
 const remove = async () => {
+  if (checkedLayerCount.value > 1) {
+    showDeleteDialog.value = true;
+    return;
+  }
+  const confirmed = await showConfirm("آیا مطمئن هستید که می‌خواهید این پین را حذف کنید؟");
+  if (!confirmed) return;
+  await deleteSingleItem(props.item);
+};
+
+const deleteOnlyThis = async () => {
+  showDeleteDialog.value = false;
+  const confirmed = await showConfirm("آیا مطمئن هستید که می‌خواهید این پین را حذف کنید؟");
+  if (!confirmed) return;
+  await deleteSingleItem(props.item);
+};
+
+const deleteAllSelected = async () => {
+  showDeleteDialog.value = false;
+  const itemsToDelete = props.items.filter(item =>
+    item.type !== 'group' && item.type !== 'folder' &&
+    item.shape?.show !== false
+  );
+  for (const item of itemsToDelete) {
+    await deleteSingleItem(item);
+  }
+  showMessage(`${itemsToDelete.length} لایه حذف شد`, 'success');
+};
+
+const deleteSingleItem = async (item) => {
   try {
     const pins = props.items;
-    const item = props.item;
-    const confirmed = window.confirm("آیا مطمئن هستید که می‌خواهید این پین را حذف کنید؟");
-    if (!confirmed) return;
-
     const pin = pins.find(x => x.id == item.id);
     const index = pins.findIndex(x => x.id == item.id);
     if (pin.save > -1)

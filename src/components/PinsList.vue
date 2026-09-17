@@ -217,6 +217,7 @@
   <!--<OpenDialog v-model="openDialog"  />-->
 
   <SendDialog  :show="OpenSend" @submit="send" @cancel="OpenSend = false"/>
+  <ConfirmDialog :show="showConfirmDialog" :message="confirmMessage" confirmText="بله" cancelText="خیر" @confirm="onConfirmDialogConfirm" @cancel="onConfirmDialogCancel"/>
   <LoadCSV :rows="csvRows" :viewer="viewer" ref="csvRef" :pins="props.pins"/>
   <Loading :active="loading" :message="loadingMessage" :sub="loadingSub" :progress="loadingProgress" />
  </div>
@@ -237,6 +238,7 @@ import SaveDialog from '../components/SaveDialog.vue'
 import ExportDialog from '../components/ExportDialog.vue'
 import OpenDialog from '../components/OpenDialog.vue'
 import SendDialog from '../components/SendDialog.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Loading from '../components/Loading.vue'
 import LayerTree from "../components/LayerTree.vue";
 import LoadCSV from "../components/LoadCSV.vue";
@@ -303,6 +305,9 @@ let openedIds=[];
 const History = ref([])
 const myWorks = ref([])
 const selectedGroup = ref(null)
+const showConfirmDialog = ref(false)
+const confirmMessage = ref('')
+let confirmCallback = null
 
 const SelectGroup = inject('SelectGroup', null)
 
@@ -313,6 +318,26 @@ function selectGroup(group) {
 const saveIds = () => {
   setExtendedIds();
   setVisibleIds();
+}
+
+function showConfirm(msg) {
+  return new Promise((resolve) => {
+    confirmMessage.value = msg;
+    confirmCallback = resolve;
+    showConfirmDialog.value = true;
+  });
+}
+
+function onConfirmDialogConfirm() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(true);
+  confirmCallback = null;
+}
+
+function onConfirmDialogCancel() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(false);
+  confirmCallback = null;
 }
 
 
@@ -763,7 +788,7 @@ const renameArchive = async (dayKey, current) => {
 };
 
 const ArchiveDesktop = async () => {
-  const confirmed = window.confirm("آیتم‌های فعال میز کار به بایگانی منتقل می‌شوند ، مطمئن هستید ؟");
+  const confirmed = await showConfirm("آیتم‌های فعال میز کار به بایگانی منتقل می‌شوند ، مطمئن هستید ؟");
   if (!confirmed) return;
 
   const name = window.prompt("نام پوشه‌ی بایگانی (پیش‌فرض: تاریخ امروز):", defaultArchiveName());
@@ -866,7 +891,7 @@ const zoomOnPin = async (idx) => {
 const deletePin = async (p) => {
   try {
     let pins = props.pins;
-    const confirmed = window.confirm("آیا مطمئن هستید که می‌خواهید این پین را حذف کنید؟");
+    const confirmed = await showConfirm("آیا مطمئن هستید که می‌خواهید این پین را حذف کنید؟");
     if (!confirmed) return;
 
     const pinsDS = props.viewer.dataSources.getByName("pins")[0];

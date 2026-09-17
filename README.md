@@ -1,5 +1,539 @@
-# Vue 3 + TypeScript + Vite
+<div dir="rtl">
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+# MapIQ - سامانه نقشه و مدیریت لایه‌ها
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+یک پلتفرم حرفه‌ای **سیستم اطلاعات جغرافیایی (GIS)** مبتنی بر وب، طراحی‌شده برای **برنامه‌ریزی شهری و مدیریت اراضی** در شهرهای ایران.
+
+---
+
+## حقوق مالکیت
+
+> **تمامی حقوق مادی و معنوی این پروژه متعلق به شرکت ساج گستر کاسپین می‌باشد.**
+> هرگونه کپی‌برداری، توزیع، انتشار، تغییر یا استفاده تجاری از این کد بدون مجوز رسمی شرکت ممنوع است.
+
+---
+
+## فهرست مطالب
+
+- [ویژگی‌های اصلی](#ویژگی‌های-اصلی)
+- [فناوری‌های استفاده‌شده](#فناوری‌های-استفاده‌شده)
+- [ساختار پروژه](#ساختار-پروژه)
+- [پیش‌نیازها](#پیش‌نیازها)
+- [نصب و راه‌اندازی](#نصب-و-راه‌اندازی)
+- [متغیرهای محیطی](#متغیرهای-محیطی)
+- [دستورات مفید](#دستورات-مفید)
+- [نقش‌ها و دسترسی‌ها](#نقش‌ها-و-دسترسی‌ها)
+- [APIها و سرویس‌ها](#apiها-و-سرویس‌ها)
+- [امکانات امنیتی](#امکانات-امنیتی)
+- [یادداشت‌های استقرار](#یادداشت‌های-استقرار)
+- [تست‌ها](#تست‌ها)
+- [مجوز (License)](#مجوز)
+
+---
+
+## ویژگی‌های اصلی
+
+### نقشه تعاملی (موتور دوگانه)
+- **Mapbox GL JS** (بعد دو): نقشه برداری برداری با کاشی‌های سفارشی (مسیر پیش‌فرض `/mapbox`)
+- **CesiumJS** (بعد سه): نمای کره زمین و سطح terrain با ساختمان‌های سه‌بعدی (مسیر `/map`)
+- قابلیت جابه‌جایی بین دو موتور نقشه
+
+### ابزارهای ترسیم و ویرایش
+- ترسیم **چندضلعی**، **خط شکسته**، **دایره** و **چندنقطه**
+- اندازه‌گیری لحظه‌ای مساحت، مسافت و شعاع (در سیستم مختصات UTM و جغرافیایی)
+- ویرایش رئوس با قابلیت درگ و حذف با کلیک راست
+- انتخاب رنگ، خطوط نقطه‌چین و کنترل شفافیت
+- ورود دستی مختصات UTM
+- ذخیره ترسیم‌ها روی سرور با نام، توضیحات و پیوست
+
+### تحلیل مکانی
+- **تحلیل تقاطع و همپوشانی**: مقایسه تمام اشیاء نقشه با یک مرز چندضلعی یا فایل KML
+- **ابزار برش و تفکیک**: تقسیم چندضلعی‌ها یا خطوط با خط برش (Turf.js `lineSplit`، `difference`)
+- **مثلث‌بندی دلونی (شبکه ماهی‌بند)**: تولید شبکه مثلثی از مرزهای چندضلعی با قابلیت خروجی CSV، KML
+
+### ورودی و خروجی داده
+- **DXF**: ورودی و خروجی کامل POINT، LINE، LWPOLYLINE، CIRCLE (ناحیه UTM 39 ایران)
+- **KML**: پارس و رندر پلی‌گان‌ها و لاین‌استرینگ‌ها
+- **CSV**: بارگذاری و خروجی با PapaParse
+- **Shapefile**: ورودی از طریق shpjs
+- **GeoJSON**: فرمت بومی Mapbox
+
+### مدیریت لایه‌ها
+- ساختار درختی سلسله‌مراتبی (گروه‌ها و زیرلایه‌ها)
+- کنترل نمایش و وضعیت گسترش (ذخیره در localStorage)
+- لایه‌های WMS از GeoServer
+- لایه‌های WFS برداری (بارگذاری مبتنی بر viewport)
+- لایه‌های MBTiles
+- سیستم مجوز لایه‌ها (بر اساس گروه و کاربر)
+
+### سازنده فرم
+- ۱۱ نوع فیلد: متن، متن بلند، عدد، ایمیل، تلفن، تاریخ، لیست انتخاب، رادیو، چک‌باکس، فایل، موقعیت
+- چیدمان فیلدها با drag-and-drop
+- فرم عمومی (بدون نیاز به احراز هویت در مسیر `/f/:id`)
+- مدیریت پاسخ‌های فرم
+
+### گردش کار / مدیریت فرآیند
+- سازنده فرآیند (تعریف مراحل گردش کار)
+- صندوق ورودی کاربر برای وظایف در انتظار
+- شروع و پیگیری فرآیندها
+
+### مدیریت کاربران و کنترل دسترسی (RBAC)
+- سه نقش: **admin**، **group_manager**، **user**
+- مجوزهای دقیق: `view_users`، `view_roles`، `view_groups`، `manage_groups`، `manage_forms`، `manage_permissions`، `works_layers`، `setting`، `workflow`، `view_forms`، `view_submissions`، `Inbox`
+- نگهبان مسیر با متادیتای `requiredRole` و `permission`
+- احراز هویت JWT با بازیابی خودکار توکن
+- مهلت زمانی نشست (۳۰ دقیقه عدم فعالیت)
+- CAPTCHA در ثبت‌نام (مبتنی بر هش سمت کلاینت)
+
+---
+
+## فناوری‌های استفاده‌شده
+
+### فرانت‌اند
+
+| فناوری | نسخه | کاربرد |
+|--------|-------|--------|
+| Vue 3 | ^3.4.38 | فریمورک رابط کاربری (Composition API) |
+| TypeScript | ^5.5.3 | ایمنی تایپ |
+| Vite | ^5.4.21 | ابزار بیلد و سرور توسعه |
+| Pinia | ^2.1.7 | مدیریت وضعیت |
+| Vue Router | ^4.2.5 | مسیریابی سمت کلاینت |
+| Axios | ^1.6.0 | کلاینت HTTP |
+| Tailwind CSS | ^3.4.0 | فریمورک CSS |
+| Font Awesome | ^6.7.2 | کتابخانه آیکون |
+| @iconify/vue | ^5.0.1 | آیکون‌های اضافی |
+| Vazirmatn | - | فونت فارسی |
+
+### نقشه‌برداری / GIS
+
+| فناوری | نسخه | کاربرد |
+|--------|-------|--------|
+| Mapbox GL JS | ^3.26.0 | نقشه برداری برداری ۲ بعدی |
+| CesiumJS | ^1.143.0 | رندر کره زمین ۳ بعدی |
+| Leaflet | ^1.9.4 | پشتیبانی نقشه‌برداری اضافی |
+| @turf/turf | ^7.3.5 | تحلیل مکانی (تقاطع، بافر، TIN و ...) |
+| proj4 | ^2.20.9 | تبدیل سیستم مختصات (UTM <-> WGS84) |
+| @mapbox/mapbox-gl-draw | ^1.5.1 | ابزارهای ترسیم Mapbox |
+| shpjs | ^6.1.0 | پارس فایل Shapefile |
+
+### بک‌اند
+
+| فناوری | نسخه | کاربرد |
+|--------|-------|--------|
+| Express | ^5.2.1 | سرور HTTP |
+| pg (node-postgres) | ^8.22.0 | درایور PostgreSQL |
+| bcryptjs | ^3.0.3 | هش رمز عبور |
+| jsonwebtoken | ^9.0.3 | احراز هویت JWT |
+| helmet | ^8.2.0 | هدرهای امنیتی |
+| express-rate-limit | ^8.5.2 | محدودیت درخواست |
+| cors | ^2.8.6 | پیکربندی CORS |
+
+### ابزارهای تست
+
+| فناوری | نسخه | کاربرد |
+|--------|-------|--------|
+| Vitest | ^4.1.11 | اجراکننده تست |
+| happy-dom | ^20.11.2 | محیط DOM برای تست |
+
+---
+
+## ساختار پروژه
+
+```
+mapiq-fixed-main/
+├── index.html                  # نقطه ورود Vite (RTL، فارسی)
+├── package.json                # فایل پیکربندی پروژه
+├── vite.config.ts              # پیکربندی Vite (پلاگین Cesium، پراکسی، CSP)
+├── vitest.config.ts            # پیکربندی Vitest
+├── tsconfig.json               # پیکربندی TypeScript
+├── tailwind.config.cjs         # پیکربندی Tailwind CSS
+├── postcss.config.cjs          # پیکربندی PostCSS
+├── .env.example                # الگوی متغیرهای محیطی
+├── features.json               # نقشه ترجمه ویژگی‌های GIS فارسی
+├── dictionary.json             # نقشه ترجمه نام لایه‌ها فارسی
+├── mbtiles.json                # پیکربندی لایه‌های MBTiles
+├── PRODUCTION_NOTES.md         # یادداشت‌های سخت‌سازی تولید
+├── public/                     # فایل‌های استاتیک
+│   ├── favicon.png
+│   └── ... (تصاویر پس‌زمینه و آیکون‌ها)
+├── tests/                      # فایل‌های تست
+│   ├── logger.test.ts
+│   └── captcha.test.ts
+└── src/
+    ├── main.ts                 # نقطه ورود اپلیکیشن
+    ├── App.vue                 # کامپوننت ریشه
+    ├── style.css               # استایل‌های سراسری (قالب تاریک)
+    ├── router/
+    │   └── index.ts            # مسیرها (۲۲ مسیر با نگهبان احراز هویت)
+    ├── stores/
+    │   ├── auth.js             # فروشگاه احراز هویت
+    │   ├── app.js              # فروشگاه لایه‌ها
+    │   └── notifications.js    # فروشگاه اعلان‌ها
+    ├── logger/
+    │   └── index.ts            # سیستم لاگ‌گیری جامع
+    ├── utils/
+    │   ├── security.ts         # ابزارهای امنیتی
+    │   ├── captcha.ts          # CAPTCHA سمت کلاینت
+    │   ├── settings.js         # کلاینت API تنظیمات
+    │   ├── layerOrder.js       # مدیریت ترتیب لایه‌ها
+    │   ├── drawStyle.js        # استایل‌های ترسیم
+    │   ├── geoJSONToDXF.js     # تبدیل GeoJSON به DXF
+    │   └── dxfToGeoJSON.js     # تبدیل DXF به GeoJSON
+    ├── composables/
+    │   ├── useDrawing.js       # کامپوزیبل ترسیم اصلی (۱۶۰۰+ خط)
+    │   ├── useDrawingHelpers.js # اندازه‌گیری مسافت/مساحت
+    │   ├── useDrawingCut.js    # ابزار برش و تفکیک
+    │   ├── useDrawingFishnet.js # مثلث‌بندی و شبکه ماهی‌بند
+    │   ├── useDrawingIntersect.js # تحلیل تقاطع و همپوشانی
+    │   ├── useDragPanel.js     # پنل شناور قابل درگ
+    │   ├── useNotify.js        # اعلان toast
+    │   └── fb/                 # کامپوزیبل‌های سازنده فرم
+    │       ├── useApi.js       # کلاینت API پایه
+    │       ├── useForms.js     # CRUD فرم‌ها
+    │       ├── useFormBuilder.js # سازنده فیلدهای فرم
+    │       ├── useFormValidator.js # اعتبارسنجی فرم
+    │       ├── useGroups.js    # CRUD گروه‌ها
+    │       ├── useUsers.js     # CRUD کاربران
+    │       └── useGeolocation.js # موقعیت‌یابی مرورگر
+    ├── views/
+    │   ├── Login.vue           # صفحه ورود
+    │   ├── Register.vue        # صفحه ثبت‌نام
+    │   ├── Dashboard.vue       # داشبورد مدیریت
+    │   ├── MapMapbox.vue       # نقشه ۲ بعدی Mapbox
+    │   ├── MapCesium.vue       # نقشه ۳ بعدی Cesium
+    │   ├── Users.vue           # مدیریت کاربران
+    │   ├── Roles.vue           # مدیریت نقش‌ها
+    │   ├── Groups.vue          # مدیریت گروه‌ها
+    │   ├── Setting.vue         # تنظیمات
+    │   ├── Workflow.vue        # مدیریت گردش کار
+    │   ├── ProcessBuilder.vue  # سازنده فرآیند
+    │   ├── UserInbox.vue       # صندوق ورودی
+    │   ├── StartProcess.vue    # شروع فرآیند
+    │   ├── PermissionLayers.vue # مدیریت مجوز لایه‌ها
+    │   ├── WorksLayers.vue     # مدیریت لایه‌های کاری
+    │   ├── WalletCharge.vue    # مدیریت کیف پول
+    │   ├── NotFound.vue        # صفحه ۴۰۴
+    │   └── formbuilder/        # ماژول سازنده فرم
+    │       ├── FormList.vue
+    │       ├── FormEditor.vue
+    │       ├── FormPreview.vue
+    │       ├── FormFill.vue
+    │       ├── FormRenderer.vue
+    │       └── FormSubmissions.vue
+    ├── components/
+    │   ├── AdminHeader.vue     # هدر ناوبری
+    │   ├── DrawTools.vue       # نوار ابزار ترسیم
+    │   ├── ExportDialog.vue    # دیالوگ خروجی
+    │   ├── FeatureInfoPanel.vue # پنل اطلاعات ویژگی
+    │   ├── LayerTree.vue       # درخت لایه‌ها
+    │   ├── DataView.vue        # نمای جدول داده
+    │   ├── SearchCode.vue      # جستجوی کد
+    │   ├── SearchAddress.vue   # جستجوی آدرس
+    │   ├── Profile.vue         # پروفایل کاربر
+    │   ├── WorkflowForm.vue    # فرم گردش کار
+    │   ├── WorkflowStages.vue  # مراحل گردش کار
+    │   ├── Loading.vue         # نشانگر بارگذاری
+    │   └── mapbox/             # کامپوننت‌های اختصاصی Mapbox
+    │       ├── DrawPanel.vue
+    │       ├── DrawToolbar.vue
+    │       ├── FishnetPanel.vue
+    │       ├── IntersectPanel.vue
+    │       └── ... (۱۵ فایل)
+    └── assets/
+        ├── icons/
+        └── fonts/
+```
+
+---
+
+## پیش‌نیازها
+
+- **Node.js** >= 18.x
+- **npm** >= 9.x
+- **PostgreSQL** >= 14 (برای بک‌اند)
+- **GeoServer** (برای لایه‌های WMS/WFS)
+- **کلید Mapbox** (برای نقشه ۲ بعدی)
+- **کلید Map.ir** (برای نقشه‌های ایرانی)
+- **کلید Cesium Ion** (برای نقشه ۳ بعدی - اختیاری)
+
+---
+
+## نصب و راه‌اندازی
+
+### ۱. کلون کردن پروژه
+
+```bash
+git clone <آدرس مخزن>
+cd mapiq-fixed-main
+```
+
+### ۲. نصب وابستگی‌ها
+
+```bash
+npm ci
+```
+
+### ۳. پیکربندی متغیرهای محیطی
+
+```bash
+cp .env.example .env
+```
+
+سپس مقادیر واقعی را در فایل `.env` وارد کنید. (بخش [متغیرهای محیطی](#متغیرهای-محیطی) را ببینید)
+
+### ۴. اجرای سرور توسعه (فقط کلاینت)
+
+```bash
+npm run dev
+```
+
+> **توجه:** دستور `npm run dev` فقط سرور کلاینت (Vite) را اجرا می‌کند. پوشه `server/` در این مخزن موجود نیست و بک‌اند باید جداگانه بازیابی شود.
+
+### ۵. بیلد برای تولید
+
+```bash
+npm run build
+```
+
+### ۶. پیش‌نمایش بیلد تولید
+
+```bash
+npm run preview
+```
+
+---
+
+## متغیرهای محیطی
+
+فایل `.env.example` را به عنوان الگو کپی کرده و مقادیر واقعی را جایگزین کنید:
+
+| متغیر | توضیح | مقدار پیش‌فرض |
+|--------|--------|---------------|
+| `VITE_GEOSERVER` | آدرس GeoServer | `https://your-geoserver.example.com` |
+| `VITE_GEOSERVER_WORKSPACE` | فضای کاری GeoServer | `Amlak` |
+| `VITE_SERVER` | آدرس سرور بک‌اند | `http://localhost:3002` |
+| `VITE_MAPBOX_TOKEN` | کلید دسترسی Mapbox | - |
+| `VITE_WFS_MAX_FEATURES` | حداکثر تعداد ویژگی‌های WFS | `5000` |
+| `VITE_APP_ENV` | محیط اجرا | `development` |
+| `VITE_APP_VERSION` | نسخه برنامه | `dev` |
+| `VITE_LOG_ENABLED` | فعال‌سازی لاگ‌گیری | `true` |
+| `VITE_LOG_LEVEL` | سطح حداقل لاگ | `debug` (dev) / `warn` (prod) |
+| `VITE_LOG_ENDPOINT` | آدرس ارسال لاگ از راه دور | - |
+| `VITE_REMOTE_LOGGING_ENABLED` | ارسال لاگ از راه دور | `true` |
+| `VITE_LOG_BATCH_SIZE` | تعداد لاگ در هر درخواست | `10` |
+| `VITE_LOG_FLUSH_INTERVAL` | بازه ارسال لاگ (ms) | `5000` |
+| `VITE_LOG_MAX_QUEUE_SIZE` | حداکثر اندازه صف لاگ | `200` |
+| `PORT` | پورت سرور بک‌اند | `3002` |
+
+### متغیرهای بک‌اند (فقط در سرور)
+
+> این متغیرها نباید در فرانت‌اند استفاده شوند و باید توسط مدیر رمز عبور سرور تأمین شوند.
+
+| متغیر | توضیح |
+|--------|--------|
+| `JWT_SECRET` | رمز مخفی JWT |
+| `JWT_EXPIRES_IN` | مدت اعتبار توکن |
+| `ENCRYPTION_KEY` | کلید رمزگذاری |
+| `DEFAULT_ADMIN_PHONE` | شماره تلفن مدیر پیش‌فرض |
+| `DEFAULT_ADMIN_PASSWORD` | رمز عبور مدیر پیش‌فرض |
+
+---
+
+## دستورات مفید
+
+| دستور | توضیح |
+|--------|--------|
+| `npm run dev` | اجرای سرور توسعه (فقط کلاینت) |
+| `npm run client` | معادل `dev` |
+| `npm run build` | بیلد تولید (TypeScript + Vite) |
+| `npm run preview` | پیش‌نمایش بیلد تولید |
+| `npm run test` | اجرای تست‌ها |
+| `npm run server` | اجرای سرور بک‌اند (نیاز به پوشه `server/`) |
+
+---
+
+## نقش‌ها و دسترسی‌ها
+
+### نقش‌ها
+
+| نقش | توضیح |
+|------|--------|
+| `admin` | مدیر کل سیستم - دسترسی کامل به تمامی بخش‌ها |
+| `group_manager` | مدیر گروه - مدیریت اعضای گروه و لایه‌ها |
+| `user` | کاربر عادی - دسترسی محدود به بخش‌های تعریف‌شده |
+
+### مجوزها
+
+| مجوز | توضیح |
+|-------|--------|
+| `view_users` | مشاهده لیست کاربران |
+| `view_roles` | مشاهده نقش‌ها |
+| `view_groups` | مشاهده گروه‌ها |
+| `manage_groups` | مدیریت گروه‌ها |
+| `manage_forms` | مدیریت فرم‌ها |
+| `manage_permissions` | مدیریت مجوزها |
+| `works_layers` | لایه‌های کاری |
+| `setting` | تنظیمات سیستم |
+| `workflow` | گردش کار |
+| `view_forms` | مشاهده فرم‌ها |
+| `view_submissions` | مشاهده پاسخ‌های فرم |
+| `Inbox` | صندوق ورودی |
+
+---
+
+## APIها و سرویس‌ها
+
+### بک‌اند API (`/api`)
+
+تمام درخواست‌های API از طریق `VITE_SERVER + '/api'` ارسال می‌شوند:
+
+| مسیر | متد | توضیح |
+|------|-----|--------|
+| `/api/login` | POST | ورود کاربر |
+| `/api/register` | POST | ثبت‌نام کاربر |
+| `/api/users` | GET | لیست کاربران |
+| `/api/users/:id` | GET | پروفایل کاربر |
+| `/api/users/:id/permissions` | GET/PUT | مجوزهای کاربر |
+| `/api/groups` | GET/POST | CRUD گروه‌ها |
+| `/api/groups/:id` | PUT/DELETE | بروزرسانی/حذف گروه |
+| `/api/groups/:id/permissions` | GET/PUT | مجوزهای فرم گروه |
+| `/api/groups/:id/members` | GET/PUT | اعضای گروه |
+| `/api/forms` | GET/POST | CRUD فرم‌ها |
+| `/api/forms/:id` | GET/PUT/DELETE | جزئیات/بروزرسانی/حذف فرم |
+| `/api/forms/:id/public` | GET | فرم عمومی (بدون احراز هویت) |
+| `/api/forms/:id/submit` | POST | ارسال داده فرم |
+| `/api/forms/:id/submissions` | GET | پاسخ‌های فرم |
+| `/api/settings` | GET/PUT | تنظیمات برنامه |
+| `/api/sync/login` | POST | همگام‌سازی ورود با سازنده فرم |
+
+### GeoServer
+
+| سرویس | کاربرد |
+|--------|--------|
+| **WMS** | سرویس کاشی نقشه رستری |
+| **WFS** | سرویس داده برداری (محدود به viewport) |
+
+### سرویس‌های خارجی
+
+| سرویس | آدرس | کاربرد |
+|--------|------|--------|
+| Mapbox API | `https://api.mapbox.com` | کاشی نقشه و ژئوکدینگ |
+| Map.ir | `https://map.ir` | کاشی نقشه‌های ایرانی |
+| Neshan Maps | `https://sat.neshanmap.ir` | تصویر ماهواره‌ای ایران |
+| Open-Meteo | `https://api.open-meteo.com` | داده‌های آب‌وهوا |
+| Cesium Ion | `https://*.cesium.com` | تصویر کره زمین ۳ بعدی |
+
+---
+
+## امکانات امنیتی
+
+- **پاک‌سازی ورودی** (جلوگیری از XSS)
+- **هدرهای امنیتی** (CSP, X-Frame-Options, HSTS و ...)
+- **محدودیت نرخ درخواست** (rate limiting)
+- **پیگیری فعالیت و مدیریت نشست**
+- **بازیابی خودکار توکن**
+- **پاک‌سازی داده‌ها هنگام خروج** (localStorage, sessionStorage, cookies)
+- **پاک‌سازی لاگ‌ها** (رمزهای عبور، توکن‌ها، شماره تلفن‌ها و JWT قبل از ثبت)
+- **CAPTCHA** در ثبت‌نام (مبتنی بر هش سمت کلاینت)
+- **نگهبان مسیر** با بررسی نقش و مجوز در Vue Router
+
+---
+
+## یادداشت‌های استقرار
+
+### اقدامات اعمال‌شده برای تولید
+
+- حذف فایل‌های `.env` و `.env.production` حاوی اعتبارنامه‌ها
+- اضافه شدن `.env.example` با جایگزین‌ها
+- اعمال متادیتای `requiredRole` و `permission` در نگهبان Vue Router
+- حذف رندر `v-html` خام از `FeatureInfoPanel.vue`
+- جایگزینی بارگذاری BBOX جهانی WMS با BBOX کاشی viewport
+- اضافه شدن `VITE_GEOSERVER_WORKSPACE` قابل پیکربندی
+- محدود کردن بارگذاری WFS Cesium به viewport با سقف `VITE_WFS_MAX_FEATURES`
+- مدیریت تدافعی برای attribute‌های ارتفاع WFS موجود نبودن
+- Throttle عملیات مختصات ماوس Mapbox با `requestAnimationFrame`
+- جایگزینی به‌روزرسانی مقیاس هر فریم Cesium با به‌روزرسانی‌های throttle تغییر دوربین
+- آزادسازی object URLهای KML پس از بارگذاری
+- جایگزینی شناسه فایل ثابت Cesium با `crypto.randomUUID()`
+- اضافه شدن پشتیبانی حذف listener/timer در ابزار نظارت امنیتی
+
+### اقدامات لازم قبل از استقرار
+
+1. **تأمین متغیرهای محیطی واقعی** از طریق مدیر رمز عبور استقرار
+2. **بازچرخانی تمام اعتبارنامه‌ها** که در آرشیو اصلی وجود داشتند
+3. **بازیابی و تأیید بک‌اند** به طور جداگانه (پوشه `server/` در این آرشیو موجود نیست)
+4. **بیلد در CI** با `npm ci && npm run build`
+5. **تأیید مجوزهای بک‌اند** مستقل از نگهبان مسیر فرانت‌اند
+6. **تست عملکرد WFS/GeoServer** با داده‌های مقیاس تولید
+7. **تست واکنش‌گرایی و دسترسی‌پذیری مرورگر** در عرض‌های ۳۲۰، ۳۷۵، ۳۹۰، ۴۱۴، ۷۶۸، ۱۰۲۴، ۱۲۸۰، ۱۴۴۰ و ۱۹۲۰ پیکسل
+
+---
+
+## تست‌ها
+
+تست‌ها با **Vitest** و محیط **happy-dom** نوشته شده‌اند:
+
+```bash
+# اجرای تمام تست‌ها
+npm run test
+```
+
+فایل‌های تست:
+- `tests/logger.test.ts` - تست‌های واحد سیستم لاگ‌گیری
+- `tests/captcha.test.ts` - تست‌های واحد CAPTCHA
+
+---
+
+## ساختار داده (استنتاج شده از کد)
+
+> **توجه:** اسکیماهای پایگاه داده در این مخزن موجود نیستند. ساختار زیر از کد سمت کلاینت استنتاج شده است.
+
+| جدول | توضیح |
+|------|--------|
+| `users` | کاربران (id, name, full_name, username, phone, code, password) |
+| `roles` | نقش‌ها (id, name) |
+| `permissions` | مجوزها (name) |
+| `user_roles` | رابطه چند به چند کاربر-نقش |
+| `role_permissions` | رابطه چند به چند نقش-مجوز |
+| `groups` | گروه‌ها (id, name) |
+| `group_members` | اعضای گروه |
+| `group_permissions` | مجوزهای فرم گروه |
+| `forms` | فرم‌ها (id, title, fields JSON, config) |
+| `form_submissions` | پاسخ‌های فرم |
+| `user_permissions` | مجوزهای فرم کاربر |
+| `works_pins` | ترسیم‌های ذخیره‌شده |
+| `settings` | تنظیمات کلید-مقدار |
+| `workflows` | گردش کار (مراحل، تخصیص‌ها، وضعیت‌ها) |
+
+**تکنولوژی پایگاه داده:** PostgreSQL
+
+---
+
+## مجوز
+
+</div>
+
+## License / مجوز
+
+```
+ALL RIGHTS RESERVED - تمامی حقوق محفوظ است
+
+Copyright (c) شرکت ساج گستر کاسپین
+
+تمامی حقوق مادی و معنوی این نرم‌افزار و محتوای آن
+(شامل کد منبع، طراحی رابط کاربری، مستندات و هرگونه متعلقات)
+متعلق به شرکت ساج گستر کاسپین می‌باشد.
+
+هرگونه کپی‌برداری، توزیع، انتشار، تغییر، بازتولید یا استفاده تجاری
+از این نرم‌افزار بدون اجازه کتبی شرکت ساج گستر کاسپین ممنوع است.
+```
+
+<div dir="rtl">
+
+---
+
+## تماس
+
+برای کسب اطلاعات بیشتر، مجوز یا پشتیبانی با **شرکت ساج گستر کاسپین** تماس بگیرید.
+
+</div>

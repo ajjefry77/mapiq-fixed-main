@@ -45,11 +45,13 @@
                       :selectedGroup="selectedGroup" :selectGroup="selectGroup" :parentGroup="item" :Icons="Icons"/>
     </li>
   </ul>
+  <ConfirmDialog :show="showConfirmDialog" :message="confirmMessage" confirmText="بله" cancelText="خیر" @confirm="onConfirmDialogConfirm" @cancel="onConfirmDialogCancel"/>
 </template>
 
 <script setup>
 import { provide, inject, ref } from "vue";
 import MapboxLayerItem from "./MapboxLayerItem.vue";
+import ConfirmDialog from "../ConfirmDialog.vue";
 import { useToast } from "vue-toast-notification";
 import { useSharedArray } from '../../stores/app';
 import axios from "axios";
@@ -63,6 +65,9 @@ const SelectGroup = inject('SelectGroup');
 const dragOverIdx = ref(null);
 const dropSide = ref('before');
 const draggedItemId = ref(null);
+const showConfirmDialog = ref(false);
+const confirmMessage = ref('');
+let confirmCallback = null;
 
 const props = defineProps({
   items: Array,
@@ -79,12 +84,32 @@ function isContainer(item) {
   return item && (item.type === 'group' || item.type === 'folder');
 }
 
+function showConfirm(msg) {
+  return new Promise((resolve) => {
+    confirmMessage.value = msg;
+    confirmCallback = resolve;
+    showConfirmDialog.value = true;
+  });
+}
+
+function onConfirmDialogConfirm() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(true);
+  confirmCallback = null;
+}
+
+function onConfirmDialogCancel() {
+  showConfirmDialog.value = false;
+  if (confirmCallback) confirmCallback(false);
+  confirmCallback = null;
+}
+
 async function remove(item, index) {
   if (item.children && item.children.length > 0) {
     showMessage('برای حذف پوشه باید خالی باشد', 'warning');
     return;
   }
-  const confirmed = window.confirm('آیا از حذف این پوشه مطمئن هستید؟');
+  const confirmed = await showConfirm('آیا از حذف این پوشه مطمئن هستید؟');
   if (!confirmed) return;
   try {
     const store = useAuthStore();

@@ -1137,7 +1137,9 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       pickForForm.value ||
       measureActive.value ||
       showForm.value ||
-      intersectActive.value
+      intersectActive.value ||
+      fishnetPanelOpen.value ||
+      fishnetEditMode.value
     )
       return;
     const rendered = map.queryRenderedFeatures(e.point);
@@ -1156,7 +1158,9 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       pickForForm.value ||
       measureActive.value ||
       showForm.value ||
-      intersectActive.value
+      intersectActive.value ||
+      fishnetPanelOpen.value ||
+      fishnetEditMode.value
     )
       return;
     const rendered = map.queryRenderedFeatures(e.point);
@@ -2090,11 +2094,17 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     fishnetAngle,
     triangStats,
     triangPoints,
+    fishnetEditMode,
+    fishnetEditTool,
+    fishnetDeletedCount,
     openFishnetPanel: rawOpenFishnetPanel,
     clearFishnet,
     generateFishnet,
-    saveFishnet,
-    exportFishnetCSV,
+    setFishnetEditMode,
+    setFishnetEditTool,
+    deleteFishnetCellById,
+    deleteFishnetNodeById,
+    restoreDeletedCells,
     exportTriangPointsCSV,
     exportTriangPointsKML,
   } = createFishnetHandler(fishnetCtx);
@@ -2231,11 +2241,17 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     fishnetAngle,
     triangStats,
     triangPoints,
+    fishnetEditMode,
+    fishnetEditTool,
+    fishnetDeletedCount,
     openFishnetPanel: openFishnetPanelExclusive,
     clearFishnet,
     generateFishnet,
-    saveFishnet,
-    exportFishnetCSV,
+    setFishnetEditMode,
+    setFishnetEditTool,
+    deleteFishnetCellById,
+    deleteFishnetNodeById,
+    restoreDeletedCells,
     exportTriangPointsCSV,
     exportTriangPointsKML,
   };

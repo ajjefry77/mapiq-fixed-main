@@ -127,19 +127,61 @@
         <div v-else class="text-orange-200/80">زاویه گرید: {{ angle }}°</div>
       </div>
 
-      <div v-if="cells.length" class="flex gap-2">
-        <button
-          @click="$emit('save')"
-          class="btn btn-primary btn-sm flex-1"
-        >
-          <i class="fas fa-save"></i> ذخیره مثلث‌ها
-        </button>
-        <button
-          @click="$emit('exportCSV')"
-          class="btn btn-ghost btn-sm flex-1"
-        >
-          <i class="fas fa-file-csv"></i> CSV مثلث‌ها
-        </button>
+      <div v-if="cells.length" class="rounded-lg border border-sky-500/25 bg-sky-500/10 p-2.5 text-xs space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div class="font-bold text-sky-200">ویرایش دستی شکل</div>
+          <button
+            @click="$emit('toggleEdit')"
+            class="btn btn-sm"
+            :class="editMode ? 'btn-primary' : 'btn-ghost'"
+          >
+            <i class="fas fa-pen"></i> {{ editMode ? "پایان ویرایش" : "ویرایش دستی" }}
+          </button>
+        </div>
+        <div v-if="editMode" class="space-y-2">
+          <div class="flex gap-1.5">
+            <button
+              @click="$emit('update:editTool', 'move')"
+              class="btn btn-sm flex-1"
+              :class="editTool === 'move' ? 'btn-primary' : 'btn-ghost'"
+              title="کشیدن نقاط روی نقشه"
+            >
+              <i class="fas fa-arrows-alt"></i> جابه‌جایی
+            </button>
+            <button
+              @click="$emit('update:editTool', 'delete')"
+              class="btn btn-sm flex-1"
+              :class="editTool === 'delete' ? 'btn-primary' : 'btn-ghost'"
+              title="کلیک روی نقطه یا مثلث برای حذف"
+            >
+              <i class="fas fa-eraser"></i> حذف
+            </button>
+            <button
+              @click="$emit('update:editTool', 'add')"
+              class="btn btn-sm flex-1"
+              :class="editTool === 'add' ? 'btn-primary' : 'btn-ghost'"
+              title="کلیک روی نقشه برای افزودن نقطه"
+            >
+              <i class="fas fa-plus"></i> افزودن
+            </button>
+          </div>
+          <p class="text-sky-200/80 leading-5">
+            <span v-if="editTool === 'move'">نقطه نارنجی را بکشید تا جابه‌جا شود؛ شبکه خودش بازسازی می‌شود.</span>
+            <span v-else-if="editTool === 'delete'">روی نقطه کلیک کنید تا نقطه حذف شود، روی مثلث کلیک کنید تا مثلث حذف شود.</span>
+            <span v-else>روی نقشه کلیک کنید تا نقطه جدید اضافه و شبکه بازسازی شود.</span>
+          </p>
+          <div class="flex items-center justify-between gap-2">
+            <span v-if="deletedCount" class="text-amber-300">{{ deletedCount }} مثلث حذف شده</span>
+            <span v-else class="text-zinc-400">حذفی ثبت نشده</span>
+            <button
+              v-if="deletedCount"
+              @click="$emit('restoreDeleted')"
+              class="btn btn-ghost btn-sm"
+            >
+              <i class="fas fa-undo"></i> بازگردانی حذف‌شده‌ها
+            </button>
+          </div>
+        </div>
       </div>
 
       <div v-if="cells.length" class="rounded-lg border border-zinc-700/60 bg-zinc-800/40 p-2.5 text-xs space-y-2">
@@ -181,6 +223,9 @@ const props = defineProps({
   sourceLabel: { type: String, default: "" },
   angle: { type: Number, default: 0 },
   stats: { type: Object, default: null },
+  editMode: { type: Boolean, default: false },
+  editTool: { type: String, default: "move" },
+  deletedCount: { type: Number, default: 0 },
 });
 
 defineEmits([
@@ -188,9 +233,10 @@ defineEmits([
   "update:cellSize",
   "update:cellUnit",
   "update:clipToPolygon",
+  "update:editTool",
   "generate",
-  "save",
-  "exportCSV",
+  "toggleEdit",
+  "restoreDeleted",
   "exportPointsCSV",
   "exportPointsKML",
   "clearFishnet",

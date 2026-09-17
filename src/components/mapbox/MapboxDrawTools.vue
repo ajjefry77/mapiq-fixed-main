@@ -104,13 +104,17 @@
     :sourceLabel="fishnetSourceLabel"
     :angle="fishnetAngle"
     :stats="triangStats"
+    :editMode="fishnetEditMode"
+    :editTool="fishnetEditTool"
+    :deletedCount="fishnetDeletedCount"
     @update:selectedPinId="selectedPinId = $event"
     @update:cellSize="cellSize = $event"
     @update:cellUnit="cellUnit = $event"
     @update:clipToPolygon="clipToPolygon = $event"
+    @update:editTool="setFishnetEditTool($event)"
     @generate="onFishnetGenerate"
-    @save="onFishnetSave"
-    @exportCSV="exportFishnetCSV"
+    @toggleEdit="setFishnetEditMode(!fishnetEditMode)"
+    @restoreDeleted="restoreDeletedCells"
     @exportPointsCSV="exportTriangPointsCSV"
     @exportPointsKML="exportTriangPointsKML"
     @clearFishnet="clearFishnet"
@@ -218,21 +222,21 @@ const {
   selectedPinId,
   fishnetAngle,
   triangStats,
+  fishnetEditMode,
+  fishnetEditTool,
+  fishnetDeletedCount,
   openFishnetPanel,
   clearFishnet,
   generateFishnet,
-  saveFishnet,
-  exportFishnetCSV,
+  setFishnetEditMode,
+  setFishnetEditTool,
+  restoreDeletedCells,
   exportTriangPointsCSV,
   exportTriangPointsKML,
 } = useDrawing(props.map, props.pins, emit, SelectGroup);
 
 async function onFishnetGenerate() {
   await generateFishnet(selectedPinId.value, cellSize.value, cellUnit.value, clipToPolygon.value);
-}
-
-async function onFishnetSave() {
-  await saveFishnet();
 }
 
 function applyShapeStyle() {

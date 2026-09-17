@@ -29,6 +29,25 @@ export function createFishnetHandler(ctx) {
   const fishnetStage = ref(0);
   const fishnetProgress = ref(0);
   const FISHNET_STAGES = ["ارسال به سرور", "پردازش شبکه‌بندی", "بررسی نتایج"];
+  // --- ویرایش دستی شکل مثلث‌بندی‌شده ---
+  // editTool: 'move' جابه‌جایی نقطه | 'delete' حذف نقطه/مثلث با کلیک | 'add' افزودن نقطه با کلیک
+  const fishnetEditMode = ref(false);
+  const fishnetEditTool = ref("move");
+  const fishnetDeletedCount = ref(0);
+  // بافت ذخیره‌شده برای بازسازی پس از ویرایش دستی (بدون تولید مجدد از ابتدا)
+  const fishnetCtx = {
+    sourcePoly: null,
+    zone: 0,
+    northern: true,
+    edge: 0,
+    minSep: 0,
+    clip: true,
+    cornerCount: 0,
+    baseRemovedClose: 0,
+  };
+  const fishnetExclusions = ref([]);
+  let editHandlersBound = false;
+  let dragPid = null;
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const yieldUI = () => sleep(30);
@@ -61,6 +80,7 @@ export function createFishnetHandler(ctx) {
   }
 
   function clearFishnet() {
+    try { setFishnetEditMode(false); } catch (e) {}
     removeFishnetLayers();
     fishnetCells.value = [];
     triangPoints.value = [];
@@ -71,6 +91,9 @@ export function createFishnetHandler(ctx) {
     fishnetProgress.value = 0;
     fishnetAngle.value = 0;
     triangStats.value = null;
+    fishnetDeletedCount.value = 0;
+    fishnetExclusions.value = [];
+    fishnetCtx.sourcePoly = null;
   }
 
   function flattenPins(list, out = []) {
@@ -286,38 +309,6 @@ export function createFishnetHandler(ctx) {
       hash.get(k).push(basePts.length + kept.length - 1);
       basePts.push(p);
     }
-    return { kept, removed };
-  }
-
-  // ادغام نهایی نقاط خروجی: هر نقطه‌ای که تا نقطه نگه‌داشته‌شده
-  // کمتر از minSep فاصله داشته باشد کلا حذف می‌شود (بدون اسنپ، بدون جابه‌جایی)
-  function mergeCloseUTM(list, minSep) {
-    const kept = [];
-    let removed = 0;
-    const cell = Math.max(minSep, 0.001);
-    const minSep2 = minSep * minSep;
-    const grid = new Map();
-    for (const p of list) {
-      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) { kept.push(p); continue; }
-      const cx = Math.floor(p.x / cell), cy = Math.floor(p.y / cell);
-      let dup = false;
-      for (let ix = cx - 1; ix <= cx + 1 && !dup; ix++) {
-        for (let iy = cy - 1; iy <= cy + 1 && !dup; iy++) {
-          const bucket = grid.get(`${ix}:${iy}`);
-          if (!bucket) continue;
-          for (const q of bucket) {
-            const dx = p.x - q.x, dy = p.y - q.y;
-            if (dx * dx + dy * dy < minSep2) { dup = true; break; }
-          }
-        }
-      }
-      if (dup) { removed++; continue; }
-      kept.push(p);
-      const k = `${cx}:${cy}`;
-      if (!grid.has(k)) grid.set(k, []);
-      grid.get(k).push(p);
-    }
-    kept.forEach((p, i) => { p.id = `P${i + 1}`; });
     return { kept, removed };
   }
 
@@ -648,6 +639,18 @@ export function createFishnetHandler(ctx) {
       fishnetCells.value = cells;
       fishnetSourceLabel.value = pin.name || "(بدون نام)";
       selectedPinId.value = String(pin.id);
+      // ذخیره بافت برای بازسازی پس از ویرایش دستی
+      fishnetCtx.sourcePoly = poly;
+      fishnetCtx.zone = zone;
+      fishnetCtx.northern = northern;
+      fishnetCtx.edge = edge;
+      fishnetCtx.minSep = minSep;
+      fishnetCtx.clip = !!clip;
+      fishnetCtx.cornerCount = corners.length;
+      fishnetCtx.baseRemovedClose = removedClose;
+      fishnetExclusions.value = [];
+      fishnetDeletedCount.value = 0;
+      try { setFishnetEditMode(false); } catch (e) {}
       renderFishnetPreview(cells);
       const rmMsg = removedClose > 0 ? ` — ${removedClose} نقطه نزدیک حذف شد` : "";
       ctx.$toast?.success(`${cells.length} مثلث از ${corners.length} گوشه و ${pts.length} نقطه ساخته شد (میانگین کمترین زاویه ${triangStats.value.avgMinAngle}° — خطا ${triangStats.value.errorPct}٪${rmMsg})`);
@@ -675,6 +678,15 @@ export function createFishnetHandler(ctx) {
       })),
     };
     m.addSource(FISHNET_SOURCE, { type: "geojson", data: fc });
+    // لایه فیل برای کلیک/حذف مثلث در حالت ویرایش دستی (همیشه شفاف و زیر خطوط)
+    try {
+      m.addLayer({
+        id: FISHNET_SOURCE + "-fill",
+        type: "fill",
+        source: FISHNET_SOURCE,
+        paint: { "fill-color": "#f97316", "fill-opacity": fishnetEditMode.value ? 0.12 : 0.05 },
+      });
+    } catch (e) {}
     m.addLayer({
       id: FISHNET_SOURCE + "-line",
       type: "line",
@@ -692,7 +704,7 @@ export function createFishnetHandler(ctx) {
     };
     if (mergedNodes) {
       mergedNodes.forEach((p) => {
-        nodeFC.features.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] }, properties: {} });
+        nodeFC.features.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] }, properties: { pid: p.id } });
       });
     } else {
       const seen = new Set();
@@ -714,83 +726,362 @@ export function createFishnetHandler(ctx) {
         source: FISHNET_SOURCE + "-labels",
         paint: { "circle-radius": 3, "circle-color": "#f97316", "circle-stroke-color": "#fff", "circle-stroke-width": 1 },
       });
-      [FISHNET_SOURCE + "-line", FISHNET_SOURCE + "-label"].forEach(registerDrawLayer);
+      [FISHNET_SOURCE + "-fill", FISHNET_SOURCE + "-line", FISHNET_SOURCE + "-label"].forEach(registerDrawLayer);
     } catch (e) {
-      [FISHNET_SOURCE + "-line"].forEach(registerDrawLayer);
+      [FISHNET_SOURCE + "-fill", FISHNET_SOURCE + "-line"].forEach(registerDrawLayer);
     }
   }
 
-  async function saveFishnet(baseName) {
-    const cells = fishnetCells.value;
-    if (!cells.length) {
-      ctx.$toast?.warning("اول پیش‌نمایش مثلث‌بندی را بسازید");
-      return;
-    }
-    const pinsList = Array.isArray(ctx.pins) ? ctx.pins : null;
-    const name = (baseName || fishnetSourceLabel.value || "مثلث").trim() || "مثلث";
-    let saved = 0;
-    for (const c of cells) {
-      const coords = c.feature.geometry.coordinates[0];
-      const positions = coords.map(([lon, lat]) => ({ lon, lat, height: 0 }));
-      const pin = {
-        id: crypto.randomUUID(),
-        name: `${name} ${c.id}`,
-        descr: `triang id=${c.id} minAngle=${c.minAngle ?? "?"}° area=${c.area.toFixed(1)}m2 src=${fishnetSourceLabel.value}`,
-        shape: {
-          type: "polygon",
-          positions,
-          color: "#f97316",
-          outlineColor: "#ea580c",
-          opacity: 1,
-          fillOpacity: 0,
-          width: 2,
-          show: true,
-        },
-        date: new Date(),
-        save: -1,
-        type: "draw",
-        parent_id: -1,
-      };
-      if (pinsList) {
-        pinsList.push(pin);
-      } else if (ctx.pins?.value) {
-        ctx.pins.value.push(pin);
-      }
+  // --- ویرایش دستی شکل مثلث‌بندی‌شده ---
+
+  function centroidExcluded(centroid, exclusions) {
+    for (const ex of exclusions || []) {
       try {
-        if (ctx.renderNewPin) ctx.renderNewPin(pin);
-        if (ctx.addVisibleId) ctx.addVisibleId(pin.id);
-        if (ctx.saveOneWorks) await ctx.saveOneWorks(pin);
-        saved++;
-      } catch (e) {
-        /* ادامه با بقیه مثلث‌ها */
-      }
+        if (turf.booleanPointInPolygon(centroid, ex)) return true;
+      } catch (e) {}
     }
-    removeFishnetLayers();
-    ctx.$toast?.success(`${saved} مثلث ذخیره شد`);
-    return saved;
+    return false;
   }
 
-  function exportFishnetCSV() {
-    const cells = fishnetCells.value;
+  // بازسازی شبکه از نقاط ویرایش‌شده کاربر (Delaunay + برش با مرز + احترام به حذف‌شده‌ها)
+  function rebuildFishnetFromPoints() {
+    const srcPoly = fishnetCtx.sourcePoly;
+    if (!srcPoly) return false;
+    const pts = triangPoints.value;
+    if (!pts.length) return false;
+    const { zone, northern, minSep, clip } = fishnetCtx;
+    const input = [];
+    for (const p of pts) {
+      if (!Number.isFinite(p.lon) || !Number.isFinite(p.lat)) continue;
+      let x = p.x, y = p.y;
+      try {
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          const utm = toUTMInZone(p.lon, p.lat, zone, northern);
+          x = utm.x; y = utm.y;
+        }
+      } catch (e) { continue; }
+      input.push([x, y]);
+    }
+    const uniq = dedupPoints(input, 0.01);
+    if (uniq.length < 3) {
+      ctx.$toast?.warning("برای بازسازی حداقل ۳ نقطه لازم است");
+      return false;
+    }
+    let tin;
+    try {
+      tin = turf.tin(turf.featureCollection(uniq.map(([x, y]) => turf.point([x, y]))));
+    } catch (e) {
+      ctx.$toast?.error("بازسازی مثلث‌بندی ناموفق بود");
+      return false;
+    }
+    if (!tin?.features?.length) return false;
+    const minArea = minSep * minSep * 0.08;
+    const cells = [];
+    let sumMin = 0, worstMin = 60, skinny = 0, idx = 0, droppedSlivers = 0;
+    for (const tri of tin.features) {
+      const coords = tri.geometry?.coordinates?.[0];
+      if (!coords || coords.length < 4) continue;
+      const [au, bu, cu] = [coords[0], coords[1], coords[2]];
+      const a = [au[0], au[1]], b = [bu[0], bu[1]], c = [cu[0], cu[1]];
+      const mAngle = minAngleDeg(a, b, c);
+      const utmArea = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2;
+      if (!(utmArea > 0.01)) { droppedSlivers++; continue; }
+      const e1 = dist2D(a, b), e2 = dist2D(b, c), e3 = dist2D(c, a);
+      if (Math.min(e1, e2, e3) < minSep * 0.5 || mAngle < 4) { droppedSlivers++; continue; }
+      const ll = [a, b, c].map(([x, y]) => {
+        const { lng, lat } = fromUTM(x, y, zone, northern);
+        return [lng, lat];
+      });
+      let triPoly;
+      try { triPoly = turf.polygon([[...ll, ll[0]]]); } catch (e) { continue; }
+      let keep = false;
+      try {
+        const ctr = turf.centroid(triPoly).geometry.coordinates;
+        keep = turf.booleanPointInPolygon(ctr, srcPoly) || turf.booleanIntersects(triPoly, srcPoly);
+      } catch (e) {
+        try { keep = turf.booleanIntersects(triPoly, srcPoly); } catch (_) { keep = false; }
+      }
+      if (!keep) continue;
+      let finalGeom = triPoly;
+      if (clip) {
+        try {
+          const inter = turf.intersect(turf.featureCollection([triPoly, srcPoly]));
+          if (!inter) continue;
+          finalGeom = inter;
+        } catch (e) { continue; }
+      }
+      // احترام به مثلث‌های حذف‌شده دستی (سوراخ‌های کاربر)
+      try {
+        const ctr = turf.centroid(finalGeom).geometry.coordinates;
+        if (centroidExcluded(ctr, fishnetExclusions.value)) continue;
+      } catch (e) {}
+      const geoms = [];
+      if (finalGeom.geometry?.type === "Polygon") geoms.push(finalGeom.geometry.coordinates);
+      else if (finalGeom.geometry?.type === "MultiPolygon") {
+        finalGeom.geometry.coordinates.forEach((co) => geoms.push(co));
+      } else continue;
+      geoms.forEach((co, partIdx) => {
+        let feat;
+        try { feat = turf.polygon(co); } catch (e) { return; }
+        const area = turf.area(feat);
+        if (!(area > minArea)) { droppedSlivers++; return; }
+        try {
+          const ctr = turf.centroid(feat).geometry.coordinates;
+          if (centroidExcluded(ctr, fishnetExclusions.value)) return;
+        } catch (e) {}
+        idx++;
+        const centroid = turf.centroid(feat);
+        sumMin += mAngle;
+        if (mAngle < worstMin) worstMin = mAngle;
+        if (mAngle < 20) skinny++;
+        cells.push({
+          row: idx,
+          col: 1,
+          part: partIdx,
+          id: `T${idx}${partIdx ? "-" + (partIdx + 1) : ""}`,
+          feature: feat,
+          area,
+          centroid: centroid.geometry.coordinates,
+          minAngle: Math.round(mAngle * 10) / 10,
+          cornersUTM: [a, b, c],
+        });
+      });
+      if (cells.length > MAX_TRIANGLES) break;
+    }
     if (!cells.length) {
-      ctx.$toast?.warning("داده‌ای برای خروجی وجود ندارد");
+      ctx.$toast?.error("پس از ویرایش مثلثی باقی نماند");
+      return false;
+    }
+    if (cells.length >= MAX_TRIANGLES) cells.length = MAX_TRIANGLES;
+    const avgMin = sumMin / Math.max(1, idx || cells.length);
+    const errPct = Math.max(0, ((30 - avgMin) / 30) * 100);
+    // نقاط خروجی از سلول‌های جدید
+    const rawPts = [];
+    cells.forEach((c) => {
+      const coords = c.feature.geometry?.coordinates;
+      const rings = c.feature.geometry?.type === "MultiPolygon"
+        ? coords.flat()
+        : (Array.isArray(coords) ? coords : []);
+      rings.forEach((ring) => {
+        (ring || []).forEach(([lon, lat]) => {
+          let x = NaN, y = NaN;
+          try {
+            const utm = toUTMInZone(lon, lat, zone, northern);
+            x = utm.x; y = utm.y;
+          } catch (e) {}
+          rawPts.push({ id: "", lon, lat, x, y, zone, northern });
+        });
+      });
+    });
+    const mergedPts = mergeCloseUTM(rawPts, minSep);
+    triangPoints.value = mergedPts.kept;
+    const prev = triangStats.value || {};
+    triangStats.value = {
+      ...prev,
+      count: cells.length,
+      inputPoints: uniq.length,
+      cornerCount: fishnetCtx.cornerCount,
+      pointCount: mergedPts.kept.length,
+      removedClose: (fishnetCtx.baseRemovedClose || 0) + droppedSlivers + mergedPts.removed,
+      minSep: Math.round(minSep * 100) / 100,
+      avgMinAngle: Math.round(avgMin * 10) / 10,
+      worstMinAngle: Math.round(worstMin * 10) / 10,
+      skinnyCount: skinny,
+      errorPct: Math.round(errPct * 10) / 10,
+      edge: fishnetCtx.edge,
+    };
+    fishnetCells.value = cells;
+    renderFishnetPreview(cells);
+    return true;
+  }
+
+  function paintNodesLive() {
+    const m = ctx.map;
+    if (!m) return;
+    try {
+      const src = m.getSource(FISHNET_SOURCE + "-labels");
+      if (!src) return;
+      src.setData({
+        type: "FeatureCollection",
+        features: triangPoints.value.map((p) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [p.lon, p.lat] },
+          properties: { pid: p.id },
+        })),
+      });
+    } catch (e) {}
+  }
+
+  function commitTriangNodeMove(pid, lngLat) {
+    const p = triangPoints.value.find((q) => String(q.id) === String(pid));
+    if (!p || !lngLat) return false;
+    p.lon = lngLat.lng;
+    p.lat = lngLat.lat;
+    try {
+      const utm = toUTMInZone(p.lon, p.lat, fishnetCtx.zone, fishnetCtx.northern);
+      p.x = utm.x; p.y = utm.y;
+    } catch (e) {}
+    return rebuildFishnetFromPoints();
+  }
+
+  function deleteFishnetCellById(id) {
+    const idx = fishnetCells.value.findIndex((c) => String(c.id) === String(id));
+    if (idx < 0) return false;
+    const [removed] = fishnetCells.value.splice(idx, 1);
+    try {
+      fishnetExclusions.value.push(JSON.parse(JSON.stringify(removed.feature)));
+    } catch (e) {
+      fishnetExclusions.value.push(removed.feature);
+    }
+    fishnetDeletedCount.value = fishnetExclusions.value.length;
+    if (triangStats.value) triangStats.value = { ...triangStats.value, count: fishnetCells.value.length };
+    renderFishnetPreview(fishnetCells.value);
+    ctx.$toast?.success(`مثلث ${id} حذف شد`);
+    return true;
+  }
+
+  function deleteFishnetNodeById(pid) {
+    const i = triangPoints.value.findIndex((p) => String(p.id) === String(pid));
+    if (i < 0) return false;
+    if (triangPoints.value.length <= 4) {
+      ctx.$toast?.warning("حداقل چند نقطه برای شبکه لازم است");
+      return false;
+    }
+    triangPoints.value.splice(i, 1);
+    const ok = rebuildFishnetFromPoints();
+    if (ok) ctx.$toast?.success(`نقطه ${pid} حذف و شبکه بازسازی شد`);
+    return ok;
+  }
+
+  function addTriangPointAt(lngLat) {
+    if (!lngLat || !fishnetCtx.sourcePoly) return false;
+    const lon = lngLat.lng, lat = lngLat.lat;
+    let x = NaN, y = NaN;
+    try {
+      const utm = toUTMInZone(lon, lat, fishnetCtx.zone, fishnetCtx.northern);
+      x = utm.x; y = utm.y;
+    } catch (e) {}
+    triangPoints.value.push({ id: `P${triangPoints.value.length + 1}`, lon, lat, x, y, zone: fishnetCtx.zone, northern: fishnetCtx.northern });
+    const ok = rebuildFishnetFromPoints();
+    if (ok) ctx.$toast?.success("نقطه اضافه و شبکه بازسازی شد");
+    else triangPoints.value.pop();
+    return ok;
+  }
+
+  function restoreDeletedCells() {
+    if (!fishnetExclusions.value.length) {
+      ctx.$toast?.warning("مثلث حذف‌شده‌ای وجود ندارد");
+      return false;
+    }
+    fishnetExclusions.value = [];
+    fishnetDeletedCount.value = 0;
+    const ok = rebuildFishnetFromPoints();
+    if (ok) ctx.$toast?.success("مثلث‌های حذف‌شده بازگردانده شدند");
+    return ok;
+  }
+
+  function onEditMouseDown(e) {
+    if (!fishnetEditMode.value || fishnetEditTool.value !== "move") return;
+    try {
+      if (e.originalEvent && typeof e.originalEvent.button === "number" && e.originalEvent.button !== 0) return;
+    } catch (err) {}
+    let feats = [];
+    try {
+      feats = ctx.map.queryRenderedFeatures(e.point, { layers: [FISHNET_SOURCE + "-label"] });
+    } catch (err) { return; }
+    if (feats && feats.length && feats[0].properties?.pid) {
+      dragPid = feats[0].properties.pid;
+      try { ctx.map.dragPan.disable(); } catch (err) {}
+      try { e.preventDefault(); } catch (err) {}
+    }
+  }
+
+  function onEditMouseMove(e) {
+    if (!dragPid || !fishnetEditMode.value) return;
+    const p = triangPoints.value.find((q) => String(q.id) === String(dragPid));
+    if (!p || !e.lngLat) return;
+    p.lon = e.lngLat.lng;
+    p.lat = e.lngLat.lat;
+    paintNodesLive();
+  }
+
+  function onEditMouseUp(e) {
+    if (!dragPid) return;
+    const pid = dragPid;
+    dragPid = null;
+    try { ctx.map.dragPan.enable(); } catch (err) {}
+    if (!fishnetEditMode.value || !e.lngLat) return;
+    commitTriangNodeMove(pid, e.lngLat);
+  }
+
+  function onEditClick(e) {
+    if (!fishnetEditMode.value || dragPid || !e.lngLat) return;
+    const tool = fishnetEditTool.value;
+    if (tool === "add") {
+      addTriangPointAt(e.lngLat);
       return;
     }
-    const header = ["id", "area_m2", "min_angle_deg", "center_lon", "center_lat", "wkt"];
-    const lines = [header.join(",")];
-    const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
-    cells.forEach((c) => {
-      const ring = c.feature.geometry.coordinates[0];
-      const wkt = `POLYGON((${ring.map(([lo, la]) => `${lo.toFixed(6)} ${la.toFixed(6)}`).join(", ")}))`;
-      lines.push([c.id, c.area.toFixed(2), c.minAngle ?? "", c.centroid[0].toFixed(6), c.centroid[1].toFixed(6), q(wkt)].join(","));
-    });
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `triangulation-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (tool !== "delete") return;
+    try {
+      const nodes = ctx.map.queryRenderedFeatures(e.point, { layers: [FISHNET_SOURCE + "-label"] });
+      if (nodes && nodes.length && nodes[0].properties?.pid) {
+        deleteFishnetNodeById(nodes[0].properties.pid);
+        return;
+      }
+    } catch (err) {}
+    try {
+      const tris = ctx.map.queryRenderedFeatures(e.point, { layers: [FISHNET_SOURCE + "-fill"] });
+      if (tris && tris.length && tris[0].properties?.id) {
+        deleteFishnetCellById(tris[0].properties.id);
+      }
+    } catch (err) {}
+  }
+
+  function bindEditHandlers() {
+    const m = ctx.map;
+    if (!m || editHandlersBound) return;
+    m.on("mousedown", onEditMouseDown);
+    m.on("mousemove", onEditMouseMove);
+    m.on("mouseup", onEditMouseUp);
+    m.on("click", onEditClick);
+    editHandlersBound = true;
+  }
+
+  function unbindEditHandlers() {
+    dragPid = null;
+    const m = ctx.map;
+    if (!m || !editHandlersBound) return;
+    try { m.off("mousedown", onEditMouseDown); } catch (e) {}
+    try { m.off("mousemove", onEditMouseMove); } catch (e) {}
+    try { m.off("mouseup", onEditMouseUp); } catch (e) {}
+    try { m.off("click", onEditClick); } catch (e) {}
+    editHandlersBound = false;
+    try { m.dragPan.enable(); } catch (e) {}
+  }
+
+  function setFishnetEditMode(on) {
+    fishnetEditMode.value = !!on;
+    if (fishnetEditMode.value) {
+      if (!fishnetCells.value.length) {
+        ctx.$toast?.warning("اول پیش‌نمایش مثلث‌بندی را بسازید");
+        fishnetEditMode.value = false;
+        return false;
+      }
+      bindEditHandlers();
+      try { if (ctx.map) ctx.map.getCanvas().style.cursor = "crosshair"; } catch (e) {}
+      renderFishnetPreview(fishnetCells.value);
+      ctx.$toast?.success("حالت ویرایش دستی فعال شد");
+    } else {
+      unbindEditHandlers();
+      try { if (ctx.map) ctx.map.getCanvas().style.cursor = ""; } catch (e) {}
+      if (fishnetCells.value.length) renderFishnetPreview(fishnetCells.value);
+    }
+    return fishnetEditMode.value;
+  }
+
+  function setFishnetEditTool(tool) {
+    if (tool !== "move" && tool !== "delete" && tool !== "add") return;
+    fishnetEditTool.value = tool;
   }
 
   function downloadBlob(blob, filename) {
@@ -882,11 +1173,17 @@ export function createFishnetHandler(ctx) {
     fishnetAngle,
     triangStats,
     triangPoints,
+    fishnetEditMode,
+    fishnetEditTool,
+    fishnetDeletedCount,
     openFishnetPanel,
     clearFishnet,
     generateFishnet,
-    saveFishnet,
-    exportFishnetCSV,
+    setFishnetEditMode,
+    setFishnetEditTool,
+    deleteFishnetCellById,
+    deleteFishnetNodeById,
+    restoreDeletedCells,
     exportTriangPointsCSV,
     exportTriangPointsKML,
   };

@@ -207,6 +207,7 @@ import { useAuthStore } from "../stores/auth";
 import axios from "axios";
 import proj4 from "proj4";
 import { bringDrawingsToFront } from "../utils/layerOrder";
+import { ensureDemSource, setTerrainExaggeration } from "../utils/elevation";
 
 const GEOSERVER = import.meta.env.VITE_GEOSERVER;
 const GEOSERVER_WORKSPACE = import.meta.env.VITE_GEOSERVER_WORKSPACE || "Amlak";
@@ -310,15 +311,8 @@ function enable3DView() {
   map.getCanvas().addEventListener("contextmenu", preventContextMenu);
 
   const apply3DLayers = () => {
-    if (!map.getSource("mapbox-dem")) {
-      map.addSource("mapbox-dem", {
-        type: "raster-dem",
-        url: "mapbox://mapbox.mapbox-terrain-dem-v1",
-        tileSize: 512,
-        maxzoom: 14,
-      });
-    }
-    map.setTerrain({ source: "mapbox-dem", exaggeration: 1.8 });
+    ensureDemSource(map);
+    setTerrainExaggeration(map, 1.8);
 
     if (!map.getLayer("sky")) {
       try {
@@ -370,17 +364,15 @@ function lock2DView() {
     try {
       map.setFog(null);
     } catch (_) {}
+    // در حالت 2D هم DEM و terrain (با exaggeration=0) را نگه می‌داریم
+    // تا queryTerrainElevation برای ارتفاع کار کند؛ نقشه همچنان تخت دیده می‌شود
     try {
-      map.setTerrain(null);
+      ensureDemSource(map);
+      setTerrainExaggeration(map, 0);
     } catch (_) {}
     if (map.getLayer("sky")) {
       try {
         map.removeLayer("sky");
-      } catch (_) {}
-    }
-    if (map.getSource("mapbox-dem")) {
-      try {
-        map.removeSource("mapbox-dem");
       } catch (_) {}
     }
   }
@@ -697,6 +689,11 @@ function initMap() {
 
   map.on("load", () => {
     mapReady.value = true;
+    // DEM را از همان ابتدا نگه دار تا ارتفاع در حالت 2D هم در دسترس باشد
+    try {
+      ensureDemSource(map);
+      if (!is3DMode.value) setTerrainExaggeration(map, 0);
+    } catch (_) {}
   });
 }
 

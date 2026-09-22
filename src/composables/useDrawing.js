@@ -34,6 +34,10 @@ import {
   pointIcon,
   ensurePointSymbolImages,
 } from "../utils/drawStyle";
+import {
+  queryElevationSync,
+  resolveElevation,
+} from "../utils/elevation";
 const SERVER = import.meta.env.VITE_SERVER;
 export function useDrawing(map, pins, emit, SelectGroup) {
   const authStore = useAuthStore();
@@ -104,6 +108,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     return list;
   });
   // Computed
+  // ارتفاع: اول queryTerrainElevation (در 2D هم با exaggeration=0 کار می‌کند)،
+  // اگر صفر شد lookup ناهمگام (Terrain-RGB / OpenTopoData)
+  const getTerrainElevation = (lng, lat) => {
+    return queryElevationSync(map, lng, lat);
+  };
   const livePoints = computed(() => {
     if (shape.value) return getAllPoints();
     if (drawMode.value === "circle" && tempCircle.value)
@@ -111,7 +120,12 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         { lat: tempCircle.value.center.lat, lon: tempCircle.value.center.lng },
       ];
     if (positions.length > 0)
-      return positions.map((p) => ({ lat: p.lat, lon: p.lng }));
+      return positions.map((p) => ({
+        lat: p.lat,
+        lon: p.lng,
+        ele: p.ele ?? p.height ?? 0,
+        height: p.ele ?? p.height ?? 0,
+      }));
     return [];
   });
   const displayPoints = computed(() => {
@@ -119,13 +133,19 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     return src.map((p, i) => {
       const lon = Array.isArray(p) ? p[0] : p.lon || p.lng;
       const lat = Array.isArray(p) ? p[1] : p.lat;
+      const ele = Array.isArray(p)
+        ? (p[2] ?? 0)
+        : (p.ele ?? p.height ?? 0);
       if (coordinateSystem.value === "utm") {
         const { x, y, zone } = toUTM(lon, lat);
         return {
           lat,
           lon,
+          ele,
+          height: ele,
           displayX: x,
           displayY: y,
+          displayZ: ele,
           zone,
           system: "utm",
           index: i,
@@ -134,8 +154,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       return {
         lat,
         lon,
+        ele,
+        height: ele,
         displayX: lon,
         displayY: lat,
+        displayZ: ele,
         system: "latlon",
         index: i,
       };
@@ -635,12 +658,30 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         src.setData({ type: "FeatureCollection", features });
       };
       hs.click = (e) => {
+        const lng = e.lngLat.lng;
+        const lat = e.lngLat.lat;
+        const syncEle = queryElevationSync(m, lng, lat);
+        const idx = positions.length;
         positions.push({
-          lng: e.lngLat.lng,
-          lat: e.lngLat.lat,
+          lng,
+          lat,
+          ele: syncEle,
+          height: syncEle,
           color: color.value,
         });
         updateSource();
+        // اگر sync صفر/نامعتبر بود، ناهمگام (Terrain-RGB / OpenTopoData) اصلاحش کن
+        if (!Number.isFinite(syncEle) || syncEle === 0) {
+          resolveElevation(m, lng, lat, (ele) => {
+            if (!Number.isFinite(ele)) return;
+            if (!positions[idx]) return;
+            // اگر کاربر در این فاصله نقطه را پاک کرده باشد، اندیس معتبر نیست
+            if (positions[idx].lng !== lng || positions[idx].lat !== lat) return;
+            positions[idx].ele = ele;
+            positions[idx].height = ele;
+            updateSource();
+          });
+        }
       };
       hs.rightClick = (e) => {
         e.preventDefault();
@@ -923,9 +964,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       shape.value = {
         type: "multi_point",
         positions: pos.map((p) => ({
-          lon: p.lng,
+          lon: p.lng ?? p.lon,
           lat: p.lat,
-          height: 0,
+          height: p.ele ?? p.height ?? 0,
+          ele: p.ele ?? p.height ?? 0,
           color: p.color || color.value,
         })),
         color: color.value,
@@ -933,6 +975,20 @@ export function useDrawing(map, pins, emit, SelectGroup) {
         width: 5,
         show: true,
       };
+      // نقاطی که ارتفاع sync آن‌ها صفر ماند را ناهمگام اصلاح کن (حالت 2D)
+      try {
+        shape.value.positions.forEach((sp, i) => {
+          if (Number.isFinite(sp.ele) && sp.ele !== 0) return;
+          resolveElevation(map, sp.lon, sp.lat, (ele) => {
+            if (!Number.isFinite(ele)) return;
+            if (!shape.value || shape.value.type !== "multi_point") return;
+            const cur = shape.value.positions?.[i];
+            if (!cur || cur.lon !== sp.lon || cur.lat !== sp.lat) return;
+            cur.ele = ele;
+            cur.height = ele;
+          });
+        });
+      } catch (_) {}
     } else if (draw === "polyline") {
       shape.value = {
         type: draw,
@@ -1021,7 +1077,10 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       const z = Number(r.zone) || 39;
       if (!isFinite(e) || !isFinite(n)) continue;
       const { lng, lat } = fromUTM(e, n, z, true);
-      pts.push({ lng, lat });
+      const ele = Number.isFinite(Number(r.ele ?? r.z ?? r.height))
+        ? Number(r.ele ?? r.z ?? r.height)
+        : getTerrainElevation(lng, lat);
+      pts.push({ lng, lat, ele, height: ele });
     }
     if (!pts.length) return;
     if (mode === "multi_point") {
@@ -1264,7 +1323,9 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       if (!es.dragging || es.dragIndex === null || !shape.value) return;
       const { lng, lat } = e.lngLat;
       const pts = shape.value.positions;
-      pts[es.dragIndex] = { ...pts[es.dragIndex], lon: lng, lat };
+      const prevEle = pts[es.dragIndex]?.ele ?? pts[es.dragIndex]?.height ?? 0;
+      const ele = queryElevationSync(map, lng, lat) || prevEle;
+      pts[es.dragIndex] = { ...pts[es.dragIndex], lon: lng, lat, ele, height: ele };
       if (shape.value.type === "polygon") {
         if (es.dragIndex === 0) pts[pts.length - 1] = { ...pts[0] };
         else if (es.dragIndex === pts.length - 1)
@@ -1274,12 +1335,29 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       if (editingPin.value)
         renderUpdatedShape(editingPin.value, toRaw(shape.value));
     };
-    es.mouseUp = () => {
+    es.mouseUp = (e) => {
       if (es.dragging) {
+        const idx = es.dragIndex;
         es.dragging = false;
         es.dragIndex = null;
         map.dragPan.enable();
         map.getCanvas().style.cursor = "";
+        // اصلاح ناهمگام ارتفاع بعد از رها کردن (مخصوص حالت 2D)
+        try {
+          const pt = shape.value?.positions?.[idx];
+          if (pt && (!Number.isFinite(pt.ele) || pt.ele === 0) && e?.lngLat) {
+            const { lng, lat } = e.lngLat;
+            resolveElevation(map, lng, lat, (ele) => {
+              if (!Number.isFinite(ele)) return;
+              if (!shape.value?.positions?.[idx]) return;
+              shape.value.positions[idx].ele = ele;
+              shape.value.positions[idx].height = ele;
+              refreshEditHandles();
+              if (editingPin.value)
+                renderUpdatedShape(editingPin.value, toRaw(shape.value));
+            });
+          }
+        } catch (_) {}
       }
     };
     map.on("mousedown", handlesLayerId, es.mouseDown);
@@ -1973,9 +2051,11 @@ export function useDrawing(map, pins, emit, SelectGroup) {
     return formatArea(Math.abs(area) / 2);
   }
   function formatCoordinate(point) {
+    const z = point.ele ?? point.height ?? point.displayZ;
+    const zText = Number.isFinite(Number(z)) ? `, ${Number(z).toFixed(2)}m` : "";
     if (point.system === "utm")
-      return `${point.displayX.toFixed(3)} E, ${point.displayY.toFixed(3)} N (منطقه ${point.zone})`;
-    return `${point.displayX.toFixed(6)}, ${point.displayY.toFixed(6)}`;
+      return `${point.displayX.toFixed(3)} E, ${point.displayY.toFixed(3)} N (منطقه ${point.zone})${zText}`;
+    return `${point.displayX.toFixed(6)}, ${point.displayY.toFixed(6)}${zText}`;
   }
   function copyCoordinates(point) {
     const text = formatCoordinate(point);

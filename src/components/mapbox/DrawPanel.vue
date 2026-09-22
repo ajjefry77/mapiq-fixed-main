@@ -178,6 +178,9 @@
                   <th class="p-1.5 border-b text-center font-medium">
                     {{ coordinateSystem === "utm" ? "y" : "lat" }}
                   </th>
+                  <th class="p-1.5 border-b text-center font-medium">
+                    z
+                  </th>
                   <th
                     v-if="coordinateSystem === 'utm'"
                     class="p-1.5 border-b text-center font-medium"
@@ -213,6 +216,10 @@
                         coordinateSystem === "utm" ? "y" : "lat",
                       )
                     }}
+                  </td>
+
+                  <td class="p-1.5 text-left font-mono text-[10px]" dir="ltr">
+                    {{ getCoordValue(point, "z") }}
                   </td>
 
                   <td
@@ -267,6 +274,7 @@
                 <th class="p-1.5 border-b text-center w-8">#</th>
                 <th class="p-1.5 border-b text-center">Easting (X)</th>
                 <th class="p-1.5 border-b text-center">Northing (Y)</th>
+                <th class="p-1.5 border-b text-center">Z (m)</th>
                 <th class="p-1.5 border-b text-center w-14">Zone</th>
                 <th class="p-1.5 border-b text-center w-8"></th>
               </tr>
@@ -294,6 +302,16 @@
                     type="text"
                     inputmode="decimal"
                     placeholder="northing"
+                    class="w-full border rounded px-1 py-0.5 text-[11px] font-mono focus:border-orange-500 outline-none"
+                    dir="ltr"
+                  />
+                </td>
+                <td class="p-1">
+                  <input
+                    v-model="row.ele"
+                    type="text"
+                    inputmode="decimal"
+                    placeholder="0"
                     class="w-full border rounded px-1 py-0.5 text-[11px] font-mono focus:border-orange-500 outline-none"
                     dir="ltr"
                   />
@@ -611,14 +629,20 @@ const getCoordValue = (point, type) => {
       "-"
     );
   if (type === "zone") return point.zone ?? "-";
+  if (type === "z") {
+    const z = point.displayZ ?? point.ele ?? point.height ?? point.z;
+    if (z === undefined || z === null || z === "") return "-";
+    const n = Number(z);
+    return Number.isFinite(n) ? n.toFixed(2) : String(z);
+  }
   return "-";
 };
 
 const manualDefaultZone = ref(39);
 const manualRows = ref([
-  { easting: "", northing: "", zone: 39 },
-  { easting: "", northing: "", zone: 39 },
-  { easting: "", northing: "", zone: 39 },
+  { easting: "", northing: "", ele: "", zone: 39 },
+  { easting: "", northing: "", ele: "", zone: 39 },
+  { easting: "", northing: "", ele: "", zone: 39 },
 ]);
 
 watch(manualDefaultZone, (z) => {
@@ -631,6 +655,7 @@ function addManualRow() {
   manualRows.value.push({
     easting: "",
     northing: "",
+    ele: "",
     zone: manualDefaultZone.value || 39,
   });
 }
@@ -640,6 +665,7 @@ function removeManualRow(idx) {
     manualRows.value[0] = {
       easting: "",
       northing: "",
+      ele: "",
       zone: manualDefaultZone.value || 39,
     };
     return;
@@ -675,6 +701,7 @@ function applyManual() {
     .map((r) => ({
       easting: Number(r.easting),
       northing: Number(r.northing),
+      ele: r.ele === "" || r.ele == null ? undefined : Number(r.ele),
       zone: Number(r.zone) || manualDefaultZone.value || 39,
     }));
   emit("applyManualCoords", rows);

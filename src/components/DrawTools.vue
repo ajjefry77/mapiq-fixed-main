@@ -17,8 +17,8 @@
         <i class="fas fa-ruler  m-1"></i>
       </button>
 
-      <!-- pin -->
-      <button @click="togglePointPick" :class= "['icon-btn' ,
+      <!-- pin (فقط برای کاربر لاگین‌شده) -->
+      <button v-if="authStore.isAuthenticated" @click="togglePointPick" :class= "['icon-btn' ,
               { 'is-active': pickForForm }]" title="نقطه (انتخاب برای فرم)" aria-label="نقطه">
 
         <i class="fas fa-location-pin"></i>
@@ -263,6 +263,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', keydownHandler);
 });
 function togglePointPick() {
+  if (!authStore.isAuthenticated) return;
   emit("disableFeatureInfo");
   if (pickForForm.value) {
     cancelPointPick();

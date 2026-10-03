@@ -28,8 +28,9 @@
         <i class="fas fa-ruler m-1"></i>
       </button>
 
-      <!-- انتخاب نقطه -->
+      <!-- انتخاب نقطه (فقط برای کاربر لاگین‌شده) -->
       <button
+        v-if="authStore.isAuthenticated"
         @click="$emit('togglePointPick')"
         :class="[
           'map-toolbar-btn',

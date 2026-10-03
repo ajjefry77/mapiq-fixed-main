@@ -1122,8 +1122,9 @@ export function useDrawing(map, pins, emit, SelectGroup) {
       startDrawing();
     }, 100);
   }
-  // Point picking
+  // Point picking (فقط برای کاربر لاگین‌شده)
   function togglePointPick() {
+    if (!authStore.isAuthenticated) return;
     if (pickForForm.value) {
       cancelPointPick();
       return;

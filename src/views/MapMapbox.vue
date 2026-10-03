@@ -150,7 +150,7 @@
     v-model:visible="openDialog"
     :openId="openWorkId"
     :pins="Pins"
-    @update:pins="Pins = $event"
+    @update:pins="updatePins"
     :viewer="map"
   />
   <Profile />
@@ -167,8 +167,8 @@
 
   <LocationPickerPanel
     v-model:visible="showPickerPanel"
-    :lat="pickedPoint.lat"
-    :lng="pickedPoint.lng"
+    :lat="pickedPoint.lat ?? undefined"
+    :lng="pickedPoint.lng ?? undefined"
     @close="closePickerPanel"
     @savePoint="savePickedPoint"
     @update:coords="onPickerCoords"
@@ -255,10 +255,10 @@ const isMobileUA = ref(
 
 const ShowForLogin = ref(true);
 const isOpen = ref(false);
-let map = null;
+let map: any = null;
 const mapReady = ref(false);
 
-const Pins = reactive([]);
+const Pins = reactive<any[]>([]);
 const openWorkId = ref({});
 const openDialog = ref(false);
 
@@ -271,23 +271,29 @@ const zone = ref("--");
 const scale = ref("--");
 
 // این ref برای دسترسی به کامپوننت MapboxDrawTools و خواندن drawMode استفاده می‌شود
-const drawing = ref(null);
+const drawing = ref<any>(null);
 const loading = ref(false);
 
-const pickMarker = ref(null);
-const pickedPoint = reactive({ lat: null, lng: null });
+const pickMarker = ref<any>(null);
+const pickedPoint = reactive<{ lat: number | null; lng: number | null }>({
+  lat: null,
+  lng: null,
+});
 const showPickerPanel = ref(false);
 
-const layersLoaded = reactive([]);
-const layerOpacity = reactive({});
-const activeOpacityLayer = ref(null);
+const layersLoaded = reactive<any[]>([]);
+const layerOpacity = reactive<Record<string, number>>({});
+const activeOpacityLayer = ref<any>(null);
 
-const mapContainerRef = ref(null);
+const mapContainerRef = ref<HTMLElement | null>(null);
 
 provide("Pins", Pins);
 
 function clearPins() {
   Pins.splice(0, Pins.length);
+}
+function updatePins(val: any[]) {
+  Pins.splice(0, Pins.length, ...val);
 }
 function openMyDialog() {
   openDialog.value = true;
@@ -295,7 +301,7 @@ function openMyDialog() {
 
 const is3DMode = ref(false);
 
-function preventContextMenu(e) {
+function preventContextMenu(e: Event) {
   e.preventDefault();
 }
 
@@ -387,7 +393,7 @@ function lock2DView() {
   } catch (_) {}
 }
 
-function setBaseLayer(basemap) {
+function setBaseLayer(basemap: any) {
   if (!map) return;
   const applyViewMode = () => {
     if (basemap.is3D) {
@@ -466,7 +472,7 @@ const ShowTile = () => {
   bringDrawingsToFront(map);
 };
 
-function getUTMZone(latDeg, lonDeg) {
+function getUTMZone(latDeg: number, lonDeg: number) {
   const _zone = Math.floor((lonDeg + 180) / 6) + 1;
   const hemisphere = latDeg >= 0 ? "N" : "S";
   return { _zone, hemisphere };
@@ -508,7 +514,7 @@ function getLocation() {
   );
 }
 
-function onMapPointPicked({ lat, lng }) {
+function onMapPointPicked({ lat, lng }: { lat: number; lng: number }) {
   if (!map) return;
   pickedPoint.lat = lat;
   pickedPoint.lng = lng;
@@ -545,7 +551,7 @@ function closePickerPanel() {
   pickedPoint.lng = null;
 }
 
-function onPickerCoords({ lat, lng }) {
+function onPickerCoords({ lat, lng }: { lat: number; lng: number }) {
   if (!map) return;
   pickedPoint.lat = lat;
   pickedPoint.lng = lng;
@@ -572,7 +578,7 @@ function onPickerCoords({ lat, lng }) {
   });
 }
 
-async function savePickedPoint(data) {
+async function savePickedPoint(data: any) {
   if (!authStore.user) return;
   try {
     const shape = {
@@ -582,7 +588,7 @@ async function savePickedPoint(data) {
       color: "#e8843c",
       show: true,
     };
-    const pin = {
+    const pin: any = {
       id: crypto.randomUUID(),
       name: data.name || "نقطه",
       descr: data.description || "",
@@ -600,7 +606,7 @@ async function savePickedPoint(data) {
     formData.append("type", pin.type);
     formData.append("name", pin.name);
     formData.append("obj_id", pin.id);
-    formData.append("parent_id", -1);
+    formData.append("parent_id", "-1");
     formData.append("content", JSON.stringify(shape));
     if (data.file) formData.append("file", data.file);
     await axios.post(
@@ -619,6 +625,7 @@ function initMap() {
   const mapDiv = document.createElement("div");
   mapDiv.style.width = "100%";
   mapDiv.style.height = "100%";
+  if (!mapContainerRef.value) return;
   mapContainerRef.value.appendChild(mapDiv);
 
   map = new mapboxgl.Map({
@@ -659,8 +666,8 @@ function initMap() {
   lock2DView();
 
   let mouseFrame: number | null = null;
-  let lastMouseLngLat = null;
-  map.on("mousemove", (e) => {
+  let lastMouseLngLat: any = null;
+  map.on("mousemove", (e: any) => {
     lastMouseLngLat = e.lngLat;
     if (mouseFrame !== null) return;
     mouseFrame = requestAnimationFrame(() => {
@@ -719,7 +726,7 @@ function updateScale() {
   }
 }
 
-function toggleLayer(layerName) {
+function toggleLayer(layerName: string) {
   if (!map) return;
   const sourceId = "wms-" + layerName;
   if (map.getSource(sourceId)) {

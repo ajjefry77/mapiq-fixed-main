@@ -59,7 +59,7 @@
                 ><i class="fas fa-file-alt"></i></span
               ><b>فرم‌ها</b><small>ساخت و پاسخ‌ها</small>
             </div>
-            <div class="quick" @click="$router.push('/mapbox')">
+            <div class="quick" @click="$router.push('/baseMap')">
               <span class="quick-ic quick-ic--map"
                 ><i class="fas fa-map-marked-alt"></i></span
               ><b>نقشه</b><small>مشاهده مکانی</small>

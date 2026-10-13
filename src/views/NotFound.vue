@@ -27,14 +27,14 @@
       <p class="nf__coords" dir="ltr" aria-hidden="true">{{ coords }}</p>
 
       <div class="nf__actions">
-        <RouterLink to="/mapbox" class="btn btn-primary">بازگشت به نقشه</RouterLink>
+        <RouterLink to="/baseMap" class="btn btn-primary">بازگشت به نقشه</RouterLink>
         <button class="btn btn-secondary" @click="goBack">صفحه قبلی</button>
       </div>
 
       <div class="nf__links">
         <RouterLink to="/dashboard">داشبورد</RouterLink>
         <span class="nf__sep">•</span>
-        <RouterLink to="/map">نقشه سه‌بعدی</RouterLink>
+        <RouterLink to="/map3D">نقشه سه‌بعدی</RouterLink>
         <span class="nf__sep">•</span>
         <RouterLink to="/inbox">کارتابل</RouterLink>
         <span class="nf__sep">•</span>
@@ -68,7 +68,7 @@ onMounted(() => {
     coords.value = `${lat}° N, ${lng}° E — signal lost`;
   }, 1600);
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Home' || e.key === 'Escape') router.replace('/mapbox');
+    if (e.key === 'Home' || e.key === 'Escape') router.replace('/baseMap');
   };
   window.addEventListener('keydown', onKey);
   onUnmounted(() => {
@@ -79,7 +79,7 @@ onMounted(() => {
 
 function goBack() {
   if (window.history.length > 1) router.back();
-  else router.replace('/mapbox');
+  else router.replace('/baseMap');
 }
 </script>
 

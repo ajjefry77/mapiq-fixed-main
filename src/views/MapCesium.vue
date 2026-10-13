@@ -1125,6 +1125,11 @@ async function savePickedPoint(data) {
     }
     Pins.push(pin)
 
+    // مهمان (بدون لاگین) فقط روی نقشه می‌بیند؛ ذخیره سروری نیاز به لاگین دارد
+    if (!authStore.user?.id) {
+      return
+    }
+
     const formData = new FormData()
     formData.append("type", pin.type)
     formData.append("name", pin.name)
@@ -1133,7 +1138,7 @@ async function savePickedPoint(data) {
     formData.append("content", JSON.stringify(shape))
     if (data.file) formData.append("file", data.file)
 
-    await axios.post(SERVER + '/api/Save/myWork/' + authStore.user.id, formData,
+    await axios.post(SERVER + '/api/Save/myWork/' + authStore.user?.id, formData,
       { headers: { "Content-Type": "multipart/form-data" } })
   } catch (err) {
     logger.error("file.save.failed", { operation: "savePoint" }, err)

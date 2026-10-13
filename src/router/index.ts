@@ -28,10 +28,10 @@ const WalletCharge = () => import('../views/WalletCharge.vue');
 const NotFound = () => import('../views/NotFound.vue');
 
 const SITE_TITLE = 'Map IQ';
-const PUBLIC_ROUTES = ['/login', '/register', '/mapbox'];
+const PUBLIC_ROUTES = ['/login', '/register', '/map3D', '/baseMap'];
 
 const routes = [
-  { path: '/', redirect: '/mapbox' },
+  { path: '/', redirect: '/baseMap' },
   {
     path: '/login',
     name: 'Login',
@@ -75,15 +75,23 @@ const routes = [
     meta: { requiresAuth: true, permission: 'view_groups' }
   },
   {
-    path: '/map/:token?',
+    path: '/map3D/:token?',
     name: 'MapCesium',
-    component: MapCesium,
-    meta: { requiresAuth: true, requiredRole: 'admin' }
+    component: MapCesium
+  },
+  {
+    path: '/baseMap/:token?',
+    name: 'MapMapbox',
+    component: MapMapbox
+  },
+  // سازگاری با مسیرهای قبلی
+  {
+    path: '/map/:token?',
+    redirect: (to) => to.params.token ? `/baseMap/${to.params.token}` : '/baseMap'
   },
   {
     path: '/mapbox/:token?',
-    name: 'MapMapbox',
-    component: MapMapbox
+    redirect: (to) => to.params.token ? `/baseMap/${to.params.token}` : '/baseMap'
   },
   {
     path: '/setting',
@@ -189,21 +197,21 @@ router.beforeEach(async (to, _from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return next({
-      path: '/login',
+      path: '/baseMap',
       query: { redirect: to.fullPath }
     })
   }
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    return next('/mapbox')
+    return next('/baseMap')
   }
 
   if (to.meta.requiredRole && !authStore.isRole(String(to.meta.requiredRole))) {
-    return next('/mapbox')
+    return next('/baseMap')
   }
 
   if (to.meta.permission && !authStore.hasPermission(String(to.meta.permission))) {
-    return next('/mapbox')
+    return next('/baseMap')
   }
 
   next()

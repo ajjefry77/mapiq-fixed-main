@@ -1,8 +1,8 @@
 <template>
   <nav class="admin-topbar" v-if="!isPublicRoute">
-    <router-link :to="authStore.isAuthenticated ? '/dashboard' : '/mapbox'" class="topbar-logo">
+    <router-link :to="authStore.isAuthenticated ? '/dashboard' : '/baseMap'" class="topbar-logo">
       <span class="logo-dot"></span>
-      <template v-if="route.path === '/mapbox' || route.path === '/login' || route.path === '/register'">Map IQ</template>
+      <template v-if="route.path === '/baseMap' || route.path.startsWith('/map3D') || route.path === '/login' || route.path === '/register'">Map IQ</template>
       <template v-else-if="authStore.isAdmin">پنل مدیریت</template>
       <template v-else>پنل کاربری</template>
     </router-link>
@@ -19,8 +19,8 @@
 
     <div class="topbar-right" :class="{ 'nav-open': mobileOpen }">
       <div v-if="authStore.isAuthenticated" class="topbar-nav">
-        <router-link to="/mapbox" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقشه</router-link>
-        <router-link v-if="authStore.isAdmin" :to="authStore.isMapboxMode ? '/map' : '/mapbox'" class="nav-link" @click="switchMapEngine" :title="authStore.isMapboxMode ? 'رفتن به Cesium' : 'رفتن به Mapbox'">
+        <router-link to="/baseMap" class="nav-link" active-class="nav-link--active" @click="mobileOpen = false">نقشه</router-link>
+        <router-link v-if="authStore.isAdmin" :to="authStore.isMapboxMode ? '/map3D' : '/baseMap'" class="nav-link" @click="switchMapEngine" :title="authStore.isMapboxMode ? 'رفتن به Cesium' : 'رفتن به Mapbox'">
           <i :class="authStore.isMapboxMode ? 'fas fa-globe' : 'fas fa-map'" class="mr-1"></i>
           {{ authStore.isMapboxMode ? '2D' : '3D' }}
         </router-link>
@@ -234,7 +234,7 @@ function handleLogout() {
 
 function switchMapEngine() {
   authStore.switchMapEngine()
-  const target = authStore.isMapboxMode ? '/mapbox' : '/map'
+  const target = authStore.isMapboxMode ? '/baseMap' : '/map3D'
   router.push(target)
 }
 

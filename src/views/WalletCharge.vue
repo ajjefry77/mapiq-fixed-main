@@ -212,7 +212,7 @@ async function loadWallet() {
 
 function goBack() {
   if (window.history.length > 1) router.back()
-  else router.push('/mapbox')
+  else router.push('/baseMap')
 }
 
 async function pay() {

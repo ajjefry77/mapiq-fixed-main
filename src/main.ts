@@ -56,7 +56,21 @@ axios.interceptors.response.use(
       localStorage.removeItem('user')
       localStorage.removeItem('fb_token')
 
-      if (window.location.pathname !== '/login') {
+      const path = window.location.pathname
+      const isPublicPath =
+        path === '/login' ||
+        path === '/register' ||
+        path === '/map3D' ||
+        path.startsWith('/map3D/') ||
+        path === '/baseMap' ||
+        path.startsWith('/baseMap/') ||
+        path === '/map' ||
+        path.startsWith('/map/') ||
+        path === '/mapbox' ||
+        path.startsWith('/mapbox/') ||
+        path.startsWith('/f/')
+
+      if (!isPublicPath && path !== '/login') {
         window.location.href = '/login'
       }
     }

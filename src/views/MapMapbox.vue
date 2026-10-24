@@ -1,11 +1,8 @@
 <template>
   <div class="relative flex h-screen bg-neutral-950">
     <div class="flex-1 h-full overflow-hidden">
-      <!-- هدر شناور: نام سایت (راست) + سایدبار/پروفایل/ثبت‌نام (چپ) -->
-      <MapFloatingHeader
-        :sidebarOpen="sidebarOpen"
-        @toggle-sidebar="sidebarOpen = !sidebarOpen"
-      >
+      <!-- هدر شناور: نام سایت و جستجو (راست) + پروفایل/ثبت‌نام (چپ) -->
+      <MapFloatingHeader>
         <!-- نوار جستجو، کنار نام سایت -->
         <template #search>
           <MapSearchBox v-if="mapReady" :map="map" />
@@ -16,7 +13,7 @@
       <transition name="sidebar-slide">
         <div
           v-if="sidebarOpen"
-          class="absolute top-3 bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col max-md:inset-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto"
+          class="absolute top-[124px] md:top-[84px] bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col max-md:left-2 max-md:right-2 max-md:bottom-2 max-md:w-auto max-md:overflow-y-auto"
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs font-semibold text-zinc-400 flex items-center gap-2">
@@ -130,6 +127,20 @@
       </div>
 
       <MapboxNorthIcon v-if="mapReady" :map="map" />
+
+      <!-- دکمه باز/بسته کردن سایدبار میز کار و لایه‌ها — کنار آیکون شمال -->
+      <button
+        v-if="mapReady"
+        class="absolute top-[124px] md:top-20 right-[52px] z-[650] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg transition-colors"
+        :class="sidebarOpen ? 'text-orange-400' : 'text-zinc-400 hover:text-orange-400'"
+        style="background: rgba(26, 29, 39, 0.85)"
+        :title="sidebarOpen ? 'بستن میز کار' : 'باز کردن میز کار'"
+        :aria-expanded="sidebarOpen"
+        aria-label="میز کار و لایه‌ها"
+        @click="sidebarOpen = !sidebarOpen"
+      >
+        <i class="fas fa-bars"></i>
+      </button>
       <MapboxDrawTools
         ref="drawing"
         v-if="mapReady"

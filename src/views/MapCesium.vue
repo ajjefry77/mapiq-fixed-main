@@ -3,11 +3,8 @@
 
     <div class="flex-1 h-full overflow-hidden">
 
-      <!-- هدر شناور: نام سایت (راست) + سایدبار/پروفایل/ثبت‌نام (چپ) -->
-      <MapFloatingHeader
-        :sidebarOpen="sidebarOpen"
-        @toggle-sidebar="sidebarOpen = !sidebarOpen"
-      >
+      <!-- هدر شناور: نام سایت و جستجو (راست) + پروفایل/ثبت‌نام (چپ) -->
+      <MapFloatingHeader>
         <!-- نوار جستجو، کنار نام سایت -->
         <template #search>
           <MapSearchBox v-if="viewer" :viewer="viewer" />
@@ -18,7 +15,7 @@
       <transition name="sidebar-slide">
         <div
           v-if="sidebarOpen"
-          class="absolute top-3 bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col overflow-y-auto"
+          class="absolute top-[124px] md:top-[84px] bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col overflow-y-auto"
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs font-semibold text-zinc-400 flex items-center gap-2">
@@ -113,6 +110,20 @@
         <!--<SearchCode  v-if="viewer" :viewer="viewer" />-->
         <AddFile  v-if="viewer" :viewer="viewer"  :pins="Pins" />
         <NorthArrow v-if="viewer" :viewer="viewer" />
+
+        <!-- دکمه باز/بسته کردن سایدبار میز کار و لایه‌ها — کنار آیکون شمال -->
+        <button
+          v-if="viewer"
+          class="absolute top-[124px] md:top-16 right-12 z-[650] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg transition-colors"
+          :class="sidebarOpen ? 'text-orange-400' : 'text-zinc-400 hover:text-orange-400'"
+          style="background: rgba(26, 29, 39, 0.85)"
+          :title="sidebarOpen ? 'بستن میز کار' : 'باز کردن میز کار'"
+          :aria-expanded="sidebarOpen"
+          aria-label="میز کار و لایه‌ها"
+          @click="sidebarOpen = !sidebarOpen"
+        >
+          <i class="fas fa-bars"></i>
+        </button>
         <FlyPosition v-if="viewer" :viewer="viewer" :latlon="latlon"/>
         <!--<DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins"  @disableFeatureInfo="featurePanel.deactivate"/>-->
         <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" :panelShifted="sidebarOpen" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>

@@ -1,36 +1,28 @@
 <template>
   <!-- هدر شناور روی نقشه — بدون نوار ثابت بالای صفحه (شبیه Google Maps) -->
   <div class="absolute top-0 inset-x-0 z-[700] pointer-events-none" dir="rtl">
-    <div class="flex items-start justify-between gap-2 p-3 md:p-4">
-      <!-- نام سایت + نوار جستجو — کنار هم در سمت راست -->
-      <div class="pointer-events-auto flex items-start gap-2 min-w-0 flex-1">
+    <div class="flex flex-wrap items-start gap-2 p-3 md:p-4">
+      <!-- نام سایت — کپسول در سمت راست -->
+      <div class="pointer-events-auto order-1 shrink-0">
         <router-link
           :to="authStore.isAuthenticated ? '/dashboard' : '/baseMap'"
-          class="map-site-capsule shrink-0"
+          class="map-site-capsule"
           title="Map IQ"
         >
           <span class="map-site-capsule-dot"></span>
           <span class="map-site-capsule-title">Map IQ</span>
         </router-link>
+      </div>
 
-        <!-- نوار جستجو، بلافاصله کنار نام سایت -->
-        <div class="min-w-0 flex-1 max-w-[320px]">
-          <slot name="search" />
-        </div>
+      <!-- نوار جستجو — بلافاصله بغل نام سایت (در موبایل یک ردیف پایین‌تر) -->
+      <div
+        class="pointer-events-auto order-3 sm:order-2 w-full sm:w-auto sm:flex-1 min-w-0 sm:max-w-[320px]"
+      >
+        <slot name="search" />
       </div>
 
       <!-- پروفایل + ثبت‌نام — سمت چپ -->
-      <div class="pointer-events-auto flex items-center gap-2 shrink-0">
-        <!-- دکمه باز/بسته کردن سایدبار میز کار و لایه‌ها -->
-        <button
-          class="map-toggle-btn"
-          :class="{ 'map-toggle-btn--active': sidebarOpen }"
-          :title="sidebarOpen ? 'بستن میز کار' : 'باز کردن میز کار'"
-          :aria-expanded="!!sidebarOpen"
-          @click="$emit('toggle-sidebar')"
-        >
-          <i class="fas fa-bars"></i>
-        </button>
+      <div class="pointer-events-auto order-2 sm:order-3 flex items-center gap-2 shrink-0 ms-auto">
         <Profile />
         <router-link
           v-if="!authStore.isAuthenticated"
@@ -51,13 +43,6 @@ import Profile from "../Profile.vue";
 import { useAuthStore } from "../../stores/auth";
 
 const authStore = useAuthStore();
-
-defineProps({
-  /** وضعیت سایدبار میز کار (برای تغییر شکل دکمه) */
-  sidebarOpen: { type: Boolean, default: false },
-});
-
-defineEmits(["toggle-sidebar"]);
 </script>
 
 <style scoped>
@@ -98,35 +83,6 @@ defineEmits(["toggle-sidebar"]);
 
 .map-site-capsule-title {
   line-height: 1;
-}
-
-.map-toggle-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  cursor: pointer;
-  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-  background: rgba(19, 21, 30, 0.88);
-  backdrop-filter: blur(14px) saturate(1.15);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
-  color: var(--text-muted, #9ca3af);
-  box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.3));
-  transition: all 0.18s ease-out;
-}
-
-.map-toggle-btn:hover {
-  color: var(--accent, #e8843c);
-  border-color: var(--accent, #e8843c);
-  transform: translateY(-1px);
-}
-
-.map-toggle-btn--active {
-  color: var(--accent, #e8843c);
-  border-color: var(--accent, #e8843c);
 }
 
 .map-signup-capsule {

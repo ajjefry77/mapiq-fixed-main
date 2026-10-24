@@ -6,7 +6,6 @@
       :class="authStore.user ? 'profile-btn--active' : 'profile-btn--login'"
       :title="authStore.user ? 'مشخصات کاربری' : 'ورود'">
       <i class="fas fa-user"></i>
-      <span v-if="!authStore.user" class="profile-btn-label">ورود</span>
     </button>
 
     <transition
@@ -201,23 +200,24 @@ function showMessage(msg, type) {
 </script>
 
 <style scoped>
+/* دکمه پروفایل — آیکن دایره‌ای شناور، داخل هدر شناور نقشه قرار می‌گیرد */
 .profile-btn {
-  position: absolute;
-  top: 15px;
-  left: 11px;
-  height: 36px;
-  border-radius: 18px;
-  display: flex;
+  position: static;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   box-shadow: var(--shadow-md);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
-  z-index: 90;
-  border: 1px solid var(--border);
-  transition: all var(--transition-fast);
-  background: var(--surface);
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
+  transition: all var(--transition-fast, 0.18s ease-out);
+  background: rgba(19, 21, 30, 0.88);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
   color: var(--text-muted);
 }
 
@@ -228,24 +228,11 @@ function showMessage(msg, type) {
 }
 
 .profile-btn--active {
-  width: 36px;
+  color: var(--text);
 }
 
 .profile-btn--login {
-  width: 64px;
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-
-.profile-btn--login:hover {
-  color: #fff;
-  filter: brightness(1.08);
-}
-
-.profile-btn-label {
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .slide-enter-active {

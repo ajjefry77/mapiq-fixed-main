@@ -1,19 +1,10 @@
 <template>
   <div
     ref="toolbarEl"
-    class="absolute top-[calc(var(--top)+150px)] left-1 z-50"
+    class="absolute top-[calc(var(--top)+150px)] z-50 transition-all duration-300"
+    :class="panelShifted ? 'left-[360px]' : 'left-1'"
   >
     <div @click.stop class="map-toolbar">
-      <!-- جستجو -->
-      <button
-        @click="$emit('toggleSearch')"
-        title="جستجوی آدرس"
-        class="map-toolbar-btn"
-        :class="searchOpen ? 'map-toolbar-btn--active' : ''"
-      >
-        <i class="fas fa-search m-1"></i>
-      </button>
-
       <!-- اندازه‌گیری -->
       <button
         @click="$emit('toggleMeasure')"
@@ -272,12 +263,11 @@ defineProps({
   baseMaps: { type: Array, default: () => [] },
   intersectPanelOpen: { type: Boolean, default: false }, // جدید
   fishnetPanelOpen: { type: Boolean, default: false },
-  searchOpen: { type: Boolean, default: false },
+  panelShifted: { type: Boolean, default: false },
 });
 
 // اضافه کردن startCutMode به لیست emitها
 defineEmits([
-  "toggleSearch",
   "toggleMeasure",
   "togglePointPick",
   "setDrawMode",

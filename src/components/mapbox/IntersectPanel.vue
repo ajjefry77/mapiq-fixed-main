@@ -1,7 +1,8 @@
 <template>
   <div
     v-if="panelOpen || drawMode === 'intersect'"
-    class="absolute top-[calc(var(--top)+150px)] left-14 z-[60] w-[360px] max-w-[calc(100vw-24px)] panel animate-pop-in p-3 text-sm"
+    class="absolute top-[calc(var(--top)+150px)] z-[60] w-[360px] max-w-[calc(100vw-24px)] panel animate-pop-in p-3 text-sm transition-all duration-300"
+    :class="panelShifted ? 'left-[366px]' : 'left-14'"
     @click.stop
     @contextmenu.stop
   >
@@ -280,6 +281,8 @@ import {
 const props = defineProps({
   panelOpen: { type: Boolean, default: false },
   drawMode: { type: String, default: "" },
+  /** هنگام باز بودن سایدبار میز کار، به سمت راست جابه‌جا می‌شود */
+  panelShifted: { type: Boolean, default: false },
   intersectResults: { type: Array, default: () => [] },
   intersectSummary: {
     type: Object,

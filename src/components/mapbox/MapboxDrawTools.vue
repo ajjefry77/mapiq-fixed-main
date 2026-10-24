@@ -7,8 +7,7 @@
     :baseMaps="baseMaps"
     :intersectPanelOpen="intersectPanelOpen"
     :fishnetPanelOpen="fishnetPanelOpen"
-    :searchOpen="searchOpen"
-    @toggleSearch="searchOpen = !searchOpen"
+    :panelShifted="panelShifted"
     @toggleMeasure="toggleMeasure"
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
@@ -68,8 +67,6 @@
       />
     </div>
   </Transition>
-
-  <MapboxSearchAddress :map="map" v-model:open="searchOpen" />
 
   <IntersectPanel
     v-if="authStore.isAdmin"
@@ -133,7 +130,6 @@ import { useDrawing } from "../../composables/useDrawing";
 import { useDragPanel } from "../../composables/useDragPanel";
 import IntersectPanel from "./IntersectPanel.vue";
 import FishnetPanel from "./FishnetPanel.vue";
-import MapboxSearchAddress from "./MapboxSearchAddress.vue";
 import {
   getDashArray,
   pointIcon,
@@ -146,6 +142,8 @@ const props = defineProps({
   map: { type: Object, required: true },
   pins: { type: Object, required: true },
   baseMaps: { type: Array, default: () => [] },
+  /** هنگام باز بودن سایدبار میز کار، نوار ابزار به سمت راست جابه‌جا می‌شود */
+  panelShifted: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["pickPoint", "setBaseLayer"]);
@@ -156,7 +154,6 @@ const SelectGroup = inject("SelectGroup", null);
 const toolbarComponent = ref(null);
 const panelComponent = ref(null);
 const krokiDialogRef = ref(null);
-const searchOpen = ref(false);
 
 function openKroki() {
   krokiDialogRef.value?.open();

@@ -1,5 +1,8 @@
 <template>
-  <div class="absolute top-[calc(var(--top)+103px)] left-[12px] z-50 flex items-center ">
+  <div
+    class="absolute top-[calc(var(--top)+103px)] z-50 flex items-center transition-all duration-300"
+    :class="shifted ? 'left-[360px]' : 'left-[12px]'"
+  >
     <!-- آیکن کوچک مشکی و مربع -->
 
 <!--    class="w-8 h-8 bg-[var(&#45;&#45;primary-color)] text-white border border-zinc-800 rounded px-2 py-1 shadow transition hover:bg-accent-soft items-center"-->
@@ -50,7 +53,9 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  latlon : Boolean
+  latlon : Boolean,
+  /** هنگام باز بودن سایدبار میز کار، به سمت راست جابه‌جا می‌شود */
+  shifted: { type: Boolean, default: false }
 });
 
 const expanded = ref(false);

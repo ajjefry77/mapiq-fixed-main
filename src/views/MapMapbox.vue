@@ -1,38 +1,31 @@
 <template>
-  <div class="flex h-[calc(100vh-60px)] bg-neutral-950">
+  <div class="relative flex h-screen bg-neutral-950">
     <div class="flex-1 h-full overflow-hidden">
-      <div class="relative">
-        <button
-          class="icon-btn absolute top-4 right-[5px] z-50 md:hidden"
-          style="border-radius:12px"
-          @click="isOpen = !isOpen"
-          aria-label="باز کردن پنل"
-        >
-          ☰
-        </button>
-      </div>
+      <!-- هدر شناور: نام سایت (راست) + سایدبار/پروفایل/ثبت‌نام (چپ) -->
+      <MapFloatingHeader
+        :sidebarOpen="sidebarOpen"
+        @toggle-sidebar="sidebarOpen = !sidebarOpen"
+      />
 
-      <div
-        :class="[
-          'md:relative md:float-right md:h-screen md:block',
-          isOpen ? 'fixed inset-0 z-[500] md:static' : 'hidden',
-        ]"
-      >
+      <!-- سایدبار میز کار و لایه‌ها (پیش‌فرض بسته) -->
+      <transition name="sidebar-slide">
         <div
-          v-if="isOpen"
-          class="absolute inset-0 bg-black/40 md:hidden"
-          @click="isOpen = false"
-        ></div>
-
-        <div
-          class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col md:h-[calc(100vh-70px)] max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto"
+          v-if="sidebarOpen"
+          class="absolute top-3 bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col max-md:inset-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto"
         >
-          <button
-            @click="isOpen = false"
-            class="absolute top-2 left-4 text-xl z-10"
-          >
-            <i class="fas fa-times"></i>
-          </button>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold text-zinc-400 flex items-center gap-2">
+              <i class="fas fa-layer-group text-orange-500"></i>
+              میز کار و لایه‌ها
+            </span>
+            <button
+              @click="sidebarOpen = false"
+              class="w-7 h-7 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors flex items-center justify-center"
+              title="بستن"
+            >
+              <i class="fas fa-times text-sm"></i>
+            </button>
+          </div>
           <MapboxPinsList
             v-if="mapReady"
             class="flex-1 min-h-0"
@@ -41,10 +34,17 @@
             :openId="openWorkId"
             :openDia="openMyDialog"
             @clearPins="clearPins"
-            :close="isOpen"
             @show-tile="ShowTile"
           />
         </div>
+      </transition>
+
+      <!-- فیلد جستجوی شناور، کنار سایدبار و روی نقشه -->
+      <div
+        class="absolute top-16 z-[660] transition-all duration-300"
+        :class="sidebarOpen ? 'left-[356px]' : 'left-3'"
+      >
+        <MapSearchBox v-if="mapReady" :map="map" />
       </div>
 
       <div class="relative h-full">
@@ -70,7 +70,7 @@
 
         <div
           v-if="!authStore.user && ShowForLogin"
-          class="absolute top-3 right-1 md:right-[350px] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3"
+          class="absolute top-16 right-3 bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3"
         >
           <svg
             class="w-4 h-4 shrink-0 text-orange-400"
@@ -128,7 +128,7 @@
           v-if="mapReady"
           :pins="Pins"
           :map="map"
-          class="absolute bottom-20 right-2 md:right-[356px] md:bottom-4 w-36 md:w-44 z-[300]"
+          class="absolute bottom-20 right-2 md:bottom-4 w-36 md:w-44 z-[300]"
         />
       </div>
 
@@ -139,6 +139,7 @@
         :map="map"
         :pins="Pins"
         :baseMaps="baseMaps"
+        :panelShifted="sidebarOpen"
         @setBaseLayer="setBaseLayer"
         @pickPoint="onMapPointPicked"
       />
@@ -153,7 +154,6 @@
     @update:pins="updatePins"
     :viewer="map"
   />
-  <Profile />
   <Loading :active="loading" />
   <button
     v-if="isMobileUA"
@@ -195,10 +195,11 @@ import MapboxNorthIcon from "../components/mapbox/MapboxNorthIcon.vue";
 import MapboxDrawTools from "../components/mapbox/MapboxDrawTools.vue";
 import MapboxPinsList from "../components/mapbox/MapboxPinsList.vue";
 import MapboxLegend from "../components/mapbox/MapboxLegend.vue";
+import MapFloatingHeader from "../components/map/MapFloatingHeader.vue";
+import MapSearchBox from "../components/map/MapSearchBox.vue";
 
 import Loading from "../components/Loading.vue";
 import OpenDialog from "../components/OpenDialog.vue";
-import Profile from "../components/Profile.vue";
 import ToggleSwitch from "../components/ToggleSwitch.vue";
 import LocationPickerPanel from "../components/LocationPickerPanel.vue";
 
@@ -254,7 +255,8 @@ const isMobileUA = ref(
 );
 
 const ShowForLogin = ref(true);
-const isOpen = ref(false);
+// سایدبار میز کار — پیش‌فرض بسته
+const sidebarOpen = ref(false);
 let map: any = null;
 const mapReady = ref(false);
 
@@ -777,9 +779,16 @@ onUnmounted(() => {
   padding: 0;
   overflow: hidden;
 }
-#layer-panel {
-  right: 1px;
-  z-index: 10;
+
+/* انیمیشن باز/بسته شدن سایدبار میز کار (کشیده شدن از چپ) */
+.sidebar-slide-enter-active,
+.sidebar-slide-leave-active {
+  transition: transform 0.28s ease-out, opacity 0.28s ease-out;
+}
+.sidebar-slide-enter-from,
+.sidebar-slide-leave-to {
+  transform: translateX(-110%);
+  opacity: 0;
 }
 </style>
 <style>

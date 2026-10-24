@@ -1,5 +1,5 @@
 <template>
-  <div class="absolute top-[calc(var(--top)+137px)] left-1 z-50">
+  <div class="absolute top-[calc(var(--top)+137px)] z-50 transition-all duration-300" :class="panelShifted ? 'left-[360px]' : 'left-1'">
     <!-- دکمه اصلی -->
 <!--    <button  @click="expanded = !expanded" title="Drawing Tools"-->
 <!--        class="w-8 h-8 bg-gray-700 text-white rounded flex items-center justify-center shadow-md">-->
@@ -210,7 +210,9 @@ const SelectGroup = inject('SelectGroup', null)
 
 const props = defineProps({
   viewer: { type: Object, required: true },
-  pins : { type: Object, required: true }
+  pins : { type: Object, required: true },
+  /** هنگام باز بودن سایدبار میز کار، نوار ابزار به سمت راست جابه‌جا می‌شود */
+  panelShifted: { type: Boolean, default: false }
 });
 
 const loading = ref(false);

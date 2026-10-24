@@ -1,12 +1,15 @@
 <template>
-  <div class="absolute top-[calc(var(--top)+25px)] left-[12px]">
+  <div
+    class="absolute top-[calc(var(--top)+60px)] z-50 transition-all duration-300"
+    :class="shifted ? 'left-[360px]' : 'left-[12px]'"
+  >
     <button @click="toggleHandler"  title="اطلاعات"
             :class="[ 'w-8 h-8 rounded flex items-center justify-center shadow-md', isActive ? 'text-white bg-orange-500' : 'text-zinc-100 bg-zinc-800']">
             <i class="fas fa-info font-bold"></i>
     </button>
   </div>
 
-  <div  v-if="featureInfo" class="absolute bottom-[10px] right-[350px] bg-zinc-900 shadow-lg rounded-xl p-4 w-80 max-h-[500px] min-h-[250px] ">
+  <div  v-if="featureInfo" class="absolute bottom-[10px] right-2 bg-zinc-900 shadow-lg rounded-xl p-4 w-80 max-h-[500px] min-h-[250px] ">
     <button @click="cancel" class="absolute top-[10px] left-[15px] text-zinc-400 hover:text-red-600" >
       ✖
     </button>
@@ -102,7 +105,9 @@ const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 const props = defineProps({
   viewer: Object,
   pins : Object,
-  layersLoaded: Array
+  layersLoaded: Array,
+  /** هنگام باز بودن سایدبار میز کار، به سمت راست جابه‌جا می‌شود */
+  shifted: { type: Boolean, default: false }
 });
 
 const showColorPicker = ref('bg');

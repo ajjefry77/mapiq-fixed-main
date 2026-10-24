@@ -1,35 +1,38 @@
 ﻿<template xmlns="http://www.w3.org/1999/html">
-  <div class="flex h-[calc(100vh-60px)] bg-neutral-950">
+  <div class="relative flex h-screen bg-neutral-950">
 
     <div class="flex-1 h-full overflow-hidden">
 
-      <div class="relative">
+      <!-- هدر شناور: نام سایت (راست) + سایدبار/پروفایل/ثبت‌نام (چپ) -->
+      <MapFloatingHeader
+        :sidebarOpen="sidebarOpen"
+        @toggle-sidebar="sidebarOpen = !sidebarOpen"
+      />
 
-        <!-- ✅ آیکن فقط در موبایل -->
-        <button class="icon-btn absolute top-4 right-[5px] z-50 md:hidden" style="border-radius:12px" @click="isOpen = !isOpen" aria-label="باز کردن پنل">
-          ☰
-        </button>
-
-      </div>
-
-      <!-- Workspaces and Layers -->
-      <!-- class="relative float-right h-screen"-->
-      <div :class="['md:relative md:float-right md:h-screen md:block',           // در دسکتاپ همیشه نمایش داده شود
-            isOpen ? 'fixed inset-0 z-[500] md:static' : 'hidden']">
-
-        <!-- overlay فقط در موبایل -->
-        <div v-if="isOpen" class="absolute inset-0 bg-black/40 md:hidden" @click="isOpen = false"></div>
-
-        <!-- پنل اصلی (میز کار و ...) -->
-        <div class="absolute top-1 right-[1px] w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded shadow p-3 z-[500] flex flex-col
-                    md:h-[70vh]
-                    max-md:top-2 max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:w-auto max-md:max-h-[calc(100vh-16px)] max-md:overflow-y-auto">
-          <button @click="isOpen = false" class="absolute top-2 left-4 text-xl z-10"><i class="fas fa-times"></i></button>
+      <!-- سایدبار میز کار و لایه‌ها (پیش‌فرض بسته) -->
+      <transition name="sidebar-slide">
+        <div
+          v-if="sidebarOpen"
+          class="absolute top-3 bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col overflow-y-auto"
+        >
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold text-zinc-400 flex items-center gap-2">
+              <i class="fas fa-layer-group text-orange-500"></i>
+              میز کار و لایه‌ها
+            </span>
+            <button
+              @click="sidebarOpen = false"
+              class="w-7 h-7 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors flex items-center justify-center"
+              title="بستن"
+            >
+              <i class="fas fa-times text-sm"></i>
+            </button>
+          </div>
           <PinsList  v-if="viewer" class="flex-1 min-h-0" :pins="Pins" :viewer="viewer"  :openId ="openWorkId" :openDia="openMyDialog"
-                     @clearPins="clearPins" :close="isOpen"/>
+                     @clearPins="clearPins"/>
 
-          <!-- بخش لایه های سرور فقط در موبایل داخل همین پنل -->
-          <div class="md:hidden mt-3 pt-3 border-t border-zinc-800">
+          <!-- بخش لایه های سرور -->
+          <div class="mt-3 pt-3 border-t border-zinc-800">
             <h3 class="mb-2 text-sm">لایه های سرور : </h3>
             <hr class="border-[var(--border)] mb-2"/>
             <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-zinc-100 truncate" >
@@ -39,22 +42,14 @@
             </span>
           </div>
         </div>
+      </transition>
 
-        <!-- پنل لایه های سرور (فقط دسکتاپ) -->
-        <div id="layer-panel"
-             class="absolute top-[70.5%] right-1 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded shadow p-3 z-50 max-md:hidden">
-          <div class=" overflow-y-auto h-[95%]">
-              <h3 class="mb-2 text-sm">لایه های سرور : </h3>
-              <hr class="border-[var(--border)] mb-2"/>
-
-            <span v-if="authStore.hasPermission('view_aerial_torqabeh')" class="text-xs text-zinc-100 truncate" >
-              <input type="checkbox" class="ml-2 accent-orange-500" @change="ShowTile"/>
-              <i class="text-orange-500"/>
-              عکس هوایی طرقبه 1340
-            </span>
-          </div>
-        </div>
-
+      <!-- فیلد جستجوی شناور، کنار سایدبار و روی نقشه -->
+      <div
+        class="absolute top-16 z-[660] transition-all duration-300"
+        :class="sidebarOpen ? 'left-[356px]' : 'left-3'"
+      >
+        <MapSearchBox v-if="viewer" :viewer="viewer" />
       </div>
 
       <!-- Cesium Map Container -->
@@ -63,7 +58,7 @@
 
         <div id="cesiumContainer" style="width:100%; height:100%;">
 
-          <div v-if="!authStore.user && ShowForLogin" class="absolute top-3 right-1 md:right-[350px] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
+          <div v-if="!authStore.user && ShowForLogin" class="absolute top-16 right-3 bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
             <svg class="w-4 h-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>برای دسترسی به امکانات کامل، <a class="text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2" href="/login">وارد شوید</a></span>
             <button @click="ShowForLogin = false" class="text-xl leading-none text-zinc-500 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
@@ -123,7 +118,7 @@
         <NorthArrow v-if="viewer" :viewer="viewer" />
         <FlyPosition v-if="viewer" :viewer="viewer" :latlon="latlon"/>
         <!--<DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins"  @disableFeatureInfo="featurePanel.deactivate"/>-->
-        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
+        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" :panelShifted="sidebarOpen" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
 
         <DataView  v-if="openDataView" :workspace="workspaceView"  :layer="layerView"  :geoserverUrl= 'GEOSERVER + "/geoserver"' :pageSize="20">
           <template #close>
@@ -142,8 +137,6 @@
   </div>
 
   <OpenDialog v-if="viewer" v-model:visible="openDialog" :openId="openWorkId" :pins="Pins"  @update:pins="Pins = $event" :viewer="viewer"/>
-  <SearchAddress v-if="viewer" :viewer="viewer" />
-  <Profile />
   <Loading :active="loading" />
   <button v-if="isMobileUA"
       @click="getLocation" style="z-index: 9999"
@@ -201,7 +194,8 @@ import DataView from '../components/DataView.vue';
 import Loading from '../components/Loading.vue'
 import PinsList from "../components/PinsList.vue";
 import OpenDialog from '../components/OpenDialog.vue'
-import SearchAddress from '../components/SearchAddress.vue'
+import MapFloatingHeader from '../components/map/MapFloatingHeader.vue'
+import MapSearchBox from '../components/map/MapSearchBox.vue'
 import Profile from '../components/Profile.vue'
 import ToggleSwitch from "../components/ToggleSwitch.vue"
 import LocationPickerPanel from "../components/LocationPickerPanel.vue"
@@ -255,7 +249,8 @@ const isMobileUA = ref(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera
 
 
 const ShowForLogin = ref(true)
-const isOpen = ref(false)
+// سایدبار میز کار — پیش‌فرض بسته
+const sidebarOpen = ref(false)
 const visibleLayers = ref([])
 const showLayerPanel = ref(false)
 let activeTab = ref("layers")
@@ -1310,5 +1305,15 @@ function getLocation() {
   overflow: hidden;
 }
 
+/* انیمیشن باز/بسته شدن سایدبار میز کار (کشیده شدن از چپ) */
+.sidebar-slide-enter-active,
+.sidebar-slide-leave-active {
+  transition: transform 0.28s ease-out, opacity 0.28s ease-out;
+}
+.sidebar-slide-enter-from,
+.sidebar-slide-leave-to {
+  transform: translateX(-110%);
+  opacity: 0;
+}
 
 </style>

@@ -2,7 +2,8 @@
   <div
     v-if="panelOpen"
     dir="rtl"
-    class="absolute top-[calc(var(--top)+150px)] left-14 z-[60] w-[360px] max-w-[calc(100vw-24px)] panel animate-pop-in text-sm"
+    class="absolute top-[calc(var(--top)+150px)] z-[60] w-[360px] max-w-[calc(100vw-24px)] panel animate-pop-in text-sm transition-all duration-300"
+    :class="panelShifted ? 'left-[366px]' : 'left-14'"
     @click.stop
     @contextmenu.stop
   >
@@ -211,7 +212,6 @@ import { computed } from "vue";
 const props = defineProps({
   panelOpen: { type: Boolean, default: false },
   pins: { type: [Array, Object], default: () => [] },
-  selectedPinId: { type: String, default: "" },
   cellSize: { type: Number, default: 100 },
   cellUnit: { type: String, default: "m" },
   clipToPolygon: { type: Boolean, default: true },

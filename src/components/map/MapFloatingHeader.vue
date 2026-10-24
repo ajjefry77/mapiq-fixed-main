@@ -1,21 +1,26 @@
 <template>
   <!-- هدر شناور روی نقشه — بدون نوار ثابت بالای صفحه (شبیه Google Maps) -->
   <div class="absolute top-0 inset-x-0 z-[700] pointer-events-none" dir="rtl">
-    <div class="flex items-start justify-between p-3 md:p-4">
-      <!-- نام سایت — کپسول در سمت راست -->
-      <div class="pointer-events-auto">
+    <div class="flex items-start justify-between gap-2 p-3 md:p-4">
+      <!-- نام سایت + نوار جستجو — کنار هم در سمت راست -->
+      <div class="pointer-events-auto flex items-start gap-2 min-w-0 flex-1">
         <router-link
           :to="authStore.isAuthenticated ? '/dashboard' : '/baseMap'"
-          class="map-site-capsule"
+          class="map-site-capsule shrink-0"
           title="Map IQ"
         >
           <span class="map-site-capsule-dot"></span>
           <span class="map-site-capsule-title">Map IQ</span>
         </router-link>
+
+        <!-- نوار جستجو، بلافاصله کنار نام سایت -->
+        <div class="min-w-0 flex-1 max-w-[320px]">
+          <slot name="search" />
+        </div>
       </div>
 
       <!-- پروفایل + ثبت‌نام — سمت چپ -->
-      <div class="pointer-events-auto flex items-center gap-2">
+      <div class="pointer-events-auto flex items-center gap-2 shrink-0">
         <!-- دکمه باز/بسته کردن سایدبار میز کار و لایه‌ها -->
         <button
           class="map-toggle-btn"

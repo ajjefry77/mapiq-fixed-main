@@ -5,7 +5,12 @@
       <MapFloatingHeader
         :sidebarOpen="sidebarOpen"
         @toggle-sidebar="sidebarOpen = !sidebarOpen"
-      />
+      >
+        <!-- نوار جستجو، کنار نام سایت -->
+        <template #search>
+          <MapSearchBox v-if="mapReady" :map="map" />
+        </template>
+      </MapFloatingHeader>
 
       <!-- سایدبار میز کار و لایه‌ها (پیش‌فرض بسته) -->
       <transition name="sidebar-slide">
@@ -38,14 +43,6 @@
           />
         </div>
       </transition>
-
-      <!-- فیلد جستجوی شناور، کنار سایدبار و روی نقشه -->
-      <div
-        class="absolute top-16 z-[660] transition-all duration-300"
-        :class="sidebarOpen ? 'left-[356px]' : 'left-3'"
-      >
-        <MapSearchBox v-if="mapReady" :map="map" />
-      </div>
 
       <div class="relative h-full">
         <div

@@ -459,7 +459,7 @@ onUnmounted(() => {
 <style scoped>
 .map-search-box {
   width: 320px;
-  max-width: calc(100vw - 24px);
+  max-width: 100%;
 }
 
 /* فیلد کپسولی */

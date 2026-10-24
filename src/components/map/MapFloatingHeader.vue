@@ -14,24 +14,29 @@
         </router-link>
       </div>
 
-      <!-- نوار جستجو — بلافاصله بغل نام سایت (در موبایل یک ردیف پایین‌تر) -->
+      <!-- نوار جستجو + ابزارهای کنارش (قطب‌نما، میز کار) — بلافاصله بغل نام سایت -->
       <div
-        class="pointer-events-auto order-3 sm:order-2 w-full sm:w-auto sm:flex-1 min-w-0 sm:max-w-[320px]"
+        class="pointer-events-auto order-3 sm:order-2 w-full sm:w-auto sm:flex-1 min-w-0 sm:max-w-[420px] flex items-start gap-2"
       >
-        <slot name="search" />
+        <div class="min-w-0 flex-1">
+          <slot name="search" />
+        </div>
+        <div class="shrink-0 flex items-start gap-2">
+          <slot name="tools" />
+        </div>
       </div>
 
-      <!-- پروفایل + ثبت‌نام — سمت چپ -->
+      <!-- پروفایل یا دکمه واحد ورود / ثبت‌نام — سمت چپ -->
       <div class="pointer-events-auto order-2 sm:order-3 flex items-center gap-2 shrink-0 ms-auto">
-        <Profile />
+        <Profile v-if="authStore.isAuthenticated" />
         <router-link
-          v-if="!authStore.isAuthenticated"
-          to="/register"
+          v-else
+          to="/login"
           class="map-signup-capsule"
-          title="ثبت‌نام"
+          title="ورود / ثبت نام"
         >
-          <i class="fas fa-user-plus text-xs"></i>
-          <span>ثبت نام</span>
+          <i class="fas fa-user text-xs"></i>
+          <span>ورود / ثبت نام</span>
         </router-link>
       </div>
     </div>

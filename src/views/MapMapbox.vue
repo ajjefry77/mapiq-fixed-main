@@ -7,13 +7,18 @@
         <template #search>
           <MapSearchBox v-if="mapReady" :map="map" />
         </template>
+
+        <!-- قطب‌نما، سمت چپ نوار جستجو -->
+        <template #tools>
+          <MapboxNorthIcon v-if="mapReady" :map="map" />
+        </template>
       </MapFloatingHeader>
 
       <!-- سایدبار میز کار و لایه‌ها (پیش‌فرض بسته) -->
       <transition name="sidebar-slide">
         <div
           v-if="sidebarOpen"
-          class="absolute top-[124px] md:top-[84px] bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col max-md:left-2 max-md:right-2 max-md:bottom-2 max-md:w-auto max-md:overflow-y-auto"
+          class="absolute top-[124px] md:top-[84px] bottom-3 right-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col max-md:left-2 max-md:right-2 max-md:bottom-2 max-md:w-auto max-md:overflow-y-auto"
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs font-semibold text-zinc-400 flex items-center gap-2">
@@ -64,7 +69,7 @@
 
         <div
           v-if="!authStore.user && ShowForLogin"
-          class="absolute top-16 right-3 bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3"
+          class="absolute top-[116px] md:top-[60px] left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3"
         >
           <svg
             class="w-4 h-4 shrink-0 text-orange-400"
@@ -126,28 +131,26 @@
         />
       </div>
 
-      <MapboxNorthIcon v-if="mapReady" :map="map" />
-
-      <!-- دکمه باز/بسته کردن سایدبار میز کار و لایه‌ها — کنار آیکون شمال -->
+      <!-- دکمه باز/بسته کردن سایدبار میز کار — زیر نام سایت -->
       <button
         v-if="mapReady"
-        class="absolute top-[124px] md:top-20 right-[52px] z-[650] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg transition-colors"
-        :class="sidebarOpen ? 'text-orange-400' : 'text-zinc-400 hover:text-orange-400'"
+        v-show="!sidebarOpen"
+        class="absolute top-[124px] md:top-20 right-4 z-[650] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg text-zinc-400 hover:text-orange-400 transition-colors"
         style="background: rgba(26, 29, 39, 0.85)"
-        :title="sidebarOpen ? 'بستن میز کار' : 'باز کردن میز کار'"
+        title="باز کردن میز کار"
         :aria-expanded="sidebarOpen"
         aria-label="میز کار و لایه‌ها"
         @click="sidebarOpen = !sidebarOpen"
       >
         <i class="fas fa-bars"></i>
       </button>
+
       <MapboxDrawTools
         ref="drawing"
         v-if="mapReady"
         :map="map"
         :pins="Pins"
         :baseMaps="baseMaps"
-        :panelShifted="sidebarOpen"
         @setBaseLayer="setBaseLayer"
         @pickPoint="onMapPointPicked"
       />
@@ -788,14 +791,14 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* انیمیشن باز/بسته شدن سایدبار میز کار (کشیده شدن از چپ) */
+/* انیمیشن باز/بسته شدن سایدبار میز کار (کشیده شدن از راست) */
 .sidebar-slide-enter-active,
 .sidebar-slide-leave-active {
   transition: transform 0.28s ease-out, opacity 0.28s ease-out;
 }
 .sidebar-slide-enter-from,
 .sidebar-slide-leave-to {
-  transform: translateX(-110%);
+  transform: translateX(110%);
   opacity: 0;
 }
 </style>

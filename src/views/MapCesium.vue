@@ -9,13 +9,18 @@
         <template #search>
           <MapSearchBox v-if="viewer" :viewer="viewer" />
         </template>
+
+        <!-- قطب‌نما، سمت چپ نوار جستجو -->
+        <template #tools>
+          <NorthArrow v-if="viewer" :viewer="viewer" />
+        </template>
       </MapFloatingHeader>
 
       <!-- سایدبار میز کار و لایه‌ها (پیش‌فرض بسته) -->
       <transition name="sidebar-slide">
         <div
           v-if="sidebarOpen"
-          class="absolute top-[124px] md:top-[84px] bottom-3 left-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col overflow-y-auto"
+          class="absolute top-[124px] md:top-[84px] bottom-3 right-3 w-[340px] max-w-[calc(100vw-16px)] bg-zinc-900 border border-[var(--border)] rounded-xl shadow p-3 z-[640] flex flex-col overflow-y-auto"
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs font-semibold text-zinc-400 flex items-center gap-2">
@@ -52,7 +57,7 @@
 
         <div id="cesiumContainer" style="width:100%; height:100%;">
 
-          <div v-if="!authStore.user && ShowForLogin" class="absolute top-16 right-3 bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
+          <div v-if="!authStore.user && ShowForLogin" class="absolute top-[116px] md:top-[60px] left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
             <svg class="w-4 h-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>برای دسترسی به امکانات کامل، <a class="text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2" href="/login">وارد شوید</a></span>
             <button @click="ShowForLogin = false" class="text-xl leading-none text-zinc-500 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
@@ -109,15 +114,13 @@
 
         <!--<SearchCode  v-if="viewer" :viewer="viewer" />-->
         <AddFile  v-if="viewer" :viewer="viewer"  :pins="Pins" />
-        <NorthArrow v-if="viewer" :viewer="viewer" />
-
-        <!-- دکمه باز/بسته کردن سایدبار میز کار و لایه‌ها — کنار آیکون شمال -->
+        <!-- دکمه باز/بسته کردن سایدبار میز کار — زیر نام سایت -->
         <button
           v-if="viewer"
-          class="absolute top-[124px] md:top-16 right-12 z-[650] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg transition-colors"
-          :class="sidebarOpen ? 'text-orange-400' : 'text-zinc-400 hover:text-orange-400'"
+          v-show="!sidebarOpen"
+          class="absolute top-[124px] md:top-20 right-4 z-[650] w-10 h-10 rounded-full flex items-center justify-center border-[1px] border-gray-500 shadow-lg text-zinc-400 hover:text-orange-400 transition-colors"
           style="background: rgba(26, 29, 39, 0.85)"
-          :title="sidebarOpen ? 'بستن میز کار' : 'باز کردن میز کار'"
+          title="باز کردن میز کار"
           :aria-expanded="sidebarOpen"
           aria-label="میز کار و لایه‌ها"
           @click="sidebarOpen = !sidebarOpen"
@@ -126,7 +129,7 @@
         </button>
         <FlyPosition v-if="viewer" :viewer="viewer" :latlon="latlon"/>
         <!--<DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins"  @disableFeatureInfo="featurePanel.deactivate"/>-->
-        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" :panelShifted="sidebarOpen" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
+        <DrawTools ref="drawing" v-if="viewer" :viewer="viewer"  :pins="Pins" @disableFeatureInfo="featurePanel?.disableEdit()" @pickPoint="onMapPointPicked"/>
 
         <DataView  v-if="openDataView" :workspace="workspaceView"  :layer="layerView"  :geoserverUrl= 'GEOSERVER + "/geoserver"' :pageSize="20">
           <template #close>
@@ -1313,14 +1316,14 @@ function getLocation() {
   overflow: hidden;
 }
 
-/* انیمیشن باز/بسته شدن سایدبار میز کار (کشیده شدن از چپ) */
+/* انیمیشن باز/بسته شدن سایدبار میز کار (کشیده شدن از راست) */
 .sidebar-slide-enter-active,
 .sidebar-slide-leave-active {
   transition: transform 0.28s ease-out, opacity 0.28s ease-out;
 }
 .sidebar-slide-enter-from,
 .sidebar-slide-leave-to {
-  transform: translateX(-110%);
+  transform: translateX(110%);
   opacity: 0;
 }
 

@@ -4,14 +4,12 @@
     :map="map"
     :drawMode="drawMode"
     :pickForForm="pickForForm"
-    :baseMaps="baseMaps"
     :intersectPanelOpen="intersectPanelOpen"
     :fishnetPanelOpen="fishnetPanelOpen"
     :panelShifted="panelShifted"
     @toggleMeasure="toggleMeasure"
     @togglePointPick="togglePointPick"
     @setDrawMode="setDrawMode"
-    @setBaseLayer="$emit('setBaseLayer', $event)"
     @start-cut-mode="startCutMode"
     @openKroki="openKroki"
     @openIntersectPanel="openIntersectPanel"
@@ -141,12 +139,11 @@ import { useAuthStore } from "@/stores/auth";
 const props = defineProps({
   map: { type: Object, required: true },
   pins: { type: Object, required: true },
-  baseMaps: { type: Array, default: () => [] },
   /** هنگام باز بودن سایدبار میز کار، نوار ابزار به سمت راست جابه‌جا می‌شود */
   panelShifted: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["pickPoint", "setBaseLayer"]);
+const emit = defineEmits(["pickPoint"]);
 
 const authStore = useAuthStore();
 const SelectGroup = inject("SelectGroup", null);

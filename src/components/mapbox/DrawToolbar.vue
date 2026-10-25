@@ -4,6 +4,10 @@
     class="absolute top-[calc(var(--top)+150px)] z-50 transition-all duration-300"
     :class="panelShifted ? 'left-[360px]' : 'left-1'"
   >
+    <!-- قطب‌نما — بالای نوار ابزار -->
+    <div class="mb-2 flex justify-center">
+      <MapboxNorthIcon :map="map" />
+    </div>
     <div @click.stop class="map-toolbar">
       <!-- اندازه‌گیری -->
       <button
@@ -189,46 +193,6 @@
       </button>
       <!-- ================================= -->
 
-      <div class="relative">
-        <button
-          @click.stop="expanded = !expanded"
-          :class="[
-            'map-toolbar-btn',
-            expanded ? 'map-toolbar-btn--active' : '',
-          ]"
-          title="نقشه پایه"
-        >
-          <i class="fas fa-layer-group"></i>
-        </button>
-        <div
-          v-show="expanded"
-          @click.stop
-          class="absolute top-0 left-full ml-2 w-[260px] max-w-[calc(100vw-24px)] map-toolbar-pop p-2 z-50"
-        >
-          <div class="flex gap-2 flex-wrap max-h-[180px] overflow-y-auto">
-            <div
-              v-for="basemap in baseMaps"
-              :key="basemap.name"
-              @click="
-                $emit('setBaseLayer', basemap);
-                expanded = false;
-              "
-              class="w-20 h-20 rounded-lg border border-zinc-800 cursor-pointer overflow-hidden shadow hover:shadow-lg hover:border-orange-500 relative shrink-0 transition"
-              :title="basemap.name"
-            >
-              <img
-                :src="basemap.thumbnail"
-                class="w-full h-full object-cover"
-              />
-              <span
-                class="absolute bottom-0 inset-x-0 bg-black bg-opacity-50 text-white text-xs text-center py-1"
-                >{{ basemap.name }}</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- زوم -->
       <button
         @click="map?.zoomIn({ duration: 200 })"
@@ -251,16 +215,15 @@
 <script setup>
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import MapboxNorthIcon from "@/components/mapbox/MapboxNorthIcon.vue";
 
 const authStore = useAuthStore();
 const toolbarEl = ref(null);
-const expanded = ref(false);
 
 defineProps({
   map: { type: Object, default: null },
   drawMode: { type: String, default: "" },
   pickForForm: { type: Boolean, default: false },
-  baseMaps: { type: Array, default: () => [] },
   intersectPanelOpen: { type: Boolean, default: false }, // جدید
   fishnetPanelOpen: { type: Boolean, default: false },
   panelShifted: { type: Boolean, default: false },
@@ -271,7 +234,6 @@ defineEmits([
   "toggleMeasure",
   "togglePointPick",
   "setDrawMode",
-  "setBaseLayer",
   "startCutMode",
   "openKroki",
   "openIntersectPanel",

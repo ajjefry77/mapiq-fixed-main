@@ -9,11 +9,6 @@
         <template #search>
           <MapSearchBox v-if="viewer" :viewer="viewer" />
         </template>
-
-        <!-- قطب‌نما، سمت چپ نوار جستجو -->
-        <template #tools>
-          <NorthArrow v-if="viewer" :viewer="viewer" />
-        </template>
       </MapFloatingHeader>
 
       <!-- سایدبار میز کار و لایه‌ها (پیش‌فرض بسته) -->
@@ -57,7 +52,7 @@
 
         <div id="cesiumContainer" style="width:100%; height:100%;">
 
-          <div v-if="!authStore.user && ShowForLogin" class="absolute top-[116px] md:top-[60px] left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
+          <div v-if="!authStore.user && ShowForLogin" class="absolute top-2 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-[710] border border-gray-700/50 backdrop-blur-sm flex items-center gap-3">
             <svg class="w-4 h-4 shrink-0 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>برای دسترسی به امکانات کامل، <a class="text-orange-400 hover:text-orange-300 transition-colors underline underline-offset-2" href="/login">وارد شوید</a></span>
             <button @click="ShowForLogin = false" class="text-xl leading-none text-zinc-500 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
@@ -197,7 +192,6 @@
 import {ref, reactive, onMounted, computed, inject, onActivated, onDeactivated, provide, onUnmounted} from 'vue'
 import AddFile from '../components/AddFile.vue'
 
-import NorthArrow from '../components/NorthIcon.vue';
 import FlyPosition from '../components/FlyPosition.vue';
 import DrawTools from '../components/DrawTools.vue';
 import FeatureInfoPanel from '../components/FeatureInfoPanel.vue';

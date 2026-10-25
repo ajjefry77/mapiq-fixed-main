@@ -1,5 +1,9 @@
 <template>
   <div class="absolute top-[calc(var(--top)+137px)] z-50 transition-all duration-300" :class="panelShifted ? 'left-[360px]' : 'left-1'">
+    <!-- قطب‌نما — بالای نوار ابزار -->
+    <div class="mb-2 flex justify-center">
+      <NorthArrow v-if="viewer" :viewer="viewer" />
+    </div>
     <!-- دکمه اصلی -->
 <!--    <button  @click="expanded = !expanded" title="Drawing Tools"-->
 <!--        class="w-8 h-8 bg-gray-700 text-white rounded flex items-center justify-center shadow-md">-->
@@ -203,6 +207,7 @@ import SaveDialog from '../components/SaveDialog.vue'
 import {useAuthStore} from '../stores/auth';
 import { useToast } from "vue-toast-notification";
 import { logger } from "@/logger"
+import NorthArrow from './NorthIcon.vue'
 const SERVER = import.meta.env.VITE_SERVER //?? 'http://localhost:3001';
 const authStore = useAuthStore();
 const $toast = useToast();

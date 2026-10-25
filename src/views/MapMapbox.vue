@@ -7,11 +7,6 @@
         <template #search>
           <MapSearchBox v-if="mapReady" :map="map" />
         </template>
-
-        <!-- قطب‌نما، سمت چپ نوار جستجو -->
-        <template #tools>
-          <MapboxNorthIcon v-if="mapReady" :map="map" />
-        </template>
       </MapFloatingHeader>
 
       <!-- سایدبار میز کار و لایه‌ها (پیش‌فرض بسته) -->
@@ -69,7 +64,7 @@
 
         <div
           v-if="!authStore.user && ShowForLogin"
-          class="absolute top-[116px] md:top-[60px] left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 border border-gray-700/50 backdrop-blur-sm flex items-center gap-3"
+          class="absolute top-2 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-gray-900/85 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-[710] border border-gray-700/50 backdrop-blur-sm flex items-center gap-3"
         >
           <svg
             class="w-4 h-4 shrink-0 text-orange-400"
@@ -100,25 +95,78 @@
           </button>
         </div>
 
+        <!-- گوشه پایین‌چپ: انتخاب نقشه پایه (مثل Google Maps) بالای کادر مختصات -->
         <div
-          class="absolute bottom-8 md:bottom-3 left-3 px-2 py-2 rounded-md font-mono text-sm"
-          style="background: rgba(26, 29, 39, 0.85); color: var(--text-muted)"
+          class="absolute bottom-8 md:bottom-3 left-3 z-[610] flex flex-col items-start gap-2"
         >
-          <div class="float-left mr-4">
-            <ToggleSwitch
-              class="inline-block"
-              v-model="latlon"
-              left="UTM"
-              right="GCS"
-            />
-          </div>
-          <div class="flex">
-            <div v-if="latlon">
-              Lon: {{ Lon }} , Lat: {{ Lat }} | Scale: {{ scale }}
+          <div class="relative mr-auto">
+            <button
+              @click.stop="basemapExpanded = !basemapExpanded"
+              class="flex items-center gap-2 h-12 px-2.5 rounded-xl border border-zinc-700 shadow-lg transition-colors hover:border-orange-500"
+              style="background: rgba(26, 29, 39, 0.9)"
+              title="نقشه پایه"
+              aria-label="نقشه پایه"
+              :aria-expanded="basemapExpanded"
+            >
+              <img
+                :src="activeBaseThumb"
+                alt=""
+                class="w-9 h-9 rounded-lg object-cover border border-zinc-700 shrink-0"
+              />
+              <span class="text-xs font-medium text-zinc-100">نقشه‌ها</span>
+              <i class="fas fa-chevron-up text-[10px] text-zinc-400"></i>
+            </button>
+
+            <div
+              v-show="basemapExpanded"
+              @click.stop
+              class="absolute bottom-full left-0 mb-2 w-[260px] max-w-[calc(100vw-24px)] map-toolbar-pop p-2 z-50"
+            >
+              <div class="flex gap-2 flex-wrap max-h-[180px] overflow-y-auto">
+                <div
+                  v-for="basemap in baseMaps"
+                  :key="basemap.name"
+                  @click="
+                    setBaseLayer(basemap);
+                    basemapExpanded = false;
+                  "
+                  class="w-20 h-20 rounded-lg border border-zinc-800 cursor-pointer overflow-hidden shadow hover:shadow-lg hover:border-orange-500 relative shrink-0 transition"
+                  :title="basemap.name"
+                >
+                  <img
+                    :src="basemap.thumbnail"
+                    class="w-full h-full object-cover"
+                    alt=""
+                  />
+                  <span
+                    class="absolute bottom-0 inset-x-0 bg-black bg-opacity-50 text-white text-xs text-center py-1"
+                    >{{ basemap.name }}</span
+                  >
+                </div>
+              </div>
             </div>
-            <div v-else>
-              Easting: {{ easting }} , Northing: {{ northing }} , Zone:
-              {{ zone }} | Scale: {{ scale }}
+          </div>
+
+          <div
+            class="px-2 py-2 rounded-md font-mono text-sm"
+            style="background: rgba(26, 29, 39, 0.85); color: var(--text-muted)"
+          >
+            <div class="float-left mr-4">
+              <ToggleSwitch
+                class="inline-block"
+                v-model="latlon"
+                left="UTM"
+                right="GCS"
+              />
+            </div>
+            <div class="flex">
+              <div v-if="latlon">
+                Lon: {{ Lon }} , Lat: {{ Lat }} | Scale: {{ scale }}
+              </div>
+              <div v-else>
+                Easting: {{ easting }} , Northing: {{ northing }} , Zone:
+                {{ zone }} | Scale: {{ scale }}
+              </div>
             </div>
           </div>
         </div>
@@ -127,7 +175,10 @@
           v-if="mapReady"
           :pins="Pins"
           :map="map"
-          class="absolute bottom-20 right-2 md:bottom-4 w-36 md:w-44 z-[300]"
+          :class="[
+            'absolute bottom-20 md:bottom-4 w-36 md:w-44 z-[300] right-2',
+            sidebarOpen ? 'max-md:hidden md:right-[360px]' : '',
+          ]"
         />
       </div>
 
@@ -150,8 +201,6 @@
         v-if="mapReady"
         :map="map"
         :pins="Pins"
-        :baseMaps="baseMaps"
-        @setBaseLayer="setBaseLayer"
         @pickPoint="onMapPointPicked"
       />
     </div>
@@ -202,7 +251,6 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { logger } from "@/logger";
 
-import MapboxNorthIcon from "../components/mapbox/MapboxNorthIcon.vue";
 import MapboxDrawTools from "../components/mapbox/MapboxDrawTools.vue";
 import MapboxPinsList from "../components/mapbox/MapboxPinsList.vue";
 import MapboxLegend from "../components/mapbox/MapboxLegend.vue";
@@ -268,6 +316,16 @@ const isMobileUA = ref(
 const ShowForLogin = ref(true);
 // سایدبار میز کار — پیش‌فرض بسته
 const sidebarOpen = ref(false);
+
+// انتخاب نقشه پایه — بالای کادر مختصات (مثل Google Maps)
+const basemapExpanded = ref(false);
+const activeBaseThumb = ref("smap.jpg");
+
+function closeBasemapPopup() {
+  basemapExpanded.value = false;
+}
+onMounted(() => document.addEventListener("click", closeBasemapPopup));
+onUnmounted(() => document.removeEventListener("click", closeBasemapPopup));
 let map: any = null;
 const mapReady = ref(false);
 
@@ -408,6 +466,7 @@ function lock2DView() {
 
 function setBaseLayer(basemap: any) {
   if (!map) return;
+  if (basemap?.thumbnail) activeBaseThumb.value = basemap.thumbnail;
   const applyViewMode = () => {
     if (basemap.is3D) {
       enable3DView();

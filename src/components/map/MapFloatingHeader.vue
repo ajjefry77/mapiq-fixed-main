@@ -14,12 +14,30 @@
         </router-link>
       </div>
 
-      <!-- نوار جستجو + ابزارهای کنارش (قطب‌نما، میز کار) — بلافاصله بغل نام سایت -->
+      <!-- نوار جستجو و لینک‌های خدمات -->
       <div
-        class="pointer-events-auto order-3 sm:order-2 w-full sm:w-auto sm:flex-1 min-w-0 sm:max-w-[420px] flex items-start gap-2"
+        class="pointer-events-auto order-3 sm:order-2 w-full sm:w-auto min-w-0 flex flex-wrap items-start gap-2"
       >
-        <div class="min-w-0 flex-1">
+        <div class="w-full min-w-0 sm:w-[320px]">
           <slot name="search" />
+        </div>
+        <div class="shrink-0 flex items-start gap-2">
+          <a
+            href="https://plan.mapiq.ir/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="map-service-capsule"
+          >
+            کروکی
+          </a>
+          <a
+            href="https://e.mapiq.ir/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="map-service-capsule"
+          >
+            استعلام
+          </a>
         </div>
         <div class="shrink-0 flex items-start gap-2">
           <slot name="tools" />
@@ -110,6 +128,31 @@ const authStore = useAuthStore();
 .map-signup-capsule:hover {
   filter: brightness(1.08);
   transform: translateY(-1px);
+}
+
+.map-service-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  background: rgba(19, 21, 30, 0.88);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.3));
+  color: var(--text, #fff);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.18s ease-out;
+}
+
+.map-service-capsule:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent, #e8843c);
+  color: var(--accent, #e8843c);
 }
 
 @keyframes pulse-dot {

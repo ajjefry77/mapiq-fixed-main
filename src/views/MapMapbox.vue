@@ -239,6 +239,7 @@
 import {
   ref,
   reactive,
+  watch,
   onMounted,
   computed,
   inject,
@@ -268,6 +269,7 @@ import axios from "axios";
 import proj4 from "proj4";
 import { bringDrawingsToFront } from "../utils/layerOrder";
 import { ensureDemSource, setTerrainExaggeration } from "../utils/elevation";
+import { readMapViewParams, updateMapViewUrl } from "../utils/mapSharedLink";
 
 const GEOSERVER = import.meta.env.VITE_GEOSERVER;
 const GEOSERVER_WORKSPACE = import.meta.env.VITE_GEOSERVER_WORKSPACE || "Amlak";
@@ -360,6 +362,37 @@ const mapContainerRef = ref<HTMLElement | null>(null);
 
 provide("Pins", Pins);
 
+function syncMapViewToUrl() {
+  if (!map) return;
+
+  const center = map.getCenter();
+  const view = readMapViewParams();
+  const point =
+    pickedPoint.lat != null && pickedPoint.lng != null
+      ? ([pickedPoint.lat, pickedPoint.lng] as [number, number])
+      : view.point;
+
+  let polygon: [number, number][] | undefined;
+  for (const pin of Pins) {
+    const shape = pin?.shape;
+    if (!shape || shape.type !== "polygon" || !Array.isArray(shape.positions) || shape.positions.length < 3) continue;
+    polygon = shape.positions
+      .map((p: any) => [Number(p.lon ?? p.lng), Number(p.lat)])
+      .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat)) as [number, number][];
+    if (polygon.length >= 3) break;
+  }
+
+  updateMapViewUrl({
+    lat: center.lat,
+    lng: center.lng,
+    zoom: map.getZoom(),
+    pitch: map.getPitch(),
+    heading: map.getBearing(),
+    point,
+    polygon,
+  });
+}
+
 function clearPins() {
   Pins.splice(0, Pins.length);
 }
@@ -369,6 +402,24 @@ function updatePins(val: any[]) {
 function openMyDialog() {
   openDialog.value = true;
 }
+
+watch(
+  () => Pins.map((pin) => ({
+    id: pin?.id,
+    type: pin?.shape?.type,
+    positions: Array.isArray(pin?.shape?.positions)
+      ? pin.shape.positions.map((p: any) => ({
+          lon: Number(p?.lon ?? p?.lng),
+          lat: Number(p?.lat),
+        }))
+      : [],
+  })),
+  () => {
+    if (!map) return;
+    syncMapViewToUrl();
+  },
+  { deep: true },
+);
 
 const is3DMode = ref(false);
 
@@ -569,6 +620,7 @@ function getLocation() {
         .setLngLat([longitude, latitude])
         .addTo(map);
       map.flyTo({ center: [longitude, latitude], zoom: 14, duration: 1500 });
+      syncMapViewToUrl();
     },
     (error) => {
       switch (error.code) {
@@ -610,6 +662,7 @@ function onMapPointPicked({ lat, lng }: { lat: number; lng: number }) {
     bearing: is3DMode.value ? map.getBearing() : 0,
     duration: 1500,
   });
+  syncMapViewToUrl();
   showPickerPanel.value = true;
 }
 
@@ -648,6 +701,7 @@ function onPickerCoords({ lat, lng }: { lat: number; lng: number }) {
     bearing: is3DMode.value ? map.getBearing() : 0,
     duration: 1200,
   });
+  syncMapViewToUrl();
 }
 
 async function savePickedPoint(data: any) {
@@ -761,18 +815,39 @@ function initMap() {
 
   map.on("zoom", () => {
     updateScale();
+    syncMapViewToUrl();
   });
   map.on("move", () => {
     updateScale();
   });
+  map.on("moveend", () => {
+    syncMapViewToUrl();
+  });
 
   map.on("load", () => {
     mapReady.value = true;
+    const urlView = readMapViewParams();
+    if (urlView.point && urlView.point.length === 2) {
+      pickedPoint.lat = urlView.point[0];
+      pickedPoint.lng = urlView.point[1];
+    }
+
+    if (urlView.lat != null && urlView.lng != null) {
+      map.jumpTo({
+        center: [urlView.lng, urlView.lat],
+        zoom: urlView.zoom ?? map.getZoom(),
+        pitch: urlView.pitch ?? map.getPitch(),
+        bearing: urlView.heading ?? map.getBearing(),
+      });
+    }
+
     // DEM را از همان ابتدا نگه دار تا ارتفاع در حالت 2D هم در دسترس باشد
     try {
       ensureDemSource(map);
       if (!is3DMode.value) setTerrainExaggeration(map, 0);
     } catch (_) {}
+
+    syncMapViewToUrl();
   });
 }
 

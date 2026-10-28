@@ -23,7 +23,7 @@
         </div>
         <div class="shrink-0 flex items-start gap-2">
           <a
-            href="https://plan.mapiq.ir/"
+            :href="buildSharedMapRouteUrl('http://localhost:5174', '#/draw')"
             target="_blank"
             rel="noopener noreferrer"
             class="map-service-capsule"
@@ -31,7 +31,7 @@
             کروکی
           </a>
           <a
-            href="https://e.mapiq.ir/"
+            :href="buildSharedMapRouteUrl('http://localhost:5174', '#/draw')"
             target="_blank"
             rel="noopener noreferrer"
             class="map-service-capsule"
@@ -64,6 +64,7 @@
 <script setup>
 import Profile from "../Profile.vue";
 import { useAuthStore } from "../../stores/auth";
+import { buildSharedMapRouteUrl } from "../../utils/mapSharedLink";
 
 const authStore = useAuthStore();
 </script>

@@ -189,7 +189,7 @@
 <script setup>
 
 //lucide-vue-next
-import {ref, reactive, onMounted, computed, inject, onActivated, onDeactivated, provide, onUnmounted} from 'vue'
+import {ref, reactive, watch, onMounted, computed, inject, onActivated, onDeactivated, provide, onUnmounted} from 'vue'
 import AddFile from '../components/AddFile.vue'
 
 import FlyPosition from '../components/FlyPosition.vue';
@@ -212,6 +212,7 @@ import axios from "axios";
 import proj4 from "proj4";
 import { logger, EV } from "@/logger";
 import { useNotify } from "@/composables/useNotify";
+import { readMapViewParams, updateMapViewUrl } from "@/utils/mapSharedLink";
 const { success: notifySuccess, error: notifyError, warning: notifyWarning } = useNotify();
 
 //#region  -- Variable
@@ -323,6 +324,56 @@ let showTile;
 //const contextOpacity = ref(false);
 
 provide('Pins', Pins)
+
+watch(
+  () => Pins.map((pin) => ({
+    id: pin?.id,
+    type: pin?.shape?.type,
+    positions: Array.isArray(pin?.shape?.positions)
+      ? pin.shape.positions.map((p) => ({
+          lon: Number(p?.lon ?? p?.lng),
+          lat: Number(p?.lat),
+        }))
+      : [],
+  })),
+  () => {
+    if (viewer) syncMapViewToUrl();
+  },
+  { deep: true },
+);
+
+function syncMapViewToUrl() {
+  if (!viewer) return;
+
+  const cartographic = viewer.camera.positionCartographic;
+  const lat = Cesium.Math.toDegrees(cartographic.latitude)
+  const lng = Cesium.Math.toDegrees(cartographic.longitude)
+
+  let polygon = undefined
+  for (const pin of Pins) {
+    const shape = pin?.shape
+    if (!shape || shape.type !== 'polygon' || !Array.isArray(shape.positions) || shape.positions.length < 3) continue
+    polygon = shape.positions
+      .map((p) => [Number(p.lon ?? p.lng), Number(p.lat)])
+      .filter(([lngValue, latValue]) => Number.isFinite(lngValue) && Number.isFinite(latValue))
+    if (polygon.length >= 3) break
+  }
+
+  updateMapViewUrl({
+    lat,
+    lng,
+    zoom: undefined,
+    height: cartographic.height,
+    pitch: Cesium.Math.toDegrees(viewer.camera.pitch),
+    heading: Cesium.Math.toDegrees(viewer.camera.heading),
+    point:
+      pickedPoint.lat != null && pickedPoint.lng != null
+        ? [pickedPoint.lat, pickedPoint.lng]
+        : undefined,
+    polygon,
+  })
+}
+
 const contextMenu = ref({
   visible: false,
   x: 0,
@@ -492,13 +543,26 @@ const initMap_Cesium = async () => {
   Cesium.ImageryProvider.retryLoad = true;
   Cesium.Resource.maximumConcurrentRequests = 8;
 
+  const initialView = readMapViewParams();
+  const defaultDestination = Cesium.Cartesian3.fromDegrees(
+    initialView.lng ?? 51.5,
+    initialView.lat ?? 35.5,
+    initialView.height ?? 50000,
+  );
+
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(
-        51.5,
-        35.5,
-        50000
-    )
+    destination: defaultDestination,
+    orientation: {
+      heading: initialView.heading != null ? Cesium.Math.toRadians(initialView.heading) : viewer.camera.heading,
+      pitch: initialView.pitch != null ? Cesium.Math.toRadians(initialView.pitch) : viewer.camera.pitch,
+      roll: 0,
+    },
   });
+
+  if (initialView.point && initialView.point.length === 2) {
+    pickedPoint.lat = initialView.point[0]
+    pickedPoint.lng = initialView.point[1]
+  }
 
   viewer.zoomTo(viewer.terrainProvider);
 
@@ -564,6 +628,7 @@ const initMap_Cesium = async () => {
     }, 100);
   };
   viewer.camera.changed.addEventListener(updateCesiumScale);
+  viewer.camera.moveEnd.addEventListener(syncMapViewToUrl);
 
   // Set Home icon to position
   // viewer.homeButton.viewModel.command.beforeExecute.addEventListener(function (commandInfo) {
@@ -1064,6 +1129,7 @@ function onMapPointPicked({ lat, lng }) {
   })
 
   viewer.flyTo(pickMarker.value, { offset: new Cesium.HeadingPitchRange(0, -45, 800) })
+  syncMapViewToUrl()
 
   // باز کردن پنل فرم‌ها از پایین
   showPickerPanel.value = true
@@ -1098,6 +1164,7 @@ function onPickerCoords({ lat, lng }) {
     })
   }
   viewer.flyTo(pickMarker.value, { offset: new Cesium.HeadingPitchRange(0, -45, 800) })
+  syncMapViewToUrl()
 }
 
 // ذخیره اطلاعات نقطه (نام/توضیحات/فایل + مختصات) به عنوان یک پین

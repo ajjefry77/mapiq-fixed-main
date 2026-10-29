@@ -1,278 +1,307 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import axios from 'axios'
-import {
-  sanitizeInput,
-  clearAllSensitiveData,
-  setupTokenRefresh,
-  isSessionValid,
-  trackActivity
-} from '../utils/security'
-import { logger, EV } from '../logger'
+﻿import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
+import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_SERVER + '/api'
+import { EV, logger } from '../logger';
+import {
+  clearAllSensitiveData,
+  isSessionValid,
+  sanitizeInput,
+  setupTokenRefresh,
+  trackActivity,
+} from '../utils/security';
+
+const API_BASE_URL = `${import.meta.env.VITE_SERVER ?? ''}/api`;
+const STORAGE_KEYS = {
+  token: 'token',
+  user: 'user',
+  mapEngine: 'mapEngine',
+  fbToken: 'fb_token',
+} as const;
 
 interface UserRole {
-  id: string | number
-  name: string
-  Permissions?: { name: string }[]
+  id: string | number;
+  name: string;
+  Permissions?: Array<{ name: string }>;
 }
 
 interface UserData {
-  id: string | number | null
-  name?: string | null
-  full_name?: string | null
-  username?: string | null
-  phone?: string | null
-  code?: string | null
-  Roles?: UserRole[]
-  roles?: string[]
+  id: string | number | null;
+  name?: string | null;
+  full_name?: string | null;
+  username?: string | null;
+  phone?: string | null;
+  code?: string | null;
+  Roles?: UserRole[];
+  roles?: string[];
+}
+
+function readStoredUser(): UserData | null {
+  const rawValue = localStorage.getItem(STORAGE_KEYS.user);
+
+  if (!rawValue) return null;
+
+  try {
+    const parsed = JSON.parse(rawValue) as UserData;
+    return parsed && typeof parsed === 'object' ? parsed : { id: rawValue };
+  } catch {
+    return { id: rawValue };
+  }
+}
+
+function setAuthHeader(authToken: string | null): void {
+  if (authToken) {
+    axios.defaults.headers.common.Authorization = `Bearer ${authToken}`;
+    return;
+  }
+
+  delete axios.defaults.headers.common.Authorization;
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<UserData | null>(
-    localStorage.getItem('user')
-      ? { id: localStorage.getItem('user') }
-      : null
-  )
-
-  const isLogin = ref<boolean>(false)
-  const isMapboxMode = ref<boolean>(localStorage.getItem('mapEngine') === 'mapbox')
-  const token = ref<string | null>(localStorage.getItem('token'))
-  const userPermissions = ref<string[]>([])
-  let authCheckPromise: Promise<void> | null = null
-  let isRefreshing = false
-  let refreshSubscribers: Array<(token: string) => void> = []
+  const user = ref<UserData | null>(readStoredUser());
+  const isLogin = ref(false);
+  const isMapboxMode = ref(localStorage.getItem(STORAGE_KEYS.mapEngine) === 'mapbox');
+  const token = ref<string | null>(localStorage.getItem(STORAGE_KEYS.token));
+  const userPermissions = ref<string[]>([]);
+  const fbRoles = ref<string[]>([]);
+  let authCheckPromise: Promise<void> | null = null;
 
   const isAuthenticated = computed(() => {
-    if (!token.value || !user.value) return false
-    if (!isSessionValid()) return false
-    return true
-  })
+    if (!token.value || !user.value) {
+      return false;
+    }
+
+    return isSessionValid();
+  });
+
   const isAdmin = computed(() => {
-    if (user.value?.Roles?.some(r => r.name === 'admin')) return true
-    if (user.value?.roles?.some(r => r === 'admin')) return true
-    return false
-  })
+    if (user.value?.Roles?.some((role) => role.name === 'admin')) return true;
+    return user.value?.roles?.some((role) => role === 'admin') ?? false;
+  });
 
   const isGroupManager = computed(() => {
-    if (user.value?.Roles?.some(r => r.name === 'group_manager')) return true
-    if (user.value?.roles?.some(r => r === 'group_manager')) return true
-    return false
-  })
+    if (user.value?.Roles?.some((role) => role.name === 'group_manager')) return true;
+    return user.value?.roles?.some((role) => role === 'group_manager') ?? false;
+  });
 
-  const isUser = computed(() => !isAdmin.value && !isGroupManager.value)
-  const fbRoles = ref<string[]>([])
-  const displayName = computed(() => user.value?.name || user.value?.username || '')
+  const isUser = computed(() => !isAdmin.value && !isGroupManager.value);
+  const displayName = computed(() => user.value?.name || user.value?.username || '');
 
-  const setAuthData = (authToken: string, userData: UserData) => {
-    token.value = authToken
-    user.value = userData
-    isLogin.value = true
-    authCheckPromise = Promise.resolve()
-    localStorage.setItem('token', authToken)
-    if (userData.id) localStorage.setItem('user', String(userData.id))
-    axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`
+  function setAuthData(authToken: string, userData: UserData): void {
+    token.value = authToken;
+    user.value = userData;
+    isLogin.value = true;
+    authCheckPromise = Promise.resolve();
 
-    trackActivity()
+    localStorage.setItem(STORAGE_KEYS.token, authToken);
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
 
+    axios.defaults.headers.common.Authorization = `Bearer ${authToken}`;
+    trackActivity();
     setupTokenRefresh(
       () => token.value,
       async () => {
-        await checkAuth()
-        return !!token.value
+        await checkAuth();
+        return !!token.value;
       }
-    )
+    );
   }
 
-  const clearAuthData = () => {
-    token.value = null
-    user.value = null
-    isLogin.value = false
-    userPermissions.value = []
-    authCheckPromise = null
-    isRefreshing = false
-    refreshSubscribers = []
-    clearAllSensitiveData()
-    delete axios.defaults.headers.common['Authorization']
+  function clearAuthData(): void {
+    token.value = null;
+    user.value = null;
+    isLogin.value = false;
+    userPermissions.value = [];
+    authCheckPromise = null;
+    clearAllSensitiveData();
+    setAuthHeader(null);
   }
 
-  const login = async (username: string, password: string) => {
-    const sanitizedUsername = sanitizeInput(username)
+  async function login(username: string, password: string): Promise<{ success: boolean; error?: string }> {
+    const sanitizedUsername = sanitizeInput(username);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, {
         username: sanitizedUsername,
-        password
-      })
-      const { token: authToken, user: userData } = response.data
+        password,
+      });
+      const { token: authToken, user: userData } = response.data;
 
       if (!authToken || !userData) {
-        throw new Error('پاسخ سرور نامعتبر')
+        throw new Error('پاسخ سرور نامعتبر');
       }
 
-      setAuthData(authToken, userData)
-      await loadUserPermissions()
+      setAuthData(authToken, userData);
+      await loadUserPermissions();
 
       logger.info(EV.AUTH_LOGIN_SUCCESS, {
         userId: String(userData.id ?? ''),
         role: Array.isArray(userData.roles) ? userData.roles.join(',') : undefined,
-      })
+      });
 
-      return { success: true }
+      return { success: true };
     } catch (error: any) {
-      logger.warn(EV.AUTH_LOGIN_FAILED, {
-        status: error?.response?.status,
-        username: sanitizedUsername,
-      }, error)
+      logger.warn(
+        EV.AUTH_LOGIN_FAILED,
+        {
+          status: error?.response?.status,
+          username: sanitizedUsername,
+        },
+        error
+      );
+
       return {
         success: false,
-        error: error.response?.data?.error || 'خطای احراز هویت.'
-      }
+        error: error.response?.data?.error || 'خطای احراز هویت.',
+      };
     }
   }
 
-  const register = async (userData: Record<string, any>) => {
+  async function register(userData: Record<string, any>): Promise<{ success: boolean; error?: string }> {
     try {
-      const sanitizedData: Record<string, any> = {}
-      for (const [key, value] of Object.entries(userData)) {
-        if (typeof value === 'string') {
-          sanitizedData[key] = sanitizeInput(value)
-        } else {
-          sanitizedData[key] = value
-        }
-      }
+      const sanitizedData: Record<string, any> = {};
 
-      const response = await axios.post(`${API_BASE_URL}/register`, sanitizedData)
-      const { token: authToken, user: userInfo } = response.data
+      Object.entries(userData).forEach(([key, value]) => {
+        sanitizedData[key] = typeof value === 'string' ? sanitizeInput(value) : value;
+      });
+
+      const response = await axios.post(`${API_BASE_URL}/register`, sanitizedData);
+      const { token: authToken, user: userInfo } = response.data;
 
       if (!authToken || !userInfo) {
-        throw new Error('پاسخ سرور نامعتبر')
+        throw new Error('پاسخ سرور نامعتبر');
       }
 
-      setAuthData(authToken, userInfo)
-      logger.info(EV.AUTH_REGISTER_SUCCESS, { userId: String(userInfo.id ?? '') })
-      return { success: true }
+      setAuthData(authToken, userInfo);
+      logger.info(EV.AUTH_REGISTER_SUCCESS, { userId: String(userInfo.id ?? '') });
+      return { success: true };
     } catch (error: any) {
-      logger.warn(EV.AUTH_REGISTER_FAILED, { status: error?.response?.status }, error)
+      logger.warn(EV.AUTH_REGISTER_FAILED, { status: error?.response?.status }, error);
       return {
         success: false,
         error: error.response?.data?.error || 'خطای ثبت نام',
-      }
+      };
     }
   }
 
-  const logout = () => {
-    logger.info(EV.AUTH_LOGOUT, { userId: String(user.value?.id ?? '') })
-    clearAuthData()
+  function logout(): void {
+    logger.info(EV.AUTH_LOGOUT, { userId: String(user.value?.id ?? '') });
+    clearAuthData();
   }
 
-  const checkAuth = async () => {
-    if (!token.value) return
+  async function checkAuth(): Promise<void> {
+    if (!token.value) {
+      return;
+    }
 
     if (!isSessionValid()) {
-      clearAuthData()
-      return
+      clearAuthData();
+      return;
     }
 
-    if (authCheckPromise) return authCheckPromise
+    if (authCheckPromise) {
+      return authCheckPromise;
+    }
 
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+    axios.defaults.headers.common.Authorization = `Bearer ${token.value}`;
+
     authCheckPromise = (async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/users/${user.value?.id || 'me'}`)
+        const response = await axios.get(`${API_BASE_URL}/users/${user.value?.id || 'me'}`);
 
         if (!response.data) {
-          throw new Error('پاسخ خالی از سرور')
+          throw new Error('پاسخ خالی از سرور');
         }
 
-        const userData = response.data
+        const userData = response.data;
         if (!userData.id && !userData.Roles && !userData.roles) {
-          throw new Error('داده‌های کاربر نامعتبر')
+          throw new Error('داده‌های کاربر نامعتبر');
         }
 
-        user.value = userData
-        await loadUserPermissions()
-        trackActivity()
+        user.value = userData;
+        await loadUserPermissions();
+        trackActivity();
       } catch (error: any) {
         if (error.response?.status === 401 || error.response?.status === 403) {
-          clearAuthData()
+          clearAuthData();
         }
       }
-    })()
-    return authCheckPromise
+    })();
+
+    await authCheckPromise;
+    authCheckPromise = null;
   }
 
-  const loadUserPermissions = async () => {
-    const perms: string[] = []
+  async function loadUserPermissions(): Promise<void> {
+    const perms = new Set<string>();
 
-    if (user.value?.Roles?.length) {
-      for (const role of user.value.Roles) {
-        if (role?.Permissions?.length) {
-          perms.push(...role.Permissions.map(p => p.name))
-        }
-      }
-    }
+    user.value?.Roles?.forEach((role) => {
+      role.Permissions?.forEach((permission) => {
+        perms.add(permission.name);
+      });
+    });
+
     if (user.value?.roles?.includes('admin')) {
-      perms.push('*')
+      perms.add('*');
     }
+
     if (user.value?.roles?.includes('group_manager')) {
-      perms.push('view_groups', 'manage_groups', 'view_forms', 'manage_forms')
+      ['view_groups', 'manage_groups', 'view_forms', 'manage_forms'].forEach((permission) => perms.add(permission));
     }
 
-    userPermissions.value = [...new Set(perms)]
+    userPermissions.value = [...perms];
   }
 
-  const hasPermission = (permission: string) => {
-    if (!isAuthenticated.value) return false
-    if (userPermissions.value.includes('*')) return true
-    if (userPermissions.value.includes(permission)) return true
-    if (user.value?.Roles?.some(r => r.name === 'admin')) return true
-    if (user.value?.roles?.includes('admin')) return true
+  function hasPermission(permission: string): boolean {
+    if (!isAuthenticated.value) return false;
+    if (userPermissions.value.includes('*')) return true;
+    if (userPermissions.value.includes(permission)) return true;
+    if (isAdmin.value) return true;
     if (isGroupManager.value) {
-      const gmPerms = ['view_groups', 'manage_groups', 'view_forms', 'manage_forms']
-      if (gmPerms.includes(permission)) return true
+      const groupManagerPermissions = ['view_groups', 'manage_groups', 'view_forms', 'manage_forms'];
+      return groupManagerPermissions.includes(permission);
     }
-    return false
+    return false;
   }
 
-  const hasAnyPermission = (permissions: string[]) => {
-    return permissions.some(p => hasPermission(p))
+  function hasAnyPermission(permissions: string[]): boolean {
+    return permissions.some((permission) => hasPermission(permission));
   }
 
-  const hasAllPermissions = (permissions: string[]) => {
-    return permissions.every(p => hasPermission(p))
+  function hasAllPermissions(permissions: string[]): boolean {
+    return permissions.every((permission) => hasPermission(permission));
   }
 
-  const isRole = (roleName: string) => {
-    if (user.value?.Roles?.some(r => r.name === roleName)) return true
-    if (user.value?.roles?.some(r => r === roleName)) return true
-    return false
+  function isRole(roleName: string): boolean {
+    return user.value?.Roles?.some((role) => role.name === roleName) ??
+      user.value?.roles?.some((role) => role === roleName) ??
+      false;
   }
 
-  const syncFb = async () => {
+  async function syncFb(): Promise<any> {
     try {
-      const API = import.meta.env.VITE_SERVER + '/api'
-      const res = await axios.post(`${API}/sync/login`, {
+      const response = await axios.post(`${API_BASE_URL}/sync/login`, {
         phone: user.value?.phone,
         full_name: user.value?.name || user.value?.full_name,
-      })
-      const data = res.data
+      });
+      const data = response.data;
+
       if (data.success) {
-        fbRoles.value = data.data.user.roles || []
-        localStorage.setItem('fb_token', data.data.token)
-        return data.data
+        fbRoles.value = data.data.user.roles || [];
+        localStorage.setItem('fb_token', data.data.token);
+        return data.data;
       }
-    } catch (e) {
+    } catch (error: any) {
       logger.warn(EV.AUTH_SYNC_FB_FAILED, {
-        status: (e as { response?: { status?: number } })?.response?.status,
-      }, e)
+        status: error?.response?.status,
+      }, error);
     }
   }
 
-  const switchMapEngine = () => {
-    isMapboxMode.value = !isMapboxMode.value
-    localStorage.setItem('mapEngine', isMapboxMode.value ? 'mapbox' : 'cesium')
+  function switchMapEngine(): void {
+    isMapboxMode.value = !isMapboxMode.value;
+    localStorage.setItem('mapEngine', isMapboxMode.value ? 'mapbox' : 'cesium');
   }
 
   return {
@@ -297,5 +326,5 @@ export const useAuthStore = defineStore('auth', () => {
     hasAllPermissions,
     isRole,
     syncFb,
-  }
-})
+  };
+});

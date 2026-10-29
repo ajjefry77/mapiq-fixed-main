@@ -1,9 +1,13 @@
-import { createApp, reactive } from 'vue';
+﻿import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import router from './router';
-import App from './App.vue';
 import axios from 'axios';
+import { Icon } from '@iconify/vue';
+
+import App from './App.vue';
+import router from './router';
 import { initSecurity } from './utils/security';
+import { loadAppConfigs } from './utils/appConfig';
+import { isPublicRoute } from './constants/publicRoutes';
 import {
   initLogging,
   installGlobalErrorHandlers,
@@ -12,117 +16,73 @@ import {
   EV,
 } from './logger';
 
-import ToastPlugin from "vue-toast-notification";
-import "vue-toast-notification/dist/theme-sugar.css";
-import "@fortawesome/fontawesome-free/css/all.min.css";
+import 'vue-toast-notification/dist/theme-sugar.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import './style.css';
 
-import { Icon } from '@iconify/vue'
-
-initSecurity()
-
-initLogging()
-
-setupApiLogging(axios)
+initSecurity();
+initLogging();
+setupApiLogging(axios);
 
 axios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('token');
+
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     if (config.method && ['post', 'put', 'patch'].includes(config.method)) {
-      config.headers['X-Requested-With'] = 'XMLHttpRequest'
+      config.headers['X-Requested-With'] = 'XMLHttpRequest';
     }
 
-    return config
+    return config;
   },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
+  (error) => Promise.reject(error)
+);
 
 axios.interceptors.response.use(
   (response) => {
     if (response.data && response.data.success === true && 'data' in response.data) {
       response.data = response.data.data;
     }
+
     return response;
   },
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      localStorage.removeItem('fb_token')
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('fb_token');
 
-      const path = window.location.pathname
-      const isPublicPath =
-        path === '/login' ||
-        path === '/register' ||
-        path === '/map3D' ||
-        path.startsWith('/map3D/') ||
-        path === '/baseMap' ||
-        path.startsWith('/baseMap/') ||
-        path === '/map' ||
-        path.startsWith('/map/') ||
-        path === '/mapbox' ||
-        path.startsWith('/mapbox/') ||
-        path.startsWith('/f/')
+      const path = window.location.pathname;
 
-      if (!isPublicPath && path !== '/login') {
-        window.location.href = '/login'
+      if (!isPublicRoute(path) && path !== '/login') {
+        window.location.href = '/login';
       }
     }
 
     if (error.response?.status === 429) {
-      const retryAfter = error.response.headers['retry-after']
-      logger.warn(EV.API_REQUEST_RATE_LIMITED, { retryAfter })
+      const retryAfter = error.response.headers['retry-after'];
+      logger.warn(EV.API_REQUEST_RATE_LIMITED, { retryAfter });
     }
 
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 const app = createApp(App);
 app.component('Icon', Icon);
+
+installGlobalErrorHandlers(app);
+
 const pinia = createPinia();
-
-installGlobalErrorHandlers(app)
-
-fetch('/dictionary.json')
-  .then(res => res.json())
-  .then(cfg => {
-    const dict = reactive(cfg)
-    app.provide('dict', dict)
-  })
-  .catch((err) => {
-    logger.warn(EV.APP_CONFIG_LOAD_FAILED, { resource: 'dictionary.json' }, err)
-  })
-
-fetch('/features.json')
-  .then(res => res.json())
-  .then(cfg => {
-    const features = reactive(cfg)
-    app.provide('features', features)
-  })
-  .catch((err) => {
-    logger.warn(EV.APP_CONFIG_LOAD_FAILED, { resource: 'features.json' }, err)
-  })
-
-fetch('/mbtiles.json')
-  .then(res => res.json())
-  .then(cfg => {
-    const features = reactive(cfg)
-    app.provide('mbtiles', features)
-  })
-  .catch((err) => {
-    logger.warn(EV.APP_CONFIG_LOAD_FAILED, { resource: 'mbtiles.json' }, err)
-  })
-
 app.use(pinia);
 app.use(router);
-app.mount('#app');
+
+void loadAppConfigs(app).finally(() => {
+  app.mount('#app');
+});
 
 logger.info(EV.APP_BOOT, {
   environment: import.meta.env.MODE,

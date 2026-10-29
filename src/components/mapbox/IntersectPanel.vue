@@ -273,6 +273,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { flattenPins } from "../../utils/pinTree";
 import {
   formatDistance,
   formatArea,
@@ -310,19 +311,6 @@ const emit = defineEmits([
 
 /** همیشه به‌صورت رشته نگه‌داری می‌شود تا مقایسه چک‌باکس پایدار باشد */
 const selectedPinIds = ref([]);
-
-function flattenPins(list, out = []) {
-  const arr = Array.isArray(list) ? list : list?.value || [];
-  (arr || []).forEach((pin) => {
-    if (!pin) return;
-    if (pin.type === "group") {
-      flattenPins(pin.children, out);
-      return;
-    }
-    out.push(pin);
-  });
-  return out;
-}
 
 const polygonPinOptions = computed(() => {
   const all = flattenPins(props.pins);

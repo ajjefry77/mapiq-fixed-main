@@ -10,25 +10,57 @@ export type SharedMapState = {
   tool?: string
 }
 
-const MAP_STATE_KEYS = ["lat", "lng", "lon", "zoom", "z", "height", "pitch", "heading", "point", "polygon", "tool"]
+type NumberValue = number | undefined
 
-function parseNumber(value: string | null) {
+type CoordinateTuple = [number, number]
+
+const MAP_STATE_KEYS = ["lat", "lng", "lon", "zoom", "z", "height", "pitch", "heading", "point", "polygon", "tool"] as const
+
+function parseNumber(value: string | null): NumberValue {
   if (value == null) return undefined
-  const num = Number(value)
-  return Number.isFinite(num) ? num : undefined
+
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : undefined
+}
+
+function parseCoordinatePair(value: string): CoordinateTuple | undefined {
+  const items = value
+    .split(",")
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isFinite(item))
+
+  if (items.length < 2) return undefined
+
+  return [items[0], items[1]]
+}
+
+function parsePolygon(value: string): CoordinateTuple[] | undefined {
+  const parsedPoints = value
+    .split(";")
+    .map((segment) => parseCoordinatePair(segment))
+    .filter((coordinate): coordinate is CoordinateTuple => coordinate != null)
+
+  return parsedPoints.length >= 3 ? parsedPoints : undefined
 }
 
 function getUrlParams(): URLSearchParams {
   const params = new URLSearchParams(window.location.search)
   const hash = window.location.hash || ""
-  if (hash.includes("?")) {
-    const queryString = hash.slice(hash.indexOf("?") + 1)
-    const hashParams = new URLSearchParams(queryString)
-    for (const [key, value] of hashParams.entries()) {
-      if (!params.has(key)) params.set(key, value)
-    }
+
+  if (!hash.includes("?")) return params
+
+  const queryString = hash.slice(hash.indexOf("?") + 1)
+  const hashParams = new URLSearchParams(queryString)
+
+  for (const [key, value] of hashParams.entries()) {
+    if (!params.has(key)) params.set(key, value)
   }
+
   return params
+}
+
+function toFixedValue(value: number, digits: number): string {
+  return Number(value).toFixed(digits)
 }
 
 export function readMapViewParams(): SharedMapState {
@@ -42,48 +74,17 @@ export function readMapViewParams(): SharedMapState {
   const heading = parseNumber(params.get("heading"))
 
   const pointValue = params.get("point")
-  let point: [number, number] | undefined
-  if (pointValue) {
-    const items = pointValue
-      .split(",")
-      .map((part) => Number(part.trim()))
-      .filter((value) => Number.isFinite(value))
-
-    if (items.length >= 2) {
-      point = [items[0], items[1]]
-    }
-  }
+  const point = pointValue ? parseCoordinatePair(pointValue) : undefined
 
   const polygonValue = params.get("polygon")
-  let polygon: [number, number][] | undefined
-  if (polygonValue) {
-    const parsed = polygonValue
-      .split(";")
-      .map((part) => {
-        const items = part
-          .split(",")
-          .map((value) => Number(value.trim()))
-          .filter((value) => Number.isFinite(value))
-        if (items.length >= 2) return [items[0], items[1]] as [number, number]
-        return null
-      })
-      .filter((value): value is [number, number] => Array.isArray(value))
-
-    if (parsed.length >= 3) {
-      polygon = parsed
-    }
-  }
+  const polygon = polygonValue ? parsePolygon(polygonValue) : undefined
 
   const tool = params.get("tool") || undefined
 
   return { lat, lng, zoom, height, pitch, heading, point, polygon, tool }
 }
 
-function toFixedValue(value: number, digits: number) {
-  return Number(value).toFixed(digits)
-}
-
-export function updateMapViewUrl(state: SharedMapState = {}) {
+export function updateMapViewUrl(state: SharedMapState = {}): void {
   const url = new URL(window.location.href)
   const hash = url.hash || "#/"
   const hashQueryIndex = hash.indexOf("?")
@@ -115,10 +116,11 @@ export function updateMapViewUrl(state: SharedMapState = {}) {
 
   url.hash = `${hashBase}${hashParams.toString() ? `?${hashParams.toString()}` : ""}`
   const nextUrl = `${url.pathname}${url.search}${url.hash}`
+
   window.history.replaceState({}, "", nextUrl)
 }
 
-export function buildSharedMapRouteUrl(baseUrl: string, targetRoute = "/draw") {
+export function buildSharedMapRouteUrl(baseUrl: string, targetRoute = "/draw"): string {
   const currentHash = window.location.hash || ""
   const currentQuery = currentHash.includes("?") ? currentHash.slice(currentHash.indexOf("?") + 1) : ""
   const currentParams = new URLSearchParams(currentQuery)
@@ -131,6 +133,8 @@ export function buildSharedMapRouteUrl(baseUrl: string, targetRoute = "/draw") {
 
   const target = new URL(baseUrl)
   const routeHash = targetRoute.startsWith("#") ? targetRoute : `#${targetRoute.startsWith("/") ? targetRoute : `/${targetRoute}`}`
+
   target.hash = `${routeHash}${sharedParams.toString() ? `?${sharedParams.toString()}` : ""}`
+
   return target.toString()
 }

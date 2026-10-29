@@ -1,5 +1,6 @@
 import * as turf from "@turf/turf";
 import { ref } from "vue";
+import { flattenPins } from "../utils/pinTree";
 import { registerDrawLayer } from "../utils/layerOrder";
 import { toUTM, toUTMInZone, fromUTM } from "./useDrawingHelpers";
 
@@ -94,19 +95,6 @@ export function createFishnetHandler(ctx) {
     fishnetDeletedCount.value = 0;
     fishnetExclusions.value = [];
     fishnetCtx.sourcePoly = null;
-  }
-
-  function flattenPins(list, out = []) {
-    const arr = Array.isArray(list) ? list : list?.value || [];
-    (arr || []).forEach((pin) => {
-      if (!pin) return;
-      if (pin.type === "group" || pin.type === "folder") {
-        flattenPins(pin.children, out);
-        return;
-      }
-      out.push(pin);
-    });
-    return out;
   }
 
   function pinToPolygonFeature(pin) {

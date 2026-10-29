@@ -369,17 +369,22 @@ function syncMapViewToUrl() {
   const view = readMapViewParams();
   const point =
     pickedPoint.lat != null && pickedPoint.lng != null
-      ? ([pickedPoint.lat, pickedPoint.lng] as [number, number])
+      ? ([pickedPoint.lng, pickedPoint.lat] as [number, number])
       : view.point;
 
-  let polygon: [number, number][] | undefined;
-  for (const pin of Pins) {
-    const shape = pin?.shape;
-    if (!shape || shape.type !== "polygon" || !Array.isArray(shape.positions) || shape.positions.length < 3) continue;
-    polygon = shape.positions
-      .map((p: any) => [Number(p.lon ?? p.lng), Number(p.lat)])
-      .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat)) as [number, number][];
-    if (polygon.length >= 3) break;
+  let polygon = drawing.value?.getSharedPolygon?.() as [number, number][] | undefined;
+  const pins = [...Pins].sort(
+    (first, second) => Number(second?.selected === true) - Number(first?.selected === true),
+  );
+  if (!polygon) {
+    for (const pin of pins) {
+      const shape = pin?.shape;
+      if (!shape || shape.type !== "polygon" || !Array.isArray(shape.positions) || shape.positions.length < 3) continue;
+      polygon = shape.positions
+        .map((p: any) => [Number(p.lon ?? p.lng), Number(p.lat)])
+        .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat)) as [number, number][];
+      if (polygon.length >= 3) break;
+    }
   }
 
   updateMapViewUrl({
@@ -417,6 +422,14 @@ watch(
   () => {
     if (!map) return;
     syncMapViewToUrl();
+  },
+  { deep: true },
+);
+
+watch(
+  () => drawing.value?.getSharedPolygon?.(),
+  () => {
+    if (map) syncMapViewToUrl();
   },
   { deep: true },
 );

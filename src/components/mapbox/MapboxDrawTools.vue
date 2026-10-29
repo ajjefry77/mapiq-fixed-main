@@ -156,6 +156,22 @@ function openKroki() {
   krokiDialogRef.value?.open();
 }
 
+function getSharedPolygon() {
+  const polygonPositions =
+    shape.value?.type === "polygon"
+      ? shape.value.positions
+      : drawMode.value === "polygon"
+        ? positions
+        : null;
+
+  if (!Array.isArray(polygonPositions)) return undefined;
+
+  const polygon = polygonPositions
+    .map((point) => [Number(point.lon ?? point.lng), Number(point.lat)])
+    .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
+
+  return polygon.length >= 3 ? polygon : undefined;
+}
 
 const {
   loading,
@@ -164,6 +180,7 @@ const {
   showForm,
   formData,
   shape,
+  positions,
   attch_file,
   nameError,
   activeTab,
@@ -363,6 +380,7 @@ defineExpose({
   inactiveDrawing,
   drawMode,
   startCutMode,
+  getSharedPolygon,
 });
 </script>
 

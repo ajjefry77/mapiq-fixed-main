@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { logger, EV } from '../logger';
+import { isPublicRoute } from '../constants/publicRoutes';
 
 const Login = () => import('../views/Login.vue');
 const Register = () => import('../views/Register.vue');
@@ -28,7 +29,6 @@ const WalletCharge = () => import('../views/WalletCharge.vue');
 const NotFound = () => import('../views/NotFound.vue');
 
 const SITE_TITLE = 'Map IQ';
-const PUBLIC_ROUTES = ['/login', '/register', '/map3D', '/baseMap'];
 
 const routes = [
   { path: '/', redirect: '/baseMap' },
@@ -204,6 +204,10 @@ router.beforeEach(async (to, _from, next) => {
 
   if (to.meta.requiresGuest && authStore.isAuthenticated) {
     return next('/baseMap')
+  }
+
+  if (to.meta.public === true && isPublicRoute(to.path)) {
+    return next();
   }
 
   if (to.meta.requiredRole && !authStore.isRole(String(to.meta.requiredRole))) {

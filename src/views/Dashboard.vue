@@ -377,6 +377,7 @@ import moment from "moment-jalaali";
 moment.loadPersian({ usePersianDigits: true });
 import { useAuthStore } from "../stores/auth";
 import { useNotify } from "../composables/useNotify";
+import { getAuthHeaders } from "../utils/api";
 import axios from "axios";
 
 const authStore = useAuthStore();
@@ -420,10 +421,7 @@ async function loadWallet() {
   walletLoading.value = true;
   try {
     const res = await axios.get(SERVER + "/api/wallet/" + authStore.user.id, {
-      headers: {
-        Authorization:
-          "Bearer " + (authStore.token || localStorage.getItem("token") || ""),
-      },
+      headers: getAuthHeaders(),
     });
     walletBalance.value = res.data?.balance ?? res.data?.amount ?? 0;
   } catch (e) {
@@ -444,13 +442,7 @@ async function requestCharge() {
     await axios.post(
       SERVER + "/api/wallet/charge",
       { amount: chargeAmount.value, userId: authStore.user?.id },
-      {
-        headers: {
-          Authorization:
-            "Bearer " +
-            (authStore.token || localStorage.getItem("token") || ""),
-        },
-      },
+      { headers: getAuthHeaders() },
     );
     success?.("درخواست شارژ ثبت شد");
     showCharge.value = false;

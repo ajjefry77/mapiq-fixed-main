@@ -208,6 +208,7 @@
 
 <script setup>
 import { computed } from "vue";
+import { flattenPins } from "../../utils/pinTree";
 
 const props = defineProps({
   panelOpen: { type: Boolean, default: false },
@@ -241,19 +242,6 @@ defineEmits([
   "exportPointsKML",
   "clearFishnet",
 ]);
-
-function flattenPins(list, out = []) {
-  const arr = Array.isArray(list) ? list : list?.value || [];
-  (arr || []).forEach((pin) => {
-    if (!pin) return;
-    if (pin.type === "group" || pin.type === "folder") {
-      flattenPins(pin.children, out);
-      return;
-    }
-    out.push(pin);
-  });
-  return out;
-}
 
 function cornerCount(pin) {
   try {

@@ -226,6 +226,7 @@
 import { ref, reactive, computed, nextTick, watch } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import proj4 from 'proj4'
+import { flattenPins } from '@/utils/pinTree'
 import { logger } from "@/logger"
 
 const props = defineProps({
@@ -314,18 +315,6 @@ const form = reactive({
 })
 
 /* -------------------- لیست پلی‌گان‌ها / خط‌های قابل استفاده -------------------- */
-function flattenPins(list) {
-  const out = []
-  for (const p of list || []) {
-    if (p.type === 'group' && Array.isArray(p.children)) {
-      out.push(...flattenPins(p.children))
-    } else {
-      out.push(p)
-    }
-  }
-  return out
-}
-
 const eligiblePins = computed(() =>
   flattenPins(props.pins).filter(
     p => p.type === 'draw' &&

@@ -441,6 +441,7 @@ import {
   pointIcon,
   ensurePointSymbolImages,
 } from "../../utils/drawStyle";
+import { getApiPayload, getAuthHeaders } from "../../utils/api";
 import { dxfToGeoJSON } from "../../utils/dxfToGeoJSON";
 import { pinsToDXF } from "../../utils/geoJSONToDXF";
 import proj4 from "proj4";
@@ -634,8 +635,8 @@ const getTitle = (file) => {
 const loadUserGroups = async () => {
   if (!authStore.user) return;
   try {
-    const res = await axios.get(SERVER + "/api/auth/me");
-    const me = res.data?.data ?? res.data;
+    const res = await axios.get(SERVER + "/api/auth/me", { headers: getAuthHeaders() });
+    const me = getApiPayload(res, {})[0] ?? res.data?.data ?? res.data ?? {};
     const groups = me?.Groups ?? me?.groups ?? [];
     const rawGroups = Array.isArray(groups) ? groups : [];
     if (!authStore.isAdmin) {
@@ -648,8 +649,8 @@ const loadUserGroups = async () => {
         if (Array.isArray(g.Users) || Array.isArray(g.users))
           return { ...g, member_count: (g.Users ?? g.users).length };
         try {
-          const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`);
-          const u = r.data?.data ?? r.data;
+          const r = await axios.get(SERVER + `/api/groups/${g.id}/users/`, { headers: getAuthHeaders() });
+          const u = getApiPayload(r, []);
           return { ...g, member_count: Array.isArray(u) ? u.length : 0 };
         } catch {
           return { ...g, member_count: 0 };
@@ -684,8 +685,8 @@ async function loadGroupProjects(group) {
   const id = group.id;
   loadingGroupProjects.value[id] = true;
   try {
-    const res = await axios.get(SERVER + `/api/groups/${id}/projects`);
-    const list = res.data?.data ?? res.data ?? [];
+    const res = await axios.get(SERVER + `/api/groups/${id}/projects`, { headers: getAuthHeaders() });
+    const list = getApiPayload(res, []);
     groupProjects.value[id] = Array.isArray(list)
       ? list.map((i) => ({
           id: i.obj_id ?? i.id,
@@ -716,7 +717,7 @@ async function createGroupProject(name) {
   if (!group || !name?.trim()) return;
   try {
     const payload = { type: "group", name: name.trim(), group_id: group.id };
-    const res = await axios.post(SERVER + `/api/groups/${group.id}/projects`, payload);
+    const res = await axios.post(SERVER + `/api/groups/${group.id}/projects`, payload, { headers: getAuthHeaders() });
     const created = res.data?.data ?? res.data;
     if (!groupProjects.value[group.id]) groupProjects.value[group.id] = [];
     groupProjects.value[group.id].unshift({
@@ -734,7 +735,7 @@ async function createGroupProject(name) {
         type: "group",
         name: name.trim(),
         group_id: group.id,
-      });
+      }, { headers: getAuthHeaders() });
       if (!groupProjects.value[group.id]) groupProjects.value[group.id] = [];
       groupProjects.value[group.id].unshift({ name: name.trim(), type: "group", group_id: group.id });
       expandedGroups.value[group.id] = true;
@@ -761,7 +762,7 @@ async function importSelectedToGroup() {
   try {
     await axios.post(SERVER + `/api/groups/${group.id}/projects/import`, {
       work_ids: selectedImportIds.value,
-    });
+    }, { headers: getAuthHeaders() });
     $toast?.success?.("پروژه‌ها به گروه منتقل شدند");
     showImportDialog.value = false;
     await loadGroupProjects(group);
@@ -778,7 +779,7 @@ async function loadGroupProject(proj, group) {
     if (proj.content || proj.type === "draw") {
       // در Mapbox معمولاً از مکانیزم لایه‌های موجود استفاده می‌شود
     } else {
-      const res = await axios.get(SERVER + `/api/load/myWork/item/${proj.save || proj.id}`);
+      const res = await axios.get(SERVER + `/api/load/myWork/item/${proj.save || proj.id}`, { headers: getAuthHeaders() });
     }
   } catch (err) {
     logger.error("data.load.failed", { resource: "groupProject" }, err);

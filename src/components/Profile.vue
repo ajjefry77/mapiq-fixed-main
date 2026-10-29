@@ -97,6 +97,7 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useToast } from "vue-toast-notification";
 import { useAuthStore } from '../stores/auth';
+import { getAuthHeaders } from '../utils/api';
 import axios from "axios";
 import { useRouter } from 'vue-router'
 import { logger } from "@/logger"
@@ -120,10 +121,7 @@ async function loadWallet() {
   if (!authStore.user?.id) return
   try {
     const res = await axios.get(SERVER + '/api/wallet/' + authStore.user.id, {
-      headers: {
-        Authorization:
-          'Bearer ' + (authStore.token || localStorage.getItem('token') || ''),
-      },
+      headers: getAuthHeaders(),
     })
     walletBalance.value = res.data?.balance ?? res.data?.amount ?? 0
   } catch (e) {

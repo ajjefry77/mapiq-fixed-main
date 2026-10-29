@@ -128,6 +128,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { getAuthHeaders } from '../utils/api'
 import axios from 'axios'
 
 const router = useRouter()
@@ -200,9 +201,7 @@ async function loadWallet() {
   if (!authStore.user?.id) return
   try {
     const res = await axios.get(SERVER + '/api/wallet/' + authStore.user.id, {
-      headers: {
-        Authorization: 'Bearer ' + (authStore.token || localStorage.getItem('token') || ''),
-      },
+      headers: getAuthHeaders(),
     })
     walletBalance.value = res.data?.balance ?? res.data?.amount ?? 0
   } catch {
@@ -244,11 +243,7 @@ async function pay() {
     await axios.post(
       SERVER + '/api/wallet/charge',
       { amount: add, userId: authStore.user.id },
-      {
-        headers: {
-          Authorization: 'Bearer ' + (authStore.token || localStorage.getItem('token') || ''),
-        },
-      },
+      { headers: getAuthHeaders() },
     )
     await loadWallet()
     pushHistory(entry)

@@ -23,20 +23,14 @@
         </div>
         <div class="shrink-0 flex items-start gap-2">
           <a
-            :href="buildSharedMapRouteUrl('http://localhost:5174', '#/draw')"
+            v-for="service in externalMapServices"
+            :key="service.label"
+            :href="buildSharedMapRouteUrl(service.url, '#/draw')"
             target="_blank"
             rel="noopener noreferrer"
             class="map-service-capsule"
           >
-            کروکی
-          </a>
-          <a
-            :href="buildSharedMapRouteUrl('http://localhost:5174', '#/draw')"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="map-service-capsule"
-          >
-            استعلام
+            {{ service.label }}
           </a>
         </div>
         <div class="shrink-0 flex items-start gap-2">
@@ -67,6 +61,11 @@ import { useAuthStore } from "../../stores/auth";
 import { buildSharedMapRouteUrl } from "../../utils/mapSharedLink";
 
 const authStore = useAuthStore();
+
+const externalMapServices = [
+  { label: "کروکی", url: "http://localhost:5174" },
+  { label: "استعلام", url: "https://e.mapiq.ir" },
+];
 </script>
 
 <style scoped>

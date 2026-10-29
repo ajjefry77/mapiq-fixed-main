@@ -368,7 +368,7 @@ function syncMapViewToUrl() {
     heading: Cesium.Math.toDegrees(viewer.camera.heading),
     point:
       pickedPoint.lat != null && pickedPoint.lng != null
-        ? [pickedPoint.lat, pickedPoint.lng]
+        ? [pickedPoint.lng, pickedPoint.lat]
         : undefined,
     polygon,
   })

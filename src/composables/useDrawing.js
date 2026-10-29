@@ -18,11 +18,11 @@ import {
   measureDistance,
   formatDistance,
   formatArea,
-formatVertexLabel,
-    getDrawTypeName,
-    toUTM,
-    toUTMInZone,
-    fromUTM,
+  formatVertexLabel,
+  getDrawTypeName,
+  toUTM,
+  toUTMInZone,
+  fromUTM,
   computeCentroid,
   computeCircleCoords,
 } from "./useDrawingHelpers";
@@ -92,6 +92,57 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   };
   const cs = { radius: 0, center: null };
   const drawDataSourceId = "pins-draw-" + crypto.randomUUID();
+
+  const normalizePoint = (point) => {
+    if (Array.isArray(point)) {
+      return {
+        lon: point[0],
+        lat: point[1],
+        ele: point[2] ?? 0,
+      };
+    }
+
+    return {
+      lon: point?.lon ?? point?.lng ?? 0,
+      lat: point?.lat ?? 0,
+      ele: point?.ele ?? point?.height ?? 0,
+    };
+  };
+
+  const getDisplayPoint = (point, index, currentSystem) => {
+    const normalized = normalizePoint(point);
+    const lon = normalized.lon;
+    const lat = normalized.lat;
+    const ele = normalized.ele;
+
+    if (currentSystem === "utm") {
+      const { x, y, zone } = toUTM(lon, lat);
+      return {
+        lat,
+        lon,
+        ele,
+        height: ele,
+        displayX: x,
+        displayY: y,
+        displayZ: ele,
+        zone,
+        system: "utm",
+        index,
+      };
+    }
+
+    return {
+      lat,
+      lon,
+      ele,
+      height: ele,
+      displayX: lon,
+      displayY: lat,
+      displayZ: ele,
+      system: "latlon",
+      index,
+    };
+  };
   // Tabs
   const tabs = computed(() => {
     const list = [
@@ -130,39 +181,9 @@ export function useDrawing(map, pins, emit, SelectGroup) {
   });
   const displayPoints = computed(() => {
     const src = measureActive.value ? measurePoints : livePoints.value;
-    return src.map((p, i) => {
-      const lon = Array.isArray(p) ? p[0] : p.lon || p.lng;
-      const lat = Array.isArray(p) ? p[1] : p.lat;
-      const ele = Array.isArray(p)
-        ? (p[2] ?? 0)
-        : (p.ele ?? p.height ?? 0);
-      if (coordinateSystem.value === "utm") {
-        const { x, y, zone } = toUTM(lon, lat);
-        return {
-          lat,
-          lon,
-          ele,
-          height: ele,
-          displayX: x,
-          displayY: y,
-          displayZ: ele,
-          zone,
-          system: "utm",
-          index: i,
-        };
-      }
-      return {
-        lat,
-        lon,
-        ele,
-        height: ele,
-        displayX: lon,
-        displayY: lat,
-        displayZ: ele,
-        system: "latlon",
-        index: i,
-      };
-    });
+    return src.map((point, index) =>
+      getDisplayPoint(point, index, coordinateSystem.value),
+    );
   });
   const livePointCount = computed(() => {
     if (shape.value) return getPointsCount();

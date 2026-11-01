@@ -109,7 +109,7 @@ async function onServiceClick(event, service) {
 }
 
 const externalMapServices = [
-  { label: "کروکی", url: "http://localhost:5174", secure: true },
+  { label: "کروکی", url: "https://plan.mapiq.ir", secure: true },
   { label: "استعلام", url: "https://e.mapiq.ir" },
 ];
 </script>

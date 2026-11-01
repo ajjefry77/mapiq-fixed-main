@@ -22,16 +22,23 @@
           <slot name="search" />
         </div>
         <div class="shrink-0 flex items-start gap-2">
-          <a
+          <component
+            :is="service.secure ? 'button' : 'a'"
             v-for="service in externalMapServices"
             :key="service.label"
-            :href="buildSharedMapRouteUrl(service.url, '#/draw')"
-            target="_blank"
+            :href="service.secure ? undefined : buildSharedMapRouteUrl(service.url, '#/draw')"
+            :type="service.secure ? 'button' : undefined"
+            :disabled="service.secure && linkPending"
+            :aria-busy="service.secure && linkPending"
+            @click="onServiceClick($event, service)"
+            @auxclick="onServiceClick($event, service)"
+            @contextmenu="!service.secure && refreshSharedLink($event, service.url)"
+            :target="service.secure ? undefined : '_blank'"
             rel="noopener noreferrer"
             class="map-service-capsule"
           >
-            {{ service.label }}
-          </a>
+            {{ service.secure && linkPending ? 'در حال انتقال…' : service.label }}
+          </component>
         </div>
         <div class="shrink-0 flex items-start gap-2">
           <slot name="tools" />
@@ -52,18 +59,57 @@
         </router-link>
       </div>
     </div>
+    <div v-if="linkError" role="alert" class="pointer-events-auto mx-3 mb-2 rounded-lg bg-red-950 text-white px-3 py-2 text-sm">
+      {{ linkError }}
+    </div>
   </div>
 </template>
 
 <script setup>
+import { inject, ref } from "vue";
 import Profile from "../Profile.vue";
 import { useAuthStore } from "../../stores/auth";
-import { buildSharedMapRouteUrl } from "../../utils/mapSharedLink";
+import { buildSharedMapRouteUrl, createSecureMapRouteUrl } from "../../utils/mapSharedLink";
 
 const authStore = useAuthStore();
+// The href rendered at mount can be stale: map movement updates history without
+// rerendering this header. Synchronize the live map and rebuild the anchor
+// before the browser performs its native navigation (also middle-click/copy).
+const syncSharedMapView = inject("syncSharedMapView", () => {});
+const linkPending = ref(false);
+const linkError = ref("");
+function refreshSharedLink(event, baseUrl) {
+  syncSharedMapView();
+  event.currentTarget.href = buildSharedMapRouteUrl(baseUrl, "#/draw");
+}
+
+async function onServiceClick(event, service) {
+  if (!service.secure) return refreshSharedLink(event, service.url);
+  event.preventDefault();
+  if (linkPending.value || (event.type === "auxclick" && event.button !== 1)) return;
+  linkError.value = "";
+  // Reserve the tab during the user gesture, before the asynchronous request.
+  const tab = window.open("about:blank", "_blank");
+  if (!tab) {
+    linkError.value = "لطفاً اجازهٔ بازشدن تب جدید را بدهید و دوباره کروکی را بزنید.";
+    return;
+  }
+  tab.opener = null;
+  linkPending.value = true;
+  try {
+    syncSharedMapView();
+    const url = await createSecureMapRouteUrl(service.url);
+    tab.location.replace(url);
+  } catch (error) {
+    tab.close();
+    linkError.value = error?.message || "انتقال امن نقشه انجام نشد؛ دوباره تلاش کنید.";
+  } finally {
+    linkPending.value = false;
+  }
+}
 
 const externalMapServices = [
-  { label: "کروکی", url: "http://localhost:5174" },
+  { label: "کروکی", url: "http://localhost:5174", secure: true },
   { label: "استعلام", url: "https://e.mapiq.ir" },
 ];
 </script>

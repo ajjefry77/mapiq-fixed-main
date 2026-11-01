@@ -117,13 +117,11 @@ export function updateMapViewUrl(state: SharedMapState = {}): void {
   url.hash = `${hashBase}${hashParams.toString() ? `?${hashParams.toString()}` : ""}`
   const nextUrl = `${url.pathname}${url.search}${url.hash}`
 
-  window.history.replaceState({}, "", nextUrl)
+  window.history.replaceState(window.history.state, "", nextUrl)
 }
 
 export function buildSharedMapRouteUrl(baseUrl: string, targetRoute = "/draw"): string {
-  const currentHash = window.location.hash || ""
-  const currentQuery = currentHash.includes("?") ? currentHash.slice(currentHash.indexOf("?") + 1) : ""
-  const currentParams = new URLSearchParams(currentQuery)
+  const currentParams = getUrlParams()
   const sharedParams = new URLSearchParams()
 
   for (const key of MAP_STATE_KEYS) {
@@ -137,4 +135,34 @@ export function buildSharedMapRouteUrl(baseUrl: string, targetRoute = "/draw"): 
   target.hash = `${routeHash}${sharedParams.toString() ? `?${sharedParams.toString()}` : ""}`
 
   return target.toString()
+}
+
+// Kroki handoff: coordinates go only in the HTTPS POST body. The returned
+// authenticated ciphertext is the sole map parameter in the destination URL.
+export async function createSecureMapRouteUrl(baseUrl: string): Promise<string> {
+  const target = new URL(baseUrl)
+  if (!['http:', 'https:'].includes(target.protocol)) throw new Error('آدرس سرویس نقشه معتبر نیست')
+  const query = Object.fromEntries([...getUrlParams()].filter(([key]) => (MAP_STATE_KEYS as readonly string[]).includes(key)))
+  const apiBase = (import.meta.env.VITE_KROKI_API_URL || new URL('/api', target).href).replace(/\/+$/, '')
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15000)
+  try {
+    const response = await fetch(`${apiBase}/map-links/seal`, {
+      method: 'POST', credentials: 'omit', cache: 'no-store', signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
+    })
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(result.error || 'ساخت لینک امن ممکن نشد؛ دوباره تلاش کنید')
+    if (typeof result.token !== 'string' || result.token.length > 65536 || !/^k1\.[A-Za-z0-9_-]{60,}$/.test(result.token)) {
+      throw new Error('پاسخ سرویس لینک امن معتبر نیست')
+    }
+    for (const key of MAP_STATE_KEYS) target.searchParams.delete(key)
+    target.hash = `#/draw?${new URLSearchParams({ map: result.token })}`
+    return target.href
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('سرور لینک امن پاسخ نداد؛ دوباره تلاش کنید')
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
 }

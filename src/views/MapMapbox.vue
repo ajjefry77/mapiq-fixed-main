@@ -361,6 +361,7 @@ const activeOpacityLayer = ref<any>(null);
 const mapContainerRef = ref<HTMLElement | null>(null);
 
 provide("Pins", Pins);
+provide("syncSharedMapView", syncMapViewToUrl);
 
 function syncMapViewToUrl() {
   if (!map) return;

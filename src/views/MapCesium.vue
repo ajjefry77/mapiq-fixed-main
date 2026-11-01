@@ -324,6 +324,7 @@ let showTile;
 //const contextOpacity = ref(false);
 
 provide('Pins', Pins)
+provide('syncSharedMapView', syncMapViewToUrl)
 
 watch(
   () => Pins.map((pin) => ({
